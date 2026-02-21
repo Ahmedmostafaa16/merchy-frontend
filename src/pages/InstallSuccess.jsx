@@ -31,7 +31,11 @@ const InstallSuccess = () => {
       console.log("API_BASE_URL:", API_BASE_URL);
       console.log("VERIFY URL:", url);
 
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: {
+          "ngrok-skip-browser-warning": "true"
+        }
+      });
 
       const contentType = response.headers.get("content-type") || "";
 
