@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/login.css";
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:8000";
+
 const InstallSuccess = () => {
   const navigate = useNavigate();
   const [status, setStatus] = useState("loading");
@@ -24,11 +26,12 @@ const InstallSuccess = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:8000/shops/${encodeURIComponent(shopParam)}`
+        `${API_BASE_URL}/shops/${encodeURIComponent(shopParam)}`
       );
 
       if (!response.ok) {
         setStatus("error");
+        setError(`Backend returned ${response.status}. Could not verify installation.`);
         return;
       }
 
@@ -41,19 +44,20 @@ const InstallSuccess = () => {
       }
 
       setStatus("error");
+      setError("Invalid response from backend.");
     } catch (err) {
       setStatus("error");
+      setError(err?.message || "Network error while verifying installation.");
     }
   };
 
   useEffect(() => {
     verifyShop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    if (status !== "success") {
-      return undefined;
-    }
+    if (status !== "success") return undefined;
 
     const timer = setTimeout(() => {
       navigate("/dashboard");
@@ -81,7 +85,10 @@ const InstallSuccess = () => {
 
           {status === "error" && (
             <div className="error-state">
-              <div className="error-message">Could not verify store installation</div>
+              <div className="error-message">
+                Could not verify store installation
+                {error ? <div style={{ marginTop: 8, fontSize: 14 }}>{error}</div> : null}
+              </div>
               <button className="submit-button" type="button" onClick={verifyShop}>
                 Retry
               </button>
