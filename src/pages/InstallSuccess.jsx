@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/login.css";
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:8000";
-console.log("API_BASE_URL:", API_BASE_URL);
+const API_BASE_URL =
+  process.env.REACT_APP_API_BASE_URL ||
+  "http://localhost:8000";
 
 const InstallSuccess = () => {
   const navigate = useNavigate();
@@ -26,9 +27,20 @@ const InstallSuccess = () => {
     }
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/shops/${encodeURIComponent(shopParam)}`
-      );
+      const url = `${API_BASE_URL}/shops/${encodeURIComponent(shopParam)}`;
+      console.log("API_BASE_URL:", API_BASE_URL);
+      console.log("VERIFY URL:", url);
+
+      const response = await fetch(url);
+
+      const contentType = response.headers.get("content-type") || "";
+
+      if (!contentType.includes("application/json")) {
+        const text = await response.text();
+        throw new Error(
+          `Expected JSON from ${url} but got HTML: ${text.slice(0, 80)}`
+        );
+      }
 
       if (!response.ok) {
         setStatus("error");
