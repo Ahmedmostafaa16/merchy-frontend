@@ -74,13 +74,10 @@ const InstallSuccess = () => {
   }, []);
 
   useEffect(() => {
-    if (status !== "success") return undefined;
-
-    const timer = setTimeout(() => {
+    if (status === "success") {
       navigate("/dashboard");
-    }, 2000);
-
-    return () => clearTimeout(timer);
+    }
+    return undefined;
   }, [status, navigate]);
 
   return (
