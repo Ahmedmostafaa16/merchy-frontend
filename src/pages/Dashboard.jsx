@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Header from "../components/Header";
 import Button from "../components/ui/Button";
 import Card from "../components/ui/Card";
@@ -34,7 +34,7 @@ const Dashboard = () => {
   const [salesMessage, setSalesMessage] = useState("");
   const [forecastMessage, setForecastMessage] = useState("");
 
-  const extractMetricValue = (payload) => {
+  const extractMetricValue = useCallback((payload) => {
     if (payload === null || payload === undefined) return null;
     if (typeof payload === "number" || typeof payload === "string") return payload;
     if (typeof payload === "object") {
@@ -42,13 +42,13 @@ const Dashboard = () => {
       return firstValue ?? null;
     }
     return null;
-  };
+  }, []);
 
-  const toIsoDate = (date) => {
+  const toIsoDate = useCallback((date) => {
     return date.toISOString().slice(0, 10);
-  };
+  }, []);
 
-  const getRangeFromPeriod = (period) => {
+  const getRangeFromPeriod = useCallback((period) => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -76,9 +76,9 @@ const Dashboard = () => {
       start: toIsoDate(start),
       end: toIsoDate(today),
     };
-  };
+  }, [toIsoDate]);
 
-  const apiGetJson = async (url) => {
+  const apiGetJson = useCallback(async (url) => {
     const response = await fetch(url, {
       headers: { "ngrok-skip-browser-warning": "true" },
     });
@@ -88,9 +88,9 @@ const Dashboard = () => {
     }
 
     return response.json();
-  };
+  }, []);
 
-  async function fetchDashboardMetrics(shop) {
+  const fetchDashboardMetrics = useCallback(async (shop) => {
     if (!shop) {
       setLoadingKpis(false);
       setKpiError("Missing shop parameter.");
@@ -126,7 +126,7 @@ const Dashboard = () => {
     } finally {
       setLoadingKpis(false);
     }
-  }
+  }, [apiGetJson, extractMetricValue]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -136,12 +136,11 @@ const Dashboard = () => {
     const initialRange = getRangeFromPeriod("Yesterday");
     setStartDate(initialRange.start);
     setEndDate(initialRange.end);
-  }, []);
+  }, [getRangeFromPeriod]);
 
   useEffect(() => {
     fetchDashboardMetrics(shop);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shop]);
+  }, [shop, fetchDashboardMetrics]);
 
   const handlePresetPeriodClick = (period) => {
     setActivePeriod(period);
