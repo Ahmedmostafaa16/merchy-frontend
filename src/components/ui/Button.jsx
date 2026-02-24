@@ -1,10 +1,10 @@
 const stylesByVariant = {
   primary:
-    "bg-black text-white border-black hover:bg-zinc-900 focus-visible:ring-black",
+    "border-[#6A329F] bg-gradient-to-b from-[#6A329F] to-[#522081] text-white shadow-[0_0_0_1px_rgba(106,50,159,0.25),0_8px_24px_rgba(106,50,159,0.25)] hover:from-[#601F9E] hover:to-[#522081] active:from-[#522081] active:to-[#522081] focus-visible:ring-[rgba(106,50,159,0.35)]",
   secondary:
-    "bg-white text-zinc-800 border-zinc-300 hover:bg-zinc-50 focus-visible:ring-zinc-400",
+    "border-[#24335e] bg-[#121c3a] text-[#dbe4ff] hover:bg-[#18264d] focus-visible:ring-[rgba(106,50,159,0.35)]",
   disabled:
-    "bg-zinc-200 text-zinc-500 border-zinc-200 cursor-not-allowed",
+    "cursor-not-allowed border-[#1f2b4f] bg-[#151e37] text-[#5e6b93]",
 };
 
 const Button = ({
@@ -13,6 +13,7 @@ const Button = ({
   className = "",
   disabled = false,
   type = "button",
+  onClick,
 }) => {
   const resolvedVariant = disabled ? "disabled" : variant;
 
@@ -20,7 +21,8 @@ const Button = ({
     <button
       type={type}
       disabled={disabled}
-      className={`inline-flex h-11 w-full items-center justify-center rounded-full border text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${stylesByVariant[resolvedVariant]} ${className}`}
+      onClick={onClick}
+      className={`inline-flex h-11 w-full items-center justify-center rounded-full border text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0 ${stylesByVariant[resolvedVariant]} ${className}`}
     >
       {children}
     </button>

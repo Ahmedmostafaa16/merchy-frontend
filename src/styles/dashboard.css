@@ -1,0 +1,136 @@
+:root {
+  --dashboard-bg: radial-gradient(circle at 20% 0%, #122554 0%, #0b1531 36%, #081126 72%, #060c1d 100%);
+  --panel-border: #23345f;
+  --panel-bg: linear-gradient(180deg, rgba(13, 24, 52, 0.94) 0%, rgba(8, 15, 35, 0.94) 100%);
+  --text-primary: #f3f6ff;
+  --text-secondary: #9aa8cc;
+  --text-muted: #8f9ec7;
+  --text-muted-2: #7f8db3;
+  --text-meta: #8b99c1;
+  --text-meta-strong: #b4c2e8;
+  --purple-500: #6a329f;
+  --purple-500-35: rgba(106, 50, 159, 0.35);
+}
+
+.dashboard-page {
+  background: var(--dashboard-bg);
+}
+
+.dashboard-panel {
+  border-color: var(--panel-border) !important;
+  background: var(--panel-bg) !important;
+  box-shadow:
+    0 12px 36px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.panel-title {
+  font-size: 24px;
+  line-height: 1.1;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.panel-note {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted-2);
+}
+
+.panel-text {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.panel-text-strong {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.panel-message {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.field-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.dashboard-input {
+  border: 1px solid #2a3861;
+  background: #101a36;
+  color: #e2e9ff;
+  font-size: 13px;
+  outline: none;
+}
+
+.dashboard-input:focus {
+  border-color: var(--purple-500);
+  box-shadow: 0 0 0 2px var(--purple-500-35);
+}
+
+.panel-meta {
+  font-size: 12px;
+  color: var(--text-meta);
+}
+
+.panel-meta-value {
+  font-weight: 500;
+  color: var(--text-meta-strong);
+}
+
+.scope-option {
+  font-size: 15px;
+  color: #c2cdeb;
+}
+
+.scope-radio {
+  border: 1px solid #3a4671;
+  background: #0f1833;
+  color: var(--purple-500);
+}
+
+.scope-radio:focus {
+  box-shadow: 0 0 0 2px var(--purple-500-35);
+}
+
+.kpi-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #94a2ca;
+}
+
+.kpi-value {
+  font-size: 28px;
+  line-height: 1;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.kpi-fallback {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.chart-placeholder {
+  border: 2px dashed #2c3e6e;
+  background: #0e1733;
+}
+
+.chart-accent {
+  background: linear-gradient(90deg, transparent 0%, var(--purple-500) 50%, transparent 100%);
+  opacity: 0.8;
+}
+
+@media (max-width: 768px) {
+  .panel-title {
+    font-size: 20px;
+  }
+
+  .scope-option {
+    font-size: 14px;
+  }
+}

@@ -10,8 +10,8 @@ const Tabs = ({ tabs = [], activeTab, onTabChange }) => {
             onClick={() => onTabChange(tab)}
             className={`rounded-full border px-5 py-2.5 text-sm font-semibold transition ${
               active
-                ? "border-black bg-black text-white"
-                : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50"
+                ? "border-[#6A329F] bg-[rgba(106,50,159,0.2)] text-[#f2ebff] shadow-[0_0_0_1px_rgba(106,50,159,0.35),0_0_30px_rgba(106,50,159,0.2)]"
+                : "border-[#2a3861] bg-[#101a36] text-[#a4b0d4] hover:border-[#6A329F] hover:bg-[rgba(106,50,159,0.14)] hover:text-[#ddd3f6]"
             }`}
           >
             {tab}

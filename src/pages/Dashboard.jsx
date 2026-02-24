@@ -6,6 +6,7 @@ import KPIStatCard from "../components/ui/KPIStatCard";
 import PillChip from "../components/ui/PillChip";
 import Tabs from "../components/ui/Tabs";
 import Skeleton from "../components/ui/Skeleton";
+import "../styles/dashboard.css";
 
 const salesPeriods = ["Yesterday", "Last 7 days", "Last 30 days", "Last 90 days", "Last 365 days"];
 const tabs = ["Restock Suggestions", "Item Breakdown", "Raw Table"];
@@ -222,47 +223,53 @@ const Dashboard = () => {
 
   const renderKpiValue = (value) => {
     if (loadingKpis) return <Skeleton className="mt-3 h-7 w-24" />;
-    if (kpiError) return <p className="mt-3 text-sm font-medium text-zinc-400">Unavailable</p>;
-    return <p className="mt-3 text-2xl font-semibold leading-none text-zinc-900">{value ?? "-"}</p>;
+    if (kpiError) return <p className="kpi-fallback mt-3">Unavailable</p>;
+    return <p className="kpi-value mt-3">{value ?? "-"}</p>;
   };
 
   return (
-    <div className="min-h-screen bg-zinc-100">
+    <div className="dashboard-page min-h-screen">
       <Header />
 
       <main className="mx-auto max-w-[1320px] px-4 py-6 sm:px-6">
         <div className="grid gap-5 lg:grid-cols-[360px_minmax(0,1fr)]">
           <div className="space-y-5">
-            <Card className="p-6">
-              <h2 className="text-[30px] font-semibold leading-none text-zinc-800">Inventory Sync</h2>
-              <p className="mt-2 text-base text-zinc-600">
-                Status: <span className="font-semibold text-zinc-900">Not Synced</span>
+            <Card className="dashboard-panel p-6">
+              <h2 className="panel-title">Inventory Sync</h2>
+              <p className="panel-text mt-2">
+                Status: <span className="panel-text-strong">Not Synced</span>
               </p>
-              <div onClick={inventorySyncing || !shop ? undefined : handleSyncInventory}>
-                <Button className="mt-7" disabled={inventorySyncing || !shop}>
-                  {inventorySyncing ? "Syncing..." : "Sync Inventory"}
-                </Button>
-              </div>
-              {inventoryMessage ? <p className="mt-3 text-sm text-zinc-500">{inventoryMessage}</p> : null}
+              <Button
+                className="mt-7"
+                disabled={inventorySyncing || !shop}
+                onClick={inventorySyncing || !shop ? undefined : handleSyncInventory}
+              >
+                {inventorySyncing ? "Syncing..." : "Sync Inventory"}
+              </Button>
+              {inventoryMessage ? <p className="panel-message mt-3">{inventoryMessage}</p> : null}
             </Card>
 
-            <Card className="p-6">
+            <Card className="dashboard-panel p-6">
               <div className="flex items-start justify-between gap-3">
-                <h2 className="text-[30px] font-semibold leading-none text-zinc-800">Sales Period</h2>
-                <p className="text-sm font-medium text-zinc-400">Sync inventory to proceed</p>
+                <h2 className="panel-title">Sales Period</h2>
+                <p className="panel-note">Sync inventory to proceed</p>
               </div>
 
               <div className="mt-6 flex flex-wrap gap-2">
                 {salesPeriods.map((period) => (
-                  <div key={period} onClick={() => handlePresetPeriodClick(period)}>
-                    <PillChip active={activePeriod === period}>{period}</PillChip>
-                  </div>
+                  <PillChip
+                    key={period}
+                    active={activePeriod === period}
+                    onClick={() => handlePresetPeriodClick(period)}
+                  >
+                    {period}
+                  </PillChip>
                 ))}
               </div>
 
               <div className="mt-6 grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-zinc-500">Start Date</label>
+                  <label className="field-label mb-2 block">Start Date</label>
                   <input
                     type="date"
                     value={startDate}
@@ -271,11 +278,11 @@ const Dashboard = () => {
                       setStartDate(event.target.value);
                       setSalesMessage("");
                     }}
-                    className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-700 outline-none placeholder:text-zinc-400 focus:border-zinc-400"
+                    className="dashboard-input h-11 w-full rounded-xl px-3"
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-zinc-500">End Date</label>
+                  <label className="field-label mb-2 block">End Date</label>
                   <input
                     type="date"
                     value={endDate}
@@ -284,59 +291,60 @@ const Dashboard = () => {
                       setEndDate(event.target.value);
                       setSalesMessage("");
                     }}
-                    className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm text-zinc-700 outline-none placeholder:text-zinc-400 focus:border-zinc-400"
+                    className="dashboard-input h-11 w-full rounded-xl px-3"
                   />
                 </div>
               </div>
 
-              <div className="mt-5 flex items-center justify-between text-sm text-zinc-400">
+              <div className="panel-meta mt-5 flex items-center justify-between">
                 <p>
-                  Selected range: <span className="font-medium">{startDate && endDate ? `${startDate} to ${endDate}` : "None"}</span>
+                  Selected range: <span className="panel-meta-value">{startDate && endDate ? `${startDate} to ${endDate}` : "None"}</span>
                 </p>
                 <p>
-                  Status: <span className="font-medium">Not Synced</span>
+                  Status: <span className="panel-meta-value">Not Synced</span>
                 </p>
               </div>
 
-              <div onClick={!startDate || !endDate ? undefined : () => setSalesMessage("Date range applied.")}>
-                <Button variant="secondary" className="mt-3" disabled={!startDate || !endDate}>
-                  Apply
-                </Button>
-              </div>
-              <div
-                onClick={
-                  salesSyncing || !shop || !startDate || !endDate ? undefined : handleSyncSales
-                }
+              <Button
+                variant="secondary"
+                className="mt-3"
+                disabled={!startDate || !endDate}
+                onClick={!startDate || !endDate ? undefined : () => setSalesMessage("Date range applied.")}
               >
-                <Button className="mt-2" disabled={salesSyncing || !shop || !startDate || !endDate}>
-                  {salesSyncing ? "Syncing..." : "Sync Sales"}
-                </Button>
-              </div>
-              {salesMessage ? <p className="mt-3 text-sm text-zinc-500">{salesMessage}</p> : null}
+                Apply
+              </Button>
+              <Button
+                className="mt-2"
+                disabled={salesSyncing || !shop || !startDate || !endDate}
+                onClick={salesSyncing || !shop || !startDate || !endDate ? undefined : handleSyncSales}
+              >
+                {salesSyncing ? "Syncing..." : "Sync Sales"}
+              </Button>
+              {salesMessage ? <p className="panel-message mt-3">{salesMessage}</p> : null}
             </Card>
 
-            <Card className="p-6">
+            <Card className="dashboard-panel p-6">
               <div className="flex items-start justify-between gap-3">
-                <h2 className="text-[30px] font-semibold leading-none text-zinc-800">Forecast Scope</h2>
-                <p className="text-sm font-medium text-zinc-400">Sync inventory to proceed</p>
+                <h2 className="panel-title">Forecast Scope</h2>
+                <p className="panel-note">Sync inventory to proceed</p>
               </div>
 
               <div className="mt-7 space-y-4">
-                <label className="flex items-center gap-3 text-lg text-zinc-600">
+                <label className="scope-option flex items-center gap-3">
                   <input
                     type="radio"
                     name="scope"
-                    className="h-5 w-5 border-zinc-300 text-black"
+                    className="scope-radio h-5 w-5"
                     checked={forecastScope === "all"}
                     onChange={() => setForecastScope("all")}
                   />
                   Forecast all items
                 </label>
-                <label className="flex items-center gap-3 text-lg text-zinc-600">
+                <label className="scope-option flex items-center gap-3">
                   <input
                     type="radio"
                     name="scope"
-                    className="h-5 w-5 border-zinc-300 text-black"
+                    className="scope-radio h-5 w-5"
                     checked={forecastScope === "specific"}
                     onChange={() => setForecastScope("specific")}
                   />
@@ -345,27 +353,25 @@ const Dashboard = () => {
               </div>
             </Card>
 
-            <Card className="p-6">
+            <Card className="dashboard-panel p-6">
               <div className="flex items-start justify-between gap-3">
-                <h2 className="text-[30px] font-semibold leading-none text-zinc-800">Generate</h2>
-                <p className="text-sm font-medium text-zinc-400">Sync inventory to proceed</p>
+                <h2 className="panel-title">Generate</h2>
+                <p className="panel-note">Sync inventory to proceed</p>
               </div>
 
-              <div
+              <Button
+                className="mt-7"
+                disabled={forecastGenerating || !shop || !startDate || !endDate}
                 onClick={
-                  forecastGenerating || !shop || !startDate || !endDate
-                    ? undefined
-                    : handleGenerateForecast
+                  forecastGenerating || !shop || !startDate || !endDate ? undefined : handleGenerateForecast
                 }
               >
-                <Button className="mt-7" disabled={forecastGenerating || !shop || !startDate || !endDate}>
-                  {forecastGenerating ? "Generating..." : "Generate Forecast"}
-                </Button>
-              </div>
+                {forecastGenerating ? "Generating..." : "Generate Forecast"}
+              </Button>
               <Button variant="disabled" className="mt-3" disabled>
                 Generate CSV
               </Button>
-              {forecastMessage ? <p className="mt-3 text-sm text-zinc-500">{forecastMessage}</p> : null}
+              {forecastMessage ? <p className="panel-message mt-3">{forecastMessage}</p> : null}
             </Card>
           </div>
 
@@ -380,39 +386,41 @@ const Dashboard = () => {
                 </>
               ) : (
                 <>
-                  <Card className="p-4">
-                    <p className="text-xs font-medium text-zinc-500">Total SKUs</p>
+                  <Card className="dashboard-panel p-4">
+                    <p className="kpi-label">Total SKUs</p>
                     {renderKpiValue(totalSkus)}
                   </Card>
-                  <Card className="p-4">
-                    <p className="text-xs font-medium text-zinc-500">Avg Sales / day</p>
+                  <Card className="dashboard-panel p-4">
+                    <p className="kpi-label">Avg Sales / day</p>
                     {renderKpiValue(avgSalesPerDay)}
                   </Card>
-                  <Card className="p-4">
-                    <p className="text-xs font-medium text-zinc-500">Stock Risk</p>
+                  <Card className="dashboard-panel p-4">
+                    <p className="kpi-label">Stock Risk</p>
                     {renderKpiValue(stockRisk)}
                   </Card>
-                  <Card className="p-4">
-                    <p className="text-xs font-medium text-zinc-500">Coverage days</p>
+                  <Card className="dashboard-panel p-4">
+                    <p className="kpi-label">Coverage days</p>
                     {renderKpiValue(coverageDays)}
                   </Card>
                 </>
               )}
             </div>
 
-            <Card className="p-6">
+            <Card className="dashboard-panel p-6">
               <div className="mb-5 flex items-center justify-between">
-                <h3 className="text-[30px] font-semibold leading-none text-zinc-900">
+                <h3 className="panel-title">
                   Forecast vs Inventory Coverage (Coming soon)
                 </h3>
-                <p className="text-sm text-zinc-400">Chart placeholder</p>
+                <p className="panel-note">Chart placeholder</p>
               </div>
-              <div className="h-[330px] rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50" />
+              <div className="chart-placeholder relative h-[330px] rounded-2xl">
+                <div className="chart-accent absolute left-6 right-6 top-1/2 h-0.5 -translate-y-1/2 rounded-full" />
+              </div>
             </Card>
 
-            <Card className="p-6">
+            <Card className="dashboard-panel p-6">
               <Tabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
-              <p className="mt-6 text-base text-zinc-500">
+              <p className="panel-text mt-6">
                 Run a forecast to see restock suggestions.
               </p>
             </Card>
