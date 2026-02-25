@@ -7,12 +7,11 @@ import PillChip from "../components/ui/PillChip";
 import Tabs from "../components/ui/Tabs";
 import Skeleton from "../components/ui/Skeleton";
 import { API_BASE } from "../config/api";
+import { syncInventory, syncSales } from "../services/requestsApi";
 import "../styles/dashboard.css";
 
 const salesPeriods = ["Yesterday", "Last 7 days", "Last 30 days", "Last 90 days", "Last 365 days"];
 const tabs = ["Restock Suggestions", "Item Breakdown", "Raw Table"];
-const INVENTORY_SYNC_ENDPOINT = "/sync/inventory";
-const SALES_SYNC_ENDPOINT = "/sync/sales";
 const FORECAST_ENDPOINT = "/report";
 
 const Dashboard = () => {
@@ -156,16 +155,22 @@ const Dashboard = () => {
     setInventorySyncing(true);
     setInventoryMessage("");
     try {
-      const url = `${API_BASE}${INVENTORY_SYNC_ENDPOINT}/${encodeURIComponent(shop)}`;
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "ngrok-skip-browser-warning": "true" },
-      });
-      if (!response.ok) throw new Error(`Inventory sync failed (${response.status})`);
-      setInventoryMessage("Inventory synced.");
+      const data = await syncInventory(shop);
+      if (data?.status === "success") {
+        setInventoryMessage(data.message || "Inventory synced.");
+      } else if (data?.status === "skipped") {
+        const lastUpdated = data.last_updated_at ? ` Last updated at: ${data.last_updated_at}` : "";
+        setInventoryMessage(`${data.reason || "Inventory sync skipped."}${lastUpdated}`);
+      } else {
+        setInventoryMessage("Inventory sync completed.");
+      }
       await fetchDashboardMetrics(shop);
     } catch (error) {
-      setInventoryMessage(error?.message || "Inventory sync failed.");
+      if (error?.status === 404) {
+        setInventoryMessage("Shop not found.");
+      } else {
+        setInventoryMessage(error?.message || "Inventory sync failed.");
+      }
     } finally {
       setInventorySyncing(false);
     }
@@ -176,20 +181,22 @@ const Dashboard = () => {
     setSalesSyncing(true);
     setSalesMessage("");
     try {
-      const query = new URLSearchParams({
-        start_date: startDate,
-        end_date: endDate,
-      }).toString();
-      const url = `${API_BASE}${SALES_SYNC_ENDPOINT}/${encodeURIComponent(shop)}?${query}`;
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "ngrok-skip-browser-warning": "true" },
-      });
-      if (!response.ok) throw new Error(`Sales sync failed (${response.status})`);
-      setSalesMessage("Sales synced.");
+      const data = await syncSales(shop, startDate, endDate);
+      if (data?.status === "success") {
+        setSalesMessage(data.message || "Sales synced.");
+      } else if (data?.status === "skipped") {
+        const period = data.sales_period ? ` Sales period: ${JSON.stringify(data.sales_period)}` : "";
+        setSalesMessage(`${data.reason || "Sales sync skipped."}${period}`);
+      } else {
+        setSalesMessage("Sales sync completed.");
+      }
       await fetchDashboardMetrics(shop);
     } catch (error) {
-      setSalesMessage(error?.message || "Sales sync failed.");
+      if (error?.status === 404) {
+        setSalesMessage("Shop not found.");
+      } else {
+        setSalesMessage(error?.message || "Sales sync failed.");
+      }
     } finally {
       setSalesSyncing(false);
     }

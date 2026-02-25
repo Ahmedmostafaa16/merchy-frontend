@@ -72,10 +72,10 @@ const InstallSuccess = () => {
 
   useEffect(() => {
     if (status === "success") {
-      navigate("/dashboard");
+      navigate(`/dashboard?shop=${encodeURIComponent(shop)}`);
     }
     return undefined;
-  }, [status, navigate]);
+  }, [status, shop, navigate]);
 
   return (
     <div className="login-page">
@@ -115,7 +115,7 @@ const InstallSuccess = () => {
               <button
                 className="submit-button"
                 type="button"
-                onClick={() => navigate("/dashboard")}
+                onClick={() => navigate(`/dashboard?shop=${encodeURIComponent(shop)}`)}
               >
                 Enter Dashboard
               </button>
