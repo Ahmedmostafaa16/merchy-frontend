@@ -298,9 +298,6 @@ const Dashboard = () => {
 
               <div className="panel-meta mt-5 flex items-center justify-between">
                 <p>
-                  Selected range: <span className="panel-meta-value">{startDate && endDate ? `${startDate} to ${endDate}` : "None"}</span>
-                </p>
-                <p>
                   Status: <span className="panel-meta-value">Not Synced</span>
                 </p>
               </div>
