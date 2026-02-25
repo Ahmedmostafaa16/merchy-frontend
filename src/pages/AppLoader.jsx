@@ -26,7 +26,7 @@ const AppLoader = () => {
 
         if (!response.ok) {
           if (response.status === 404) {
-            window.location.href = `${API_BASE}/auth/install?shop=${encodeURIComponent(shop)}`;
+            window.top.location.href = `${API_BASE}/auth/install?shop=${encodeURIComponent(shop)}`;
             return;
           }
           setMessage("Unable to verify installation");
@@ -40,7 +40,7 @@ const AppLoader = () => {
           return;
         }
 
-        window.location.href = `${API_BASE}/auth/install?shop=${encodeURIComponent(shop)}`;
+        window.top.location.href = `${API_BASE}/auth/install?shop=${encodeURIComponent(shop)}`;
       } catch (_error) {
         setMessage("Unable to verify installation");
       }
