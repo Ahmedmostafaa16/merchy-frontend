@@ -1,10 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE } from "../config/api";
 import "../styles/login.css";
-
-const API_BASE_URL =
-  process.env.REACT_APP_API_BASE_URL ||
-  "http://localhost:8000";
 
 const InstallSuccess = () => {
   const navigate = useNavigate();
@@ -27,8 +24,8 @@ const InstallSuccess = () => {
     }
 
     try {
-      const url = `${API_BASE_URL}/shops/${encodeURIComponent(shopParam)}`;
-      console.log("API_BASE_URL:", API_BASE_URL);
+      const url = `${API_BASE}/auth/shops/${encodeURIComponent(shopParam)}`;
+      console.log("API_BASE:", API_BASE);
       console.log("VERIFY URL:", url);
 
       const response = await fetch(url, {
@@ -54,7 +51,7 @@ const InstallSuccess = () => {
 
       const data = await response.json();
 
-      if (data && data.shop) {
+      if (data && data.shop && data.installed === true) {
         setShop(data.shop);
         setStatus("success");
         return;

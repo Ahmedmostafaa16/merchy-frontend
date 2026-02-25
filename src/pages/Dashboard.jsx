@@ -6,11 +6,11 @@ import KPIStatCard from "../components/ui/KPIStatCard";
 import PillChip from "../components/ui/PillChip";
 import Tabs from "../components/ui/Tabs";
 import Skeleton from "../components/ui/Skeleton";
+import { API_BASE } from "../config/api";
 import "../styles/dashboard.css";
 
 const salesPeriods = ["Yesterday", "Last 7 days", "Last 30 days", "Last 90 days", "Last 365 days"];
 const tabs = ["Restock Suggestions", "Item Breakdown", "Raw Table"];
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 const INVENTORY_SYNC_ENDPOINT = "/sync/inventory";
 const SALES_SYNC_ENDPOINT = "/sync/sales";
 const FORECAST_ENDPOINT = "/report";
@@ -98,7 +98,7 @@ const Dashboard = () => {
       return;
     }
 
-    if (!API_BASE_URL) {
+    if (!API_BASE) {
       setLoadingKpis(false);
       setKpiError("Missing API base URL.");
       return;
@@ -109,7 +109,7 @@ const Dashboard = () => {
 
     try {
       const encodedShop = encodeURIComponent(shop);
-      const base = `${API_BASE_URL}/dashboard`;
+      const base = `${API_BASE}/dashboard`;
 
       const [totalSkusData, avgSalesData, coverageData, stockRiskData] = await Promise.all([
         apiGetJson(`${base}/total-skus?shop_domain=${encodedShop}`),
@@ -152,11 +152,11 @@ const Dashboard = () => {
   };
 
   const handleSyncInventory = async () => {
-    if (!shop || !API_BASE_URL) return;
+    if (!shop || !API_BASE) return;
     setInventorySyncing(true);
     setInventoryMessage("");
     try {
-      const url = `${API_BASE_URL}${INVENTORY_SYNC_ENDPOINT}/${encodeURIComponent(shop)}`;
+      const url = `${API_BASE}${INVENTORY_SYNC_ENDPOINT}/${encodeURIComponent(shop)}`;
       const response = await fetch(url, {
         method: "POST",
         headers: { "ngrok-skip-browser-warning": "true" },
@@ -172,7 +172,7 @@ const Dashboard = () => {
   };
 
   const handleSyncSales = async () => {
-    if (!shop || !API_BASE_URL || !startDate || !endDate) return;
+    if (!shop || !API_BASE || !startDate || !endDate) return;
     setSalesSyncing(true);
     setSalesMessage("");
     try {
@@ -180,7 +180,7 @@ const Dashboard = () => {
         start_date: startDate,
         end_date: endDate,
       }).toString();
-      const url = `${API_BASE_URL}${SALES_SYNC_ENDPOINT}/${encodeURIComponent(shop)}?${query}`;
+      const url = `${API_BASE}${SALES_SYNC_ENDPOINT}/${encodeURIComponent(shop)}?${query}`;
       const response = await fetch(url, {
         method: "POST",
         headers: { "ngrok-skip-browser-warning": "true" },
@@ -196,7 +196,7 @@ const Dashboard = () => {
   };
 
   const handleGenerateForecast = async () => {
-    if (!shop || !API_BASE_URL || !startDate || !endDate) return;
+    if (!shop || !API_BASE || !startDate || !endDate) return;
     setForecastGenerating(true);
     setForecastMessage("");
     try {
@@ -206,7 +206,7 @@ const Dashboard = () => {
         start_date: startDate,
         end_date: endDate,
       }).toString();
-      const url = `${API_BASE_URL}${FORECAST_ENDPOINT}?${query}`;
+      const url = `${API_BASE}${FORECAST_ENDPOINT}?${query}`;
       const response = await fetch(url, {
         method: "POST",
         headers: { "ngrok-skip-browser-warning": "true" },
