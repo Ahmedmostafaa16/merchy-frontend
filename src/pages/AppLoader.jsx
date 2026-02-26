@@ -1,12 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE } from "../config/api";
 
 const AppLoader = () => {
   const navigate = useNavigate();
+  const hasRunRef = useRef(false);
   const [message, setMessage] = useState("Checking store installation...");
 
   useEffect(() => {
+    if (hasRunRef.current) return;
+    hasRunRef.current = true;
+
     const run = async () => {
       const params = new URLSearchParams(window.location.search);
       const shop = params.get("shop");
@@ -36,11 +40,11 @@ const AppLoader = () => {
         const data = await response.json();
 
         if (data?.installed === true) {
-          navigate(`/dashboard?shop=${encodeURIComponent(shop)}`, { replace: true });
+          navigate(`/dashboard${window.location.search}`, { replace: true });
           return;
         }
 
-        window.top.location.href = `${API_BASE}/auth/install?shop=${encodeURIComponent(shop)}`;
+        setMessage("Store is not installed");
       } catch (_error) {
         setMessage("Unable to verify installation");
       }
