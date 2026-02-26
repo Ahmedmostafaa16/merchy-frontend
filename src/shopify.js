@@ -5,7 +5,7 @@ export function initShopifyApp() {
   const host = params.get("host");
 
   if (!host) {
-    console.error("Missing host param");
+    console.error("Missing host parameter from Shopify");
     return null;
   }
 

@@ -4,7 +4,7 @@
   "private": true,
   "dependencies": {
     "@shopify/app-bridge": "^3.7.11",
-    "@shopify/app-bridge-react": "^4.2.10",
+    "@shopify/app-bridge-react": "^3.7.11",
     "@shopify/app-bridge-utils": "^3.5.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",

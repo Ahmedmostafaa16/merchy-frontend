@@ -3,7 +3,7 @@ import { shopifyFetch } from "./api";
 
 function App() {
   const [shop, setShop] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     async function bootstrap() {
@@ -11,17 +11,16 @@ function App() {
         const data = await shopifyFetch("/api/me");
         setShop(data.shop);
       } catch (err) {
-        console.error("Bootstrap failed:", err);
-      } finally {
-        setLoading(false);
+        console.error(err);
+        setError(err.message);
       }
     }
 
     bootstrap();
   }, []);
 
-  if (loading) return <div>Loading Merchy...</div>;
-  if (!shop) return <div>Failed to load shop</div>;
+  if (error) return <pre>{error}</pre>;
+  if (!shop) return <div>Loading Merchy...</div>;
 
   return <div>Merchy dashboard for {shop}</div>;
 }

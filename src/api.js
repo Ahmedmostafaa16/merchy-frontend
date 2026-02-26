@@ -3,7 +3,7 @@ import { initShopifyApp } from "./shopify";
 
 export async function shopifyFetch(path) {
   const app = initShopifyApp();
-  if (!app) throw new Error("App Bridge not initialized");
+  if (!app) throw new Error("App Bridge failed to initialize");
 
   const token = await getSessionToken(app);
 
@@ -18,7 +18,7 @@ export async function shopifyFetch(path) {
   );
 
   if (!res.ok) {
-    throw new Error("Backend request failed");
+    throw new Error(`Backend request failed: ${res.status}`);
   }
 
   return res.json();
