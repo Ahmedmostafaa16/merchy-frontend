@@ -2,12 +2,10 @@ import createApp from "@shopify/app-bridge";
 
 export function initShopifyApp() {
   const params = new URLSearchParams(window.location.search);
-
-  const shop = params.get("shop");
   const host = params.get("host");
 
-  if (!shop || !host) {
-    console.error("Missing shop or host in URL");
+  if (!host) {
+    console.error("Missing host param");
     return null;
   }
 
