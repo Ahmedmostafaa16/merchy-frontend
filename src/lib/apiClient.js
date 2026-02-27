@@ -1,3 +1,5 @@
+import { API_BASE } from "../config/api";
+
 class ApiClientError extends Error {
   constructor(message, options = {}) {
     super(message);
@@ -9,22 +11,7 @@ class ApiClientError extends Error {
   }
 }
 
-const getApiBase = () => {
-  let viteBase = "";
-
-  try {
-    viteBase = import.meta?.env?.VITE_API_BASE || "";
-  } catch (_error) {
-    viteBase = "";
-  }
-
-  return (
-    viteBase ||
-    process.env.REACT_APP_BACKEND_URL ||
-    process.env.REACT_APP_API_BASE_URL ||
-    ""
-  );
-};
+const getApiBase = () => API_BASE;
 
 const getSessionToken = async () => {
   if (typeof window === "undefined" || typeof window.shopify?.sessionToken !== "function") {

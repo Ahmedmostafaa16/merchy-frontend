@@ -1,19 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE } from "../config/api";
 import "../styles/login.css";
-
-const resolveApiBase = () => {
-  const craBase = process.env.REACT_APP_API_BASE_URL || "";
-  let viteBase = "";
-
-  try {
-    viteBase = import.meta?.env?.VITE_API_BASE || "";
-  } catch (_error) {
-    viteBase = "";
-  }
-
-  return (viteBase || craBase || "").replace(/\/$/, "");
-};
 
 const InstallSuccess = () => {
   const navigate = useNavigate();
@@ -37,16 +25,8 @@ const InstallSuccess = () => {
       return;
     }
 
-    const apiBase = resolveApiBase();
-
-    if (!apiBase) {
-      setStatus("error");
-      setError("Missing API base URL in environment.");
-      return;
-    }
-
     try {
-      const url = `${apiBase}/auth/shops/${encodeURIComponent(shopParam)}`;
+      const url = `${API_BASE}/auth/shops/${encodeURIComponent(shopParam)}`;
 
       const response = await fetch(url, {
         headers: {
