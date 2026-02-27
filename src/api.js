@@ -1,27 +1,30 @@
-import { getSessionToken } from "@shopify/app-bridge-utils";
-import createApp from "@shopify/app-bridge";
+// src/api.js
 
-export async function shopifyFetch(path) {
-  const params = new URLSearchParams(window.location.search);
-  const host = params.get("host");
+export async function shopifyFetch(path, options = {}) {
+  const shopify = window.shopify;
 
-  const app = createApp({
-    apiKey: process.env.REACT_APP_SHOPIFY_API_KEY,
-    host,
-    forceRedirect: true,
-  });
+  if (!shopify) {
+    throw new Error("Shopify App Bridge not ready");
+  }
 
-  const token = await getSessionToken(app);
+  const token = await shopify.sessionToken();
 
   const res = await fetch(
     `${process.env.REACT_APP_BACKEND_URL}${path}`,
     {
+      ...options,
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
+        ...(options.headers || {}),
       },
     }
   );
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Backend error ${res.status}: ${text}`);
+  }
 
   return res.json();
 }
