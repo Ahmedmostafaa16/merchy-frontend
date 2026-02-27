@@ -1,4 +1,5 @@
 import { getShopifyParams } from "./shopify";
+import { fetchWithToken } from "./lib/authFetch";
 
 export async function shopifyFetch(path, options = {}) {
   const { host } = getShopifyParams();
@@ -7,19 +8,13 @@ export async function shopifyFetch(path, options = {}) {
     throw new Error("Not running inside Shopify");
   }
 
-  const token = await window.shopify.sessionToken();
-
-  const response = await fetch(
-    `${process.env.REACT_APP_BACKEND_URL}${path}`,
-    {
-      ...options,
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-        ...(options.headers || {}),
-      },
-    }
-  );
+  const response = await fetchWithToken(`${process.env.REACT_APP_BACKEND_URL}${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    },
+  });
 
   if (!response.ok) {
     const text = await response.text();

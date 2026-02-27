@@ -1,4 +1,4 @@
-import { getFreshSessionToken } from "../shopify/getToken";
+import { fetchWithToken } from "./authFetch";
 
 class ApiClientError extends Error {
   constructor(message, options = {}) {
@@ -55,13 +55,10 @@ const request = async (method, path, options = {}) => {
     throw new ApiClientError("Missing REACT_APP_BACKEND_URL", { isConfig: true });
   }
 
-  const token = await getFreshSessionToken();
-
   const queryString = toQueryString(options.query);
   const url = `${apiBase}${path}${queryString}`;
 
   const headers = {
-    Authorization: `Bearer ${token}`,
     "ngrok-skip-browser-warning": "true",
     ...(options.headers || {}),
   };
@@ -73,7 +70,7 @@ const request = async (method, path, options = {}) => {
   }
 
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithToken(url, {
       method,
       headers,
       body: hasBody

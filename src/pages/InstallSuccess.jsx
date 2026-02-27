@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE } from "../config/api";
+import { fetchWithToken } from "../lib/authFetch";
 import "../styles/login.css";
 
 const InstallSuccess = () => {
@@ -31,7 +32,7 @@ const InstallSuccess = () => {
     try {
       const url = `${API_BASE}/auth/shops/${encodeURIComponent(shopParam)}`;
 
-      const response = await fetch(url, {
+      const response = await fetchWithToken(url, {
         headers: {
           "ngrok-skip-browser-warning": "true",
         },

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE } from "../config/api";
+import { fetchWithToken } from "../lib/authFetch";
 
 const AppLoader = () => {
   const navigate = useNavigate();
@@ -21,7 +22,7 @@ const AppLoader = () => {
       }
 
       try {
-        const response = await fetch(
+        const response = await fetchWithToken(
           `${API_BASE}/auth/shops/${encodeURIComponent(shop)}`,
           {
             headers: { "ngrok-skip-browser-warning": "true" },
