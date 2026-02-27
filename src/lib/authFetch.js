@@ -1,4 +1,4 @@
-import { getSessionToken } from "@shopify/app-bridge";
+import { getSessionToken } from "@shopify/app-bridge/auth";
 import { getAppBridge } from "./shopify";
 
 const getApiBase = () => process.env.REACT_APP_BACKEND_URL;

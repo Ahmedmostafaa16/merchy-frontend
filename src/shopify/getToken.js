@@ -1,4 +1,4 @@
-import { getSessionToken } from "@shopify/app-bridge";
+import { getSessionToken } from "@shopify/app-bridge/auth";
 import { getAppBridge, getAppBridgeErrorMessage } from "./appBridge";
 
 export const getFreshSessionToken = async () => {
