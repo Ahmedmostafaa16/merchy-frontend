@@ -1,15 +1,15 @@
-// src/api.js
+import { getShopifyParams } from "./shopify";
 
 export async function shopifyFetch(path, options = {}) {
-  const shopify = window.shopify;
+  const { host } = getShopifyParams();
 
-  if (!shopify) {
-    throw new Error("Shopify App Bridge not ready");
+  if (!host) {
+    throw new Error("Not running inside Shopify");
   }
 
-  const token = await shopify.sessionToken();
+  const token = await window.shopify.sessionToken();
 
-  const res = await fetch(
+  const response = await fetch(
     `${process.env.REACT_APP_BACKEND_URL}${path}`,
     {
       ...options,
@@ -21,10 +21,10 @@ export async function shopifyFetch(path, options = {}) {
     }
   );
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Backend error ${res.status}: ${text}`);
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Backend error ${response.status}: ${text}`);
   }
 
-  return res.json();
+  return response.json();
 }
