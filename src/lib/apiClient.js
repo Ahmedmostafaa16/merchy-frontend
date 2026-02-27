@@ -1,4 +1,4 @@
-import { API_BASE } from "../config/api";
+import { getFreshSessionToken } from "../shopify/getToken";
 
 class ApiClientError extends Error {
   constructor(message, options = {}) {
@@ -11,15 +11,7 @@ class ApiClientError extends Error {
   }
 }
 
-const getApiBase = () => API_BASE;
-
-const getSessionToken = async () => {
-  if (typeof window === "undefined" || typeof window.shopify?.sessionToken !== "function") {
-    throw new ApiClientError("Shopify session token is unavailable.", { isConfig: true });
-  }
-
-  return window.shopify.sessionToken();
-};
+const getApiBase = () => process.env.REACT_APP_API_BASE_URL;
 
 const parseResponseBody = async (response) => {
   if (response.status === 204) return null;
@@ -60,10 +52,10 @@ const request = async (method, path, options = {}) => {
   const apiBase = getApiBase();
 
   if (!apiBase) {
-    throw new ApiClientError("Missing API base URL configuration.", { isConfig: true });
+    throw new ApiClientError("Missing REACT_APP_API_BASE_URL", { isConfig: true });
   }
 
-  const token = await getSessionToken();
+  const token = await getFreshSessionToken();
 
   const queryString = toQueryString(options.query);
   const url = `${apiBase}${path}${queryString}`;
@@ -95,6 +87,20 @@ const request = async (method, path, options = {}) => {
 
     if (!response.ok) {
       const detail = typeof data === "object" && data ? data.detail || data.message : null;
+      if (response.status === 401) {
+        throw new ApiClientError("Unauthorized request (401)", {
+          status: response.status,
+          data,
+        });
+      }
+
+      if (response.status >= 500) {
+        throw new ApiClientError("Server error (500)", {
+          status: response.status,
+          data,
+        });
+      }
+
       throw new ApiClientError(detail || `Request failed with status ${response.status}`, {
         status: response.status,
         data,

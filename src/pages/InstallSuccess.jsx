@@ -8,14 +8,17 @@ const InstallSuccess = () => {
   const [status, setStatus] = useState("loading");
   const [shop, setShop] = useState("");
   const [redirectShop, setRedirectShop] = useState("");
+  const [redirectHost, setRedirectHost] = useState("");
   const [error, setError] = useState("");
 
   const verifyShop = async () => {
     const params = new URLSearchParams(window.location.search);
     const shopParam = params.get("shop") || "";
+    const hostParam = params.get("host") || "";
 
     setShop(shopParam);
     setRedirectShop(shopParam);
+    setRedirectHost(hostParam);
     setError("");
     setStatus("loading");
 
@@ -79,10 +82,16 @@ const InstallSuccess = () => {
 
   useEffect(() => {
     if (status === "success") {
-      navigate(`/dashboard?shop=${encodeURIComponent(redirectShop)}`);
+      const nextParams = new URLSearchParams({
+        shop: redirectShop,
+      });
+      if (redirectHost) {
+        nextParams.set("host", redirectHost);
+      }
+      navigate(`/dashboard?${nextParams.toString()}`);
     }
     return undefined;
-  }, [status, redirectShop, navigate]);
+  }, [status, redirectShop, redirectHost, navigate]);
 
   return (
     <div className="login-page">
@@ -122,7 +131,15 @@ const InstallSuccess = () => {
               <button
                 className="submit-button"
                 type="button"
-                onClick={() => navigate(`/dashboard?shop=${encodeURIComponent(redirectShop)}`)}
+                onClick={() => {
+                  const nextParams = new URLSearchParams({
+                    shop: redirectShop,
+                  });
+                  if (redirectHost) {
+                    nextParams.set("host", redirectHost);
+                  }
+                  navigate(`/dashboard?${nextParams.toString()}`);
+                }}
               >
                 Enter Dashboard
               </button>
