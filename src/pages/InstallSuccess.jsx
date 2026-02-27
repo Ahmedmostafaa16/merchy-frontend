@@ -1,12 +1,25 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { API_BASE } from "../config/api";
 import "../styles/login.css";
+
+const resolveApiBase = () => {
+  const craBase = process.env.REACT_APP_API_BASE_URL || "";
+  let viteBase = "";
+
+  try {
+    viteBase = import.meta?.env?.VITE_API_BASE || "";
+  } catch (_error) {
+    viteBase = "";
+  }
+
+  return (viteBase || craBase || "").replace(/\/$/, "");
+};
 
 const InstallSuccess = () => {
   const navigate = useNavigate();
   const [status, setStatus] = useState("loading");
   const [shop, setShop] = useState("");
+  const [redirectShop, setRedirectShop] = useState("");
   const [error, setError] = useState("");
 
   const verifyShop = async () => {
@@ -14,6 +27,7 @@ const InstallSuccess = () => {
     const shopParam = params.get("shop") || "";
 
     setShop(shopParam);
+    setRedirectShop(shopParam);
     setError("");
     setStatus("loading");
 
@@ -23,33 +37,46 @@ const InstallSuccess = () => {
       return;
     }
 
+    const apiBase = resolveApiBase();
+
+    if (!apiBase) {
+      setStatus("error");
+      setError("Missing API base URL in environment.");
+      return;
+    }
+
     try {
-      const url = `${API_BASE}/auth/shops/${encodeURIComponent(shopParam)}`;
-      console.log("API_BASE:", API_BASE);
-      console.log("VERIFY URL:", url);
+      const url = `${apiBase}/auth/shops/${encodeURIComponent(shopParam)}`;
 
       const response = await fetch(url, {
         headers: {
-          "ngrok-skip-browser-warning": "true"
-        }
+          "ngrok-skip-browser-warning": "true",
+        },
       });
 
-      const contentType = response.headers.get("content-type") || "";
+      const text = await response.text();
+      const looksLikeHtml = /<\s*!doctype\s+html|<\s*html/i.test(text);
 
-      if (!contentType.includes("application/json")) {
-        const text = await response.text();
-        throw new Error(
-          `Expected JSON from ${url} but got HTML: ${text.slice(0, 80)}`
-        );
+      if (looksLikeHtml) {
+        setStatus("error");
+        setError("Wrong API base or route (expected JSON)");
+        return;
       }
 
       if (!response.ok) {
         setStatus("error");
-        setError(`Backend returned ${response.status}. Could not verify installation.`);
+        setError(`Backend returned ${response.status}: ${text}`);
         return;
       }
 
-      const data = await response.json();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (_error) {
+        setStatus("error");
+        setError("Wrong API base or route (expected JSON)");
+        return;
+      }
 
       if (data && data.shop && data.installed === true) {
         setShop(data.shop);
@@ -72,10 +99,10 @@ const InstallSuccess = () => {
 
   useEffect(() => {
     if (status === "success") {
-      navigate(`/dashboard?shop=${encodeURIComponent(shop)}`);
+      navigate(`/dashboard?shop=${encodeURIComponent(redirectShop)}`);
     }
     return undefined;
-  }, [status, shop, navigate]);
+  }, [status, redirectShop, navigate]);
 
   return (
     <div className="login-page">
@@ -115,7 +142,7 @@ const InstallSuccess = () => {
               <button
                 className="submit-button"
                 type="button"
-                onClick={() => navigate(`/dashboard?shop=${encodeURIComponent(shop)}`)}
+                onClick={() => navigate(`/dashboard?shop=${encodeURIComponent(redirectShop)}`)}
               >
                 Enter Dashboard
               </button>
