@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE } from "../config/api";
-import { shopifyFetch } from "../api";
-import { getShopifyParams } from "../shopify";
 
 const AppLoader = () => {
   const navigate = useNavigate();
@@ -14,7 +12,8 @@ const AppLoader = () => {
     hasRunRef.current = true;
 
     const run = async () => {
-      const { shop, host } = getShopifyParams();
+      const params = new URLSearchParams(window.location.search);
+      const shop = params.get("shop");
 
       if (!shop) {
         setMessage("Missing shop parameter");
@@ -22,29 +21,31 @@ const AppLoader = () => {
       }
 
       try {
-        const data = await shopifyFetch("/api/me");
+        const response = await fetch(
+          `${API_BASE}/auth/shops/${encodeURIComponent(shop)}`,
+          {
+            headers: { "ngrok-skip-browser-warning": "true" },
+          }
+        );
 
-        if (!data?.shop) {
-          const installUrl = `${API_BASE}/auth/install?shop=${encodeURIComponent(shop)}`;
-          window.top.location.href = installUrl;
+        if (!response.ok) {
+          if (response.status === 404) {
+            window.top.location.href = `${API_BASE}/auth/install?shop=${encodeURIComponent(shop)}`;
+            return;
+          }
+          setMessage("Unable to verify installation");
           return;
         }
 
-        const query = new URLSearchParams();
-        query.set("shop", shop);
-        if (host) query.set("host", host);
+        const data = await response.json();
 
-        navigate(`/dashboard?${query.toString()}`, { replace: true });
-      } catch (error) {
-        const statusMatch = error?.message?.match(/Backend error\s(\d+)/);
-        const statusCode = statusMatch ? Number(statusMatch[1]) : undefined;
-
-        if (statusCode === 401 || statusCode === 404) {
-          const installUrl = `${API_BASE}/auth/install?shop=${encodeURIComponent(shop)}`;
-          window.top.location.href = installUrl;
+        if (data?.installed === true) {
+          navigate(`/dashboard${window.location.search}`, { replace: true });
           return;
         }
 
+        setMessage("Store is not installed");
+      } catch (_error) {
         setMessage("Unable to verify installation");
       }
     };

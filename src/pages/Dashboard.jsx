@@ -6,13 +6,12 @@ import KPIStatCard from "../components/ui/KPIStatCard";
 import PillChip from "../components/ui/PillChip";
 import Tabs from "../components/ui/Tabs";
 import Skeleton from "../components/ui/Skeleton";
-import { API_BASE } from "../config/api";
 import { syncInventory, syncSales } from "../services/requestsApi";
+import { apiClient, getApiBase } from "../lib/apiClient";
 import "../styles/dashboard.css";
 
 const salesPeriods = ["Yesterday", "Last 7 days", "Last 30 days", "Last 90 days", "Last 365 days"];
 const tabs = ["Restock Suggestions", "Item Breakdown", "Raw Table"];
-const FORECAST_ENDPOINT = "/report";
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState(tabs[0]);
@@ -33,6 +32,9 @@ const Dashboard = () => {
   const [inventoryMessage, setInventoryMessage] = useState("");
   const [salesMessage, setSalesMessage] = useState("");
   const [forecastMessage, setForecastMessage] = useState("");
+  const [globalError, setGlobalError] = useState("");
+  const [showRetry, setShowRetry] = useState(false);
+  const [retryAction, setRetryAction] = useState(null);
 
   const extractMetricValue = useCallback((payload) => {
     if (payload === null || payload === undefined) return null;
@@ -78,26 +80,47 @@ const Dashboard = () => {
     };
   }, [toIsoDate]);
 
-  const apiGetJson = useCallback(async (url) => {
-    const response = await fetch(url, {
-      headers: { "ngrok-skip-browser-warning": "true" },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Request failed (${response.status})`);
+  const handleApiError = useCallback((error, fallbackMessage, onRetry) => {
+    if (error?.status === 401) {
+      setGlobalError("Session expired, reload app");
+      setShowRetry(false);
+      setRetryAction(null);
+      return;
     }
 
-    return response.json();
+    if (error?.status >= 500) {
+      setGlobalError("Something went wrong. Please try again.");
+      setShowRetry(false);
+      setRetryAction(null);
+      return;
+    }
+
+    if (error?.isNetwork) {
+      setGlobalError("Network failure. Please retry.");
+      setShowRetry(Boolean(onRetry));
+      setRetryAction(() => onRetry || null);
+      return;
+    }
+
+    setGlobalError(error?.message || fallbackMessage);
+    setShowRetry(false);
+    setRetryAction(null);
   }, []);
 
-  const fetchDashboardMetrics = useCallback(async (shop) => {
-    if (!shop) {
+  const clearGlobalError = useCallback(() => {
+    setGlobalError("");
+    setShowRetry(false);
+    setRetryAction(null);
+  }, []);
+
+  const fetchDashboardMetrics = useCallback(async (shopDomain) => {
+    if (!shopDomain) {
       setLoadingKpis(false);
       setKpiError("Missing shop parameter.");
       return;
     }
 
-    if (!API_BASE) {
+    if (!getApiBase()) {
       setLoadingKpis(false);
       setKpiError("Missing API base URL.");
       return;
@@ -107,26 +130,27 @@ const Dashboard = () => {
     setKpiError("");
 
     try {
-      const encodedShop = encodeURIComponent(shop);
-      const base = `${API_BASE}/dashboard`;
+      const query = { shop_domain: shopDomain };
 
       const [totalSkusData, avgSalesData, coverageData, stockRiskData] = await Promise.all([
-        apiGetJson(`${base}/total-skus?shop_domain=${encodedShop}`),
-        apiGetJson(`${base}/average-sales-per-day?shop_domain=${encodedShop}`),
-        apiGetJson(`${base}/coverage-days?shop_domain=${encodedShop}`),
-        apiGetJson(`${base}/stock-risk?shop_domain=${encodedShop}`),
+        apiClient.get("/dashboard/total-skus", { query }),
+        apiClient.get("/dashboard/average-sales-per-day", { query }),
+        apiClient.get("/dashboard/coverage-days", { query }),
+        apiClient.get("/dashboard/stock-risk", { query }),
       ]);
 
       setTotalSkus(extractMetricValue(totalSkusData));
       setAvgSalesPerDay(extractMetricValue(avgSalesData));
       setCoverageDays(extractMetricValue(coverageData));
       setStockRisk(extractMetricValue(stockRiskData));
+      clearGlobalError();
     } catch (error) {
       setKpiError(error?.message || "Unable to load metrics.");
+      handleApiError(error, "Unable to load metrics.", () => fetchDashboardMetrics(shopDomain));
     } finally {
       setLoadingKpis(false);
     }
-  }, [apiGetJson, extractMetricValue]);
+  }, [clearGlobalError, extractMetricValue, handleApiError]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -151,9 +175,10 @@ const Dashboard = () => {
   };
 
   const handleSyncInventory = async () => {
-    if (!shop || !API_BASE) return;
+    if (!shop || !getApiBase()) return;
     setInventorySyncing(true);
     setInventoryMessage("");
+
     try {
       const data = await syncInventory(shop);
       if (data?.status === "success") {
@@ -164,6 +189,7 @@ const Dashboard = () => {
       } else {
         setInventoryMessage("Inventory sync completed.");
       }
+      clearGlobalError();
       await fetchDashboardMetrics(shop);
     } catch (error) {
       if (error?.status === 404) {
@@ -171,15 +197,17 @@ const Dashboard = () => {
       } else {
         setInventoryMessage(error?.message || "Inventory sync failed.");
       }
+      handleApiError(error, "Inventory sync failed.", handleSyncInventory);
     } finally {
       setInventorySyncing(false);
     }
   };
 
   const handleSyncSales = async () => {
-    if (!shop || !API_BASE || !startDate || !endDate) return;
+    if (!shop || !getApiBase() || !startDate || !endDate) return;
     setSalesSyncing(true);
     setSalesMessage("");
+
     try {
       const data = await syncSales(shop, startDate, endDate);
       if (data?.status === "success") {
@@ -190,6 +218,7 @@ const Dashboard = () => {
       } else {
         setSalesMessage("Sales sync completed.");
       }
+      clearGlobalError();
       await fetchDashboardMetrics(shop);
     } catch (error) {
       if (error?.status === 404) {
@@ -197,32 +226,45 @@ const Dashboard = () => {
       } else {
         setSalesMessage(error?.message || "Sales sync failed.");
       }
+      handleApiError(error, "Sales sync failed.", handleSyncSales);
     } finally {
       setSalesSyncing(false);
     }
   };
 
+  const getForecastDays = useCallback(() => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      return 1;
+    }
+
+    const diff = Math.floor((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)) + 1;
+    return diff > 0 ? diff : 1;
+  }, [startDate, endDate]);
+
   const handleGenerateForecast = async () => {
-    if (!shop || !API_BASE || !startDate || !endDate) return;
+    if (!shop || !getApiBase() || !startDate || !endDate) return;
+
     setForecastGenerating(true);
     setForecastMessage("");
+
     try {
-      const query = new URLSearchParams({
-        shop_domain: shop,
-        forecast_scope: forecastScope,
-        start_date: startDate,
-        end_date: endDate,
-      }).toString();
-      const url = `${API_BASE}${FORECAST_ENDPOINT}?${query}`;
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "ngrok-skip-browser-warning": "true" },
+      await apiClient.post("/requests/report", {
+        query: {
+          shop_domain: shop,
+          number_of_days: getForecastDays(),
+          forecast_scope: forecastScope,
+        },
       });
-      if (!response.ok) throw new Error(`Forecast generation failed (${response.status})`);
+
       setForecastMessage("Forecast generated.");
+      clearGlobalError();
       await fetchDashboardMetrics(shop);
     } catch (error) {
       setForecastMessage(error?.message || "Forecast generation failed.");
+      handleApiError(error, "Forecast generation failed.", handleGenerateForecast);
     } finally {
       setForecastGenerating(false);
     }
@@ -239,6 +281,17 @@ const Dashboard = () => {
       <Header />
 
       <main className="mx-auto max-w-[1320px] px-4 py-6 sm:px-6">
+        {globalError ? (
+          <div className="mb-4 flex items-center justify-between rounded-xl border border-white/15 bg-[#2f1638]/60 px-4 py-3 text-sm text-[#f3d9ff]">
+            <span>{globalError}</span>
+            {showRetry && retryAction ? (
+              <Button variant="secondary" className="!h-9 !w-auto px-4" onClick={retryAction}>
+                Retry
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
+
         <div className="grid gap-5 lg:grid-cols-[360px_minmax(0,1fr)]">
           <div className="space-y-5">
             <Card className="dashboard-panel p-6">
