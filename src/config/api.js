@@ -1,7 +1,7 @@
-const API_BASE = process.env.REACT_APP_API_BASE_URL;
+const API_BASE = process.env.REACT_APP_BACKEND_URL;
 
 if (!API_BASE) {
-  throw new Error("Missing REACT_APP_API_BASE_URL");
+  throw new Error("Missing REACT_APP_BACKEND_URL");
 }
 
 export { API_BASE };

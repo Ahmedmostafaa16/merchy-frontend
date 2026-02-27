@@ -11,7 +11,7 @@ class ApiClientError extends Error {
   }
 }
 
-const getApiBase = () => process.env.REACT_APP_API_BASE_URL;
+const getApiBase = () => process.env.REACT_APP_BACKEND_URL;
 
 const parseResponseBody = async (response) => {
   if (response.status === 204) return null;
@@ -52,7 +52,7 @@ const request = async (method, path, options = {}) => {
   const apiBase = getApiBase();
 
   if (!apiBase) {
-    throw new ApiClientError("Missing REACT_APP_API_BASE_URL", { isConfig: true });
+    throw new ApiClientError("Missing REACT_APP_BACKEND_URL", { isConfig: true });
   }
 
   const token = await getFreshSessionToken();
