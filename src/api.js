@@ -1,25 +1,32 @@
-import { getSessionToken } from "@shopify/app-bridge-utils";
-import { initShopifyApp } from "./shopify";
+// src/api.js
 
-export async function shopifyFetch(path) {
-  const app = initShopifyApp();
-  if (!app) throw new Error("App Bridge failed to initialize");
+export async function shopifyFetch(path, options = {}) {
+  // Shopify injects the global `window.shopify` object in embedded apps
+  const shopify = window.shopify;
 
-  const token = await getSessionToken(app);
+  if (!shopify) {
+    throw new Error("Shopify App Bridge not available on window");
+  }
 
-  const res = await fetch(
+  // Request a session token from Shopify
+  const token = await shopify.sessionToken();
+
+  const response = await fetch(
     `${process.env.REACT_APP_BACKEND_URL}${path}`,
     {
+      ...options,
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
+        ...(options.headers || {}),
       },
     }
   );
 
-  if (!res.ok) {
-    throw new Error(`Backend request failed: ${res.status}`);
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Backend request failed (${response.status}): ${text}`);
   }
 
-  return res.json();
+  return response.json();
 }
