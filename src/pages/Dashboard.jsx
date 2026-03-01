@@ -8,6 +8,7 @@ import Tabs from "../components/ui/Tabs";
 import Skeleton from "../components/ui/Skeleton";
 import { syncInventory, syncSales } from "../services/requestsApi";
 import { apiClient, getApiBase } from "../lib/apiClient";
+import { fetchWithToken } from "../lib/authFetch";
 import "../styles/dashboard.css";
 
 const salesPeriods = ["Yesterday", "Last 7 days", "Last 30 days", "Last 90 days", "Last 365 days"];
@@ -35,6 +36,14 @@ const Dashboard = () => {
   const [globalError, setGlobalError] = useState("");
   const [showRetry, setShowRetry] = useState(false);
   const [retryAction, setRetryAction] = useState(null);
+  const [itemSearchQuery, setItemSearchQuery] = useState("");
+  const [itemSearchLoading, setItemSearchLoading] = useState(false);
+  const [itemSearchError, setItemSearchError] = useState("");
+  const [itemSearchResults, setItemSearchResults] = useState([]);
+  const [selectedItems, setSelectedItems] = useState([]);
+  const [breakdownLoading, setBreakdownLoading] = useState(false);
+  const [breakdownError, setBreakdownError] = useState("");
+  const [breakdownRows, setBreakdownRows] = useState([]);
 
   const extractMetricValue = useCallback((payload) => {
     if (payload === null || payload === undefined) return null;
@@ -79,6 +88,140 @@ const Dashboard = () => {
       end: toIsoDate(today),
     };
   }, [toIsoDate]);
+
+  const getNumberOfDays = useCallback(() => {
+    const periodMap = {
+      Yesterday: 1,
+      "Last 7 days": 7,
+      "Last 30 days": 30,
+      "Last 90 days": 90,
+      "Last 365 days": 365,
+    };
+
+    if (activePeriod && periodMap[activePeriod]) {
+      return periodMap[activePeriod];
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      return 1;
+    }
+
+    const diff = Math.floor((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)) + 1;
+    return diff > 0 ? diff : 1;
+  }, [activePeriod, startDate, endDate]);
+
+  const normalizeApiBase = useCallback(() => {
+    const base = getApiBase() || "";
+    return base.replace(/\/+$/, "");
+  }, []);
+
+  const parseJsonSafe = useCallback(async (response) => {
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) return null;
+    try {
+      return await response.json();
+    } catch (_error) {
+      return null;
+    }
+  }, []);
+
+  const resolveItemId = useCallback((item) => {
+    return String(
+      item?.id ??
+      item?.sku ??
+      item?.product_id ??
+      item?.variant_id ??
+      item?.inventory_item_id ??
+      ""
+    );
+  }, []);
+
+  const resolveItemLabel = useCallback((item) => {
+    return (
+      item?.title ||
+      item?.name ||
+      item?.product_title ||
+      item?.sku ||
+      resolveItemId(item)
+    );
+  }, [resolveItemId]);
+
+  const triggerCsvDownload = useCallback((blob, fallbackFilename) => {
+    const objectUrl = window.URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = objectUrl;
+    anchor.download = fallbackFilename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.URL.revokeObjectURL(objectUrl);
+  }, []);
+
+  const fetchBreakdown = useCallback(async () => {
+    if (!shop) {
+      setBreakdownError("Missing shop domain");
+      setBreakdownRows([]);
+      return;
+    }
+
+    const base = normalizeApiBase();
+    if (!base) {
+      setBreakdownError("Missing API base URL.");
+      setBreakdownRows([]);
+      return;
+    }
+
+    setBreakdownLoading(true);
+    setBreakdownError("");
+
+    const days = getNumberOfDays();
+    const query = new URLSearchParams({
+      shop_domain: shop,
+      number_of_days: String(days),
+    }).toString();
+
+    const candidateUrls = [
+      `${base}/breakdown?${query}`,
+      `${base}/requests/breakdown?${query}`,
+    ];
+
+    try {
+      let successData = null;
+
+      for (const url of candidateUrls) {
+        const response = await fetchWithToken(url, {
+          headers: { "ngrok-skip-browser-warning": "true" },
+        });
+
+        if (response.status === 404) {
+          continue;
+        }
+
+        if (!response.ok) {
+          const maybeJson = await parseJsonSafe(response);
+          const text = maybeJson?.detail || maybeJson?.error || `Request failed (${response.status})`;
+          throw new Error(text);
+        }
+
+        successData = await response.json();
+        break;
+      }
+
+      if (!successData) {
+        throw new Error("Breakdown endpoint not found.");
+      }
+
+      const rows = Array.isArray(successData) ? successData : [];
+      setBreakdownRows(rows);
+    } catch (error) {
+      setBreakdownError(error?.message || "Failed to load item breakdown.");
+      setBreakdownRows([]);
+    } finally {
+      setBreakdownLoading(false);
+    }
+  }, [shop, normalizeApiBase, getNumberOfDays, parseJsonSafe]);
 
   const handleApiError = useCallback((error, fallbackMessage, onRetry) => {
     if (error?.status === 401) {
@@ -166,12 +309,107 @@ const Dashboard = () => {
     fetchDashboardMetrics(shop);
   }, [shop, fetchDashboardMetrics]);
 
+  useEffect(() => {
+    if (activeTab === "Item Breakdown") {
+      fetchBreakdown();
+    }
+  }, [activeTab, fetchBreakdown]);
+
+  useEffect(() => {
+    if (!shop) {
+      setItemSearchResults([]);
+      return undefined;
+    }
+
+    const queryText = itemSearchQuery.trim();
+    if (forecastScope !== "specific" || queryText.length < 2) {
+      setItemSearchResults([]);
+      setItemSearchError("");
+      return undefined;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      const base = normalizeApiBase();
+      if (!base) {
+        setItemSearchError("Missing API base URL.");
+        return;
+      }
+
+      setItemSearchLoading(true);
+      setItemSearchError("");
+
+      const query = new URLSearchParams({
+        shop_domain: shop,
+        search_query: queryText,
+      }).toString();
+
+      const candidateUrls = [
+        `${base}/inventory/search?${query}`,
+        `${base}/requests/inventory/search?${query}`,
+      ];
+
+      try {
+        let successData = null;
+
+        for (const url of candidateUrls) {
+          const response = await fetchWithToken(url, {
+            headers: { "ngrok-skip-browser-warning": "true" },
+          });
+
+          if (response.status === 404) {
+            continue;
+          }
+
+          if (!response.ok) {
+            const maybeJson = await parseJsonSafe(response);
+            const text = maybeJson?.detail || maybeJson?.error || `Request failed (${response.status})`;
+            throw new Error(text);
+          }
+
+          successData = await response.json();
+          break;
+        }
+
+        if (!successData) {
+          throw new Error("Inventory search endpoint not found.");
+        }
+
+        setItemSearchResults(Array.isArray(successData) ? successData : []);
+      } catch (error) {
+        setItemSearchError(error?.message || "Failed to search items.");
+        setItemSearchResults([]);
+      } finally {
+        setItemSearchLoading(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [itemSearchQuery, shop, forecastScope, normalizeApiBase, parseJsonSafe]);
+
   const handlePresetPeriodClick = (period) => {
     setActivePeriod(period);
     const range = getRangeFromPeriod(period);
     setStartDate(range.start);
     setEndDate(range.end);
     setSalesMessage("");
+  };
+
+  const toggleSelectedItem = (item) => {
+    const id = resolveItemId(item);
+    if (!id) return;
+
+    setForecastMessage("");
+    setSelectedItems((prev) => {
+      const exists = prev.some((entry) => entry.id === id);
+      if (exists) {
+        return prev.filter((entry) => entry.id !== id);
+      }
+      return [...prev, { id, label: resolveItemLabel(item), raw: item }];
+    });
+  };
+
+  const removeSelectedItem = (id) => {
+    setSelectedItems((prev) => prev.filter((entry) => entry.id !== id));
   };
 
   const handleSyncInventory = async () => {
@@ -232,34 +470,86 @@ const Dashboard = () => {
     }
   };
 
-  const getForecastDays = useCallback(() => {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-
-    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-      return 1;
-    }
-
-    const diff = Math.floor((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)) + 1;
-    return diff > 0 ? diff : 1;
-  }, [startDate, endDate]);
-
   const handleGenerateForecast = async () => {
-    if (!shop || !getApiBase() || !startDate || !endDate) return;
+    if (!shop) {
+      setForecastMessage("Missing shop domain");
+      return;
+    }
+    if (!getApiBase() || !startDate || !endDate) return;
 
     setForecastGenerating(true);
     setForecastMessage("");
 
     try {
-      await apiClient.post("/requests/report", {
-        query: {
-          shop_domain: shop,
-          number_of_days: getForecastDays(),
-          forecast_scope: forecastScope,
-        },
-      });
+      const base = normalizeApiBase();
+      if (!base) {
+        throw new Error("Missing API base URL.");
+      }
 
-      setForecastMessage("Forecast generated.");
+      const numberOfDays = getNumberOfDays();
+
+      if (forecastScope === "specific" && selectedItems.length === 0) {
+        setForecastMessage("Select at least 1 item");
+        return;
+      }
+
+      const query = new URLSearchParams({
+        shop_domain: shop,
+        number_of_days: String(numberOfDays),
+      });
+      let candidateUrls = [];
+      let fallbackFilename = "restock_report.csv";
+
+      if (forecastScope === "all") {
+        candidateUrls = [
+          `${base}/report?${query.toString()}`,
+          `${base}/requests/report?${query.toString()}`,
+        ];
+      } else {
+        selectedItems.forEach((item) => query.append("items", item.id));
+        candidateUrls = [
+          `${base}/customized/report?${query.toString()}`,
+          `${base}/requests/customized/report?${query.toString()}`,
+        ];
+        fallbackFilename = "customized_restock_report.csv";
+      }
+
+      let csvBlob = null;
+      let filename = fallbackFilename;
+
+      for (const url of candidateUrls) {
+        const response = await fetchWithToken(url, {
+          method: "POST",
+          headers: {
+            "ngrok-skip-browser-warning": "true",
+          },
+        });
+
+        if (response.status === 404) {
+          continue;
+        }
+
+        if (!response.ok) {
+          const maybeJson = await parseJsonSafe(response);
+          const message = maybeJson?.detail || maybeJson?.error || `Request failed (${response.status})`;
+          throw new Error(message);
+        }
+
+        const disposition = response.headers.get("content-disposition") || "";
+        const match = disposition.match(/filename="?([^"]+)"?/i);
+        if (match?.[1]) filename = match[1];
+
+        csvBlob = await response.blob();
+        break;
+      }
+
+      if (!csvBlob) {
+        throw new Error("Forecast endpoint not found.");
+      }
+
+      triggerCsvDownload(csvBlob, filename);
+
+      setForecastMessage("Forecast generated and downloaded.");
       clearGlobalError();
       await fetchDashboardMetrics(shop);
     } catch (error) {
@@ -391,7 +681,7 @@ const Dashboard = () => {
                   <input
                     type="radio"
                     name="scope"
-                    className="scope-radio h-5 w-5"
+                    className="scope-radio h-5 w-5 accent-[#22c55e]"
                     checked={forecastScope === "all"}
                     onChange={() => setForecastScope("all")}
                   />
@@ -401,13 +691,76 @@ const Dashboard = () => {
                   <input
                     type="radio"
                     name="scope"
-                    className="scope-radio h-5 w-5"
+                    className="scope-radio h-5 w-5 accent-[#22c55e]"
                     checked={forecastScope === "specific"}
                     onChange={() => setForecastScope("specific")}
                   />
                   Select specific items
                 </label>
               </div>
+
+              {forecastScope === "specific" ? (
+                <div className="mt-6 space-y-3">
+                  <input
+                    type="text"
+                    value={itemSearchQuery}
+                    onChange={(event) => setItemSearchQuery(event.target.value)}
+                    placeholder="Search inventory items..."
+                    className="dashboard-input h-11 w-full rounded-xl px-3"
+                  />
+
+                  {itemSearchError ? <p className="panel-message">{itemSearchError}</p> : null}
+
+                  <div className="max-h-40 space-y-2 overflow-auto rounded-xl border border-white/10 p-2">
+                    {itemSearchLoading ? (
+                      <>
+                        <Skeleton className="h-8 w-full" />
+                        <Skeleton className="h-8 w-full" />
+                      </>
+                    ) : null}
+                    {!itemSearchLoading && itemSearchResults.length === 0 && itemSearchQuery.trim().length >= 2 ? (
+                      <p className="panel-note px-2 py-1">No matching items</p>
+                    ) : null}
+                    {!itemSearchLoading && itemSearchResults.map((item, index) => {
+                      const id = resolveItemId(item);
+                      const label = resolveItemLabel(item);
+                      const checked = selectedItems.some((entry) => entry.id === id);
+
+                      return (
+                        <label key={`${id}-${index}`} className="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-white/5">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleSelectedItem(item)}
+                            className="h-4 w-4"
+                          />
+                          <span className="panel-text">{label}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+
+                  {selectedItems.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedItems.map((item) => (
+                        <span
+                          key={item.id}
+                          className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-[#d7def6]"
+                        >
+                          {item.label}
+                          <button
+                            type="button"
+                            className="text-[#b7c2ea] hover:text-white"
+                            onClick={() => removeSelectedItem(item.id)}
+                          >
+                            x
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
             </Card>
 
             <Card className="dashboard-panel p-6">
@@ -477,9 +830,54 @@ const Dashboard = () => {
 
             <Card className="dashboard-panel p-6">
               <Tabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
-              <p className="panel-text mt-6">
-                Run a forecast to see restock suggestions.
-              </p>
+              {activeTab === "Item Breakdown" ? (
+                <div className="mt-6">
+                  {breakdownLoading ? (
+                    <div className="space-y-2">
+                      <Skeleton className="h-9 w-full" />
+                      <Skeleton className="h-9 w-full" />
+                      <Skeleton className="h-9 w-full" />
+                    </div>
+                  ) : null}
+
+                  {!breakdownLoading && breakdownError ? (
+                    <p className="panel-message">{breakdownError}</p>
+                  ) : null}
+
+                  {!breakdownLoading && !breakdownError ? (
+                    <div className="overflow-hidden rounded-xl border border-white/10">
+                      <table className="w-full text-left text-sm">
+                        <thead className="bg-white/5">
+                          <tr>
+                            <th className="px-4 py-3">Title</th>
+                            <th className="px-4 py-3">Quantity</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {breakdownRows.length === 0 ? (
+                            <tr>
+                              <td className="px-4 py-3 text-[#a4b0d4]" colSpan={2}>
+                                No breakdown data available.
+                              </td>
+                            </tr>
+                          ) : (
+                            breakdownRows.map((row, index) => (
+                              <tr key={`breakdown-${index}`} className="border-t border-white/10">
+                                <td className="px-4 py-3">{row?.title || row?.name || row?.item || "-"}</td>
+                                <td className="px-4 py-3">{row?.quantity ?? row?.qty ?? row?.count ?? "-"}</td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="panel-text mt-6">
+                  Run a forecast to see restock suggestions.
+                </p>
+              )}
             </Card>
           </div>
         </div>
