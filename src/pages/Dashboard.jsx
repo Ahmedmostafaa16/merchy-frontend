@@ -30,6 +30,7 @@ const Dashboard = () => {
   const [inventorySyncing, setInventorySyncing] = useState(false);
   const [salesSyncing, setSalesSyncing] = useState(false);
   const [forecastGenerating, setForecastGenerating] = useState(false);
+  const [forecastDays, setForecastDays] = useState(1);
   const [inventoryMessage, setInventoryMessage] = useState("");
   const [salesMessage, setSalesMessage] = useState("");
   const [forecastMessage, setForecastMessage] = useState("");
@@ -112,6 +113,12 @@ const Dashboard = () => {
     return diff > 0 ? diff : 1;
   }, [activePeriod, startDate, endDate]);
 
+  const normalizeDays = useCallback((value) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed <= 0) return 1;
+    return Math.floor(parsed);
+  }, []);
+
   const normalizeApiBase = useCallback(() => {
     const base = getApiBase() || "";
     return base.replace(/\/+$/, "");
@@ -130,6 +137,8 @@ const Dashboard = () => {
   const resolveItemId = useCallback((item) => {
     return String(
       item?.id ??
+      item?.title ??
+      item?.name ??
       item?.sku ??
       item?.product_id ??
       item?.variant_id ??
@@ -176,7 +185,7 @@ const Dashboard = () => {
     setBreakdownLoading(true);
     setBreakdownError("");
 
-    const days = getNumberOfDays();
+    const days = normalizeDays(forecastDays);
     const query = new URLSearchParams({
       shop_domain: shop,
       number_of_days: String(days),
@@ -221,7 +230,7 @@ const Dashboard = () => {
     } finally {
       setBreakdownLoading(false);
     }
-  }, [shop, normalizeApiBase, getNumberOfDays, parseJsonSafe]);
+  }, [shop, normalizeApiBase, parseJsonSafe, forecastDays, normalizeDays]);
 
   const handleApiError = useCallback((error, fallbackMessage, onRetry) => {
     if (error?.status === 401) {
@@ -303,7 +312,12 @@ const Dashboard = () => {
     const initialRange = getRangeFromPeriod("Yesterday");
     setStartDate(initialRange.start);
     setEndDate(initialRange.end);
+    setForecastDays(1);
   }, [getRangeFromPeriod]);
+
+  useEffect(() => {
+    setForecastDays(getNumberOfDays());
+  }, [getNumberOfDays]);
 
   useEffect(() => {
     fetchDashboardMetrics(shop);
@@ -486,7 +500,7 @@ const Dashboard = () => {
         throw new Error("Missing API base URL.");
       }
 
-      const numberOfDays = getNumberOfDays();
+      const numberOfDays = normalizeDays(forecastDays);
 
       if (forecastScope === "specific" && selectedItems.length === 0) {
         setForecastMessage("Select at least 1 item");
@@ -769,11 +783,26 @@ const Dashboard = () => {
                 <p className="panel-note">Sync inventory to proceed</p>
               </div>
 
+              <div className="mt-5">
+                <label className="field-label mb-2 block">Number of days</label>
+                <input
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={forecastDays}
+                  onChange={(event) => setForecastDays(normalizeDays(event.target.value))}
+                  onBlur={() => setForecastDays((prev) => normalizeDays(prev))}
+                  className="dashboard-input h-11 w-full rounded-xl px-3"
+                />
+              </div>
+
               <Button
                 className="mt-7"
-                disabled={forecastGenerating || !shop || !startDate || !endDate}
+                disabled={forecastGenerating || !shop || !startDate || !endDate || normalizeDays(forecastDays) < 1}
                 onClick={
-                  forecastGenerating || !shop || !startDate || !endDate ? undefined : handleGenerateForecast
+                  forecastGenerating || !shop || !startDate || !endDate || normalizeDays(forecastDays) < 1
+                    ? undefined
+                    : handleGenerateForecast
                 }
               >
                 {forecastGenerating ? "Generating..." : "Generate Forecast"}
