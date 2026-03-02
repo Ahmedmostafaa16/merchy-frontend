@@ -1,25 +1,13 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { Provider } from "@shopify/app-bridge-react";
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
-const params = new URLSearchParams(window.location.search);
-const host = params.get("host");
-
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <Provider
-      config={{
-        apiKey: process.env.REACT_APP_SHOPIFY_API_KEY,
-        host,
-        forceRedirect: true,
-      }}
-    >
-      <App />
-    </Provider>
+    <App />
   </React.StrictMode>
 );
 
