@@ -3,7 +3,14 @@ import { getFreshSessionToken } from "../shopify/getToken";
 const getApiBase = () => process.env.REACT_APP_BACKEND_URL;
 
 export const fetchWithToken = async (url, options = {}) => {
-  const token = await getFreshSessionToken();
+  let token = "";
+  try {
+    token = await getFreshSessionToken();
+  } catch (error) {
+    console.error("Failed to retrieve Shopify session token:", error);
+    throw error;
+  }
+
   return fetch(url, {
     ...options,
     headers: {
