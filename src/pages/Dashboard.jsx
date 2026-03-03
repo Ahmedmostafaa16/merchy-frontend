@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Header from "../components/Header";
 import Button from "../components/ui/Button";
 import Card from "../components/ui/Card";
@@ -30,7 +30,8 @@ const Dashboard = () => {
   const [inventorySyncing, setInventorySyncing] = useState(false);
   const [salesSyncing, setSalesSyncing] = useState(false);
   const [forecastGenerating, setForecastGenerating] = useState(false);
-  const [forecastDays, setForecastDays] = useState(1);
+  const [forecastDays, setForecastDays] = useState("1");
+  const [forecastDaysError, setForecastDaysError] = useState("");
   const [inventoryMessage, setInventoryMessage] = useState("");
   const [salesMessage, setSalesMessage] = useState("");
   const [forecastMessage, setForecastMessage] = useState("");
@@ -41,10 +42,12 @@ const Dashboard = () => {
   const [itemSearchLoading, setItemSearchLoading] = useState(false);
   const [itemSearchError, setItemSearchError] = useState("");
   const [itemSearchResults, setItemSearchResults] = useState([]);
+  const [itemSearchFocused, setItemSearchFocused] = useState(false);
   const [selectedItems, setSelectedItems] = useState([]);
   const [breakdownLoading, setBreakdownLoading] = useState(false);
   const [breakdownError, setBreakdownError] = useState("");
   const [breakdownRows, setBreakdownRows] = useState([]);
+  const itemSearchBoxRef = useRef(null);
 
   const extractMetricValue = useCallback((payload) => {
     if (payload === null || payload === undefined) return null;
@@ -312,11 +315,11 @@ const Dashboard = () => {
     const initialRange = getRangeFromPeriod("Yesterday");
     setStartDate(initialRange.start);
     setEndDate(initialRange.end);
-    setForecastDays(1);
+    setForecastDays("1");
   }, [getRangeFromPeriod]);
 
   useEffect(() => {
-    setForecastDays(getNumberOfDays());
+    setForecastDays(String(getNumberOfDays()));
   }, [getNumberOfDays]);
 
   useEffect(() => {
@@ -328,6 +331,22 @@ const Dashboard = () => {
       fetchBreakdown();
     }
   }, [activeTab, fetchBreakdown]);
+
+  useEffect(() => {
+    const handlePointerDown = (event) => {
+      if (!itemSearchBoxRef.current) return;
+      if (!itemSearchBoxRef.current.contains(event.target)) {
+        setItemSearchFocused(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
+    };
+  }, []);
 
   useEffect(() => {
     if (!shop) {
@@ -500,7 +519,12 @@ const Dashboard = () => {
         throw new Error("Missing API base URL.");
       }
 
-      const numberOfDays = normalizeDays(forecastDays);
+      const rawDays = Number(forecastDays);
+      if (!Number.isFinite(rawDays) || rawDays <= 0) {
+        setForecastDaysError("Number of days must be greater than 0");
+        return;
+      }
+      const numberOfDays = Math.floor(rawDays);
 
       if (forecastScope === "specific" && selectedItems.length === 0) {
         setForecastMessage("Select at least 1 item");
@@ -714,18 +738,23 @@ const Dashboard = () => {
               </div>
 
               {forecastScope === "specific" ? (
-                <div className="mt-6 space-y-3">
+                <div ref={itemSearchBoxRef} className="mt-6 space-y-3">
                   <input
                     type="text"
                     value={itemSearchQuery}
                     onChange={(event) => setItemSearchQuery(event.target.value)}
+                    onFocus={() => setItemSearchFocused(true)}
                     placeholder="Search inventory items..."
                     className="dashboard-input h-11 w-full rounded-xl px-3"
                   />
 
                   {itemSearchError ? <p className="panel-message">{itemSearchError}</p> : null}
 
-                  <div className="max-h-40 space-y-2 overflow-auto rounded-xl border border-white/10 p-2">
+                  <div
+                    className={`max-h-40 space-y-2 overflow-auto rounded-xl border border-white/10 p-2 transition-opacity duration-200 ${
+                      itemSearchFocused ? "opacity-100" : "opacity-55"
+                    }`}
+                  >
                     {itemSearchLoading ? (
                       <>
                         <Skeleton className="h-8 w-full" />
@@ -741,14 +770,19 @@ const Dashboard = () => {
                       const checked = selectedItems.some((entry) => entry.id === id);
 
                       return (
-                        <label key={`${id}-${index}`} className="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-white/5">
+                        <label
+                          key={`${id}-${index}`}
+                          className={`flex items-center gap-2 rounded-lg px-2 py-1 transition-colors ${
+                            checked ? "bg-[#22c55e]/12" : "hover:bg-white/5"
+                          }`}
+                        >
                           <input
                             type="checkbox"
                             checked={checked}
                             onChange={() => toggleSelectedItem(item)}
-                            className="h-4 w-4"
+                            className="h-4 w-4 accent-[#22c55e]"
                           />
-                          <span className="panel-text">{label}</span>
+                          <span className={`panel-text ${checked ? "text-[#8CF5A6]" : ""}`}>{label}</span>
                         </label>
                       );
                     })}
@@ -759,12 +793,12 @@ const Dashboard = () => {
                       {selectedItems.map((item) => (
                         <span
                           key={item.id}
-                          className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-[#d7def6]"
+                          className="inline-flex items-center gap-2 rounded-full border border-[#22c55e]/40 bg-[#22c55e]/12 px-3 py-1 text-xs text-[#8CF5A6]"
                         >
                           {item.label}
                           <button
                             type="button"
-                            className="text-[#b7c2ea] hover:text-white"
+                            className="text-[#8CF5A6] hover:text-white"
                             onClick={() => removeSelectedItem(item.id)}
                           >
                             x
@@ -787,20 +821,28 @@ const Dashboard = () => {
                 <label className="field-label mb-2 block">Number of days</label>
                 <input
                   type="number"
-                  min={1}
                   step={1}
                   value={forecastDays}
-                  onChange={(event) => setForecastDays(normalizeDays(event.target.value))}
-                  onBlur={() => setForecastDays((prev) => normalizeDays(prev))}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setForecastDays(value);
+                    const num = Number(value);
+                    if (value !== "" && Number.isFinite(num) && num <= 0) {
+                      setForecastDaysError("Number of days must be greater than 0");
+                    } else {
+                      setForecastDaysError("");
+                    }
+                  }}
                   className="dashboard-input h-11 w-full rounded-xl px-3"
                 />
+                {forecastDaysError ? <p className="panel-message mt-2">{forecastDaysError}</p> : null}
               </div>
 
               <Button
                 className="mt-7"
-                disabled={forecastGenerating || !shop || !startDate || !endDate || normalizeDays(forecastDays) < 1}
+                disabled={forecastGenerating || !shop || !startDate || !endDate}
                 onClick={
-                  forecastGenerating || !shop || !startDate || !endDate || normalizeDays(forecastDays) < 1
+                  forecastGenerating || !shop || !startDate || !endDate
                     ? undefined
                     : handleGenerateForecast
                 }
