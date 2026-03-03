@@ -1020,18 +1020,6 @@ const Dashboard = () => {
             </div>
 
             <Card className="dashboard-panel p-6">
-              <div className="mb-5 flex items-center justify-between">
-                <h3 className="panel-title">
-                  Forecast vs Inventory Coverage (Coming soon)
-                </h3>
-                <p className="panel-note">Chart placeholder</p>
-              </div>
-              <div className="chart-placeholder relative h-[330px] rounded-2xl">
-                <div className="chart-accent absolute left-6 right-6 top-1/2 h-0.5 -translate-y-1/2 rounded-full" />
-              </div>
-            </Card>
-
-            <Card className="dashboard-panel p-6">
               <Tabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
               {activeTab === "Item Breakdown" ? (
                 <div className="mt-6">
