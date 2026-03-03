@@ -125,12 +125,6 @@ const Dashboard = () => {
     return diff > 0 ? diff : 1;
   }, [activePeriod, startDate, endDate]);
 
-  const normalizeDays = useCallback((value) => {
-    const parsed = Number(value);
-    if (!Number.isFinite(parsed) || parsed <= 0) return 1;
-    return Math.floor(parsed);
-  }, []);
-
   const getValidForecastDays = useCallback(() => {
     const parsed = Number(forecastDays);
     if (!Number.isFinite(parsed) || parsed <= 0) return null;
