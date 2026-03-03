@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Header from "../components/Header";
 import Button from "../components/ui/Button";
 import Card from "../components/ui/Card";
@@ -32,6 +32,12 @@ const Dashboard = () => {
   const [forecastGenerating, setForecastGenerating] = useState(false);
   const [forecastDays, setForecastDays] = useState("1");
   const [forecastDaysError, setForecastDaysError] = useState("");
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [inventorySynced, setInventorySynced] = useState(false);
+  const [salesSynced, setSalesSynced] = useState(false);
+  const [restockSuggestions, setRestockSuggestions] = useState([]);
+  const [restockLoading, setRestockLoading] = useState(false);
+  const [restockError, setRestockError] = useState("");
   const [inventoryMessage, setInventoryMessage] = useState("");
   const [salesMessage, setSalesMessage] = useState("");
   const [forecastMessage, setForecastMessage] = useState("");
@@ -47,7 +53,10 @@ const Dashboard = () => {
   const [breakdownLoading, setBreakdownLoading] = useState(false);
   const [breakdownError, setBreakdownError] = useState("");
   const [breakdownRows, setBreakdownRows] = useState([]);
+  const [breakdownSearch, setBreakdownSearch] = useState("");
+  const [breakdownAlertFilter, setBreakdownAlertFilter] = useState("all");
   const itemSearchBoxRef = useRef(null);
+  const breakdownRequestRef = useRef(0);
 
   const extractMetricValue = useCallback((payload) => {
     if (payload === null || payload === undefined) return null;
@@ -122,6 +131,12 @@ const Dashboard = () => {
     return Math.floor(parsed);
   }, []);
 
+  const getValidForecastDays = useCallback(() => {
+    const parsed = Number(forecastDays);
+    if (!Number.isFinite(parsed) || parsed <= 0) return null;
+    return Math.floor(parsed);
+  }, [forecastDays]);
+
   const normalizeApiBase = useCallback(() => {
     const base = getApiBase() || "";
     return base.replace(/\/+$/, "");
@@ -171,7 +186,73 @@ const Dashboard = () => {
     window.URL.revokeObjectURL(objectUrl);
   }, []);
 
+  const parseCsvLine = useCallback((line) => {
+    const values = [];
+    let current = "";
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i += 1) {
+      const char = line[i];
+      if (char === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          current += '"';
+          i += 1;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === "," && !inQuotes) {
+        values.push(current.trim());
+        current = "";
+      } else {
+        current += char;
+      }
+    }
+    values.push(current.trim());
+    return values;
+  }, []);
+
+  const extractRestockSuggestions = useCallback((csvText) => {
+    if (!csvText || typeof csvText !== "string") return [];
+    const lines = csvText
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    if (lines.length < 2) return [];
+
+    const headers = parseCsvLine(lines[0]).map((header) => header.toLowerCase());
+    const titleIndex = headers.findIndex((header) => ["title", "product_title", "name", "item"].includes(header));
+    const amountIndex = headers.findIndex((header) => ["amount_to_restock", "restock_qty", "quantity", "qty"].includes(header));
+
+    if (titleIndex === -1 || amountIndex === -1) return [];
+
+    return lines.slice(1).map((line) => {
+      const cols = parseCsvLine(line);
+      return {
+        title: cols[titleIndex] || "-",
+        amount_to_restock: cols[amountIndex] || "-",
+      };
+    });
+  }, [parseCsvLine]);
+
+  const getLifetimeAlert = useCallback((row) => {
+    const rawLifetime = Number(
+      row?.lifetime ?? row?.life_time ?? row?.coverage_days ?? row?.coverage ?? row?.days ?? row?.lifetime_days
+    );
+    if (!Number.isFinite(rawLifetime)) return "Healthy";
+    if (rawLifetime < 15) return "Critical";
+    if (rawLifetime < 20) return "Warning";
+    return "Healthy";
+  }, []);
+
   const fetchBreakdown = useCallback(async () => {
+    const validDays = getValidForecastDays();
+    if (!isAuthenticated || !inventorySynced || !salesSynced || !validDays || validDays < 1) {
+      setBreakdownRows([]);
+      setBreakdownError("");
+      setBreakdownLoading(false);
+      return;
+    }
+
     if (!shop) {
       setBreakdownError("Missing shop domain");
       setBreakdownRows([]);
@@ -188,16 +269,21 @@ const Dashboard = () => {
     setBreakdownLoading(true);
     setBreakdownError("");
 
-    const days = normalizeDays(forecastDays);
-    const query = new URLSearchParams({
+    const queryWithShop = new URLSearchParams({
       shop_domain: shop,
-      number_of_days: String(days),
+      number_of_days: String(validDays),
+    }).toString();
+    const queryWithoutShop = new URLSearchParams({
+      number_of_days: String(validDays),
     }).toString();
 
     const candidateUrls = [
-      `${base}/breakdown?${query}`,
-      `${base}/requests/breakdown?${query}`,
+      `${base}/export/breakdown?${queryWithoutShop}`,
+      `${base}/breakdown?${queryWithShop}`,
+      `${base}/requests/breakdown?${queryWithShop}`,
     ];
+    const requestId = breakdownRequestRef.current + 1;
+    breakdownRequestRef.current = requestId;
 
     try {
       let successData = null;
@@ -226,14 +312,20 @@ const Dashboard = () => {
       }
 
       const rows = Array.isArray(successData) ? successData : [];
-      setBreakdownRows(rows);
+      if (breakdownRequestRef.current === requestId) {
+        setBreakdownRows(rows);
+      }
     } catch (error) {
-      setBreakdownError(error?.message || "Failed to load item breakdown.");
-      setBreakdownRows([]);
+      if (breakdownRequestRef.current === requestId) {
+        setBreakdownError(error?.message || "Failed to load item breakdown.");
+        setBreakdownRows([]);
+      }
     } finally {
-      setBreakdownLoading(false);
+      if (breakdownRequestRef.current === requestId) {
+        setBreakdownLoading(false);
+      }
     }
-  }, [shop, normalizeApiBase, parseJsonSafe, forecastDays, normalizeDays]);
+  }, [shop, normalizeApiBase, parseJsonSafe, isAuthenticated, inventorySynced, salesSynced, getValidForecastDays]);
 
   const handleApiError = useCallback((error, fallbackMessage, onRetry) => {
     if (error?.status === 401) {
@@ -298,8 +390,12 @@ const Dashboard = () => {
       setAvgSalesPerDay(extractMetricValue(avgSalesData));
       setCoverageDays(extractMetricValue(coverageData));
       setStockRisk(extractMetricValue(stockRiskData));
+      setIsAuthenticated(true);
       clearGlobalError();
     } catch (error) {
+      if (error?.status === 401) {
+        setIsAuthenticated(false);
+      }
       setKpiError(error?.message || "Unable to load metrics.");
       handleApiError(error, "Unable to load metrics.", () => fetchDashboardMetrics(shopDomain));
     } finally {
@@ -327,10 +423,10 @@ const Dashboard = () => {
   }, [shop, fetchDashboardMetrics]);
 
   useEffect(() => {
-    if (activeTab === "Item Breakdown") {
+    if (activeTab === "Item Breakdown" && getValidForecastDays() >= 1) {
       fetchBreakdown();
     }
-  }, [activeTab, fetchBreakdown]);
+  }, [activeTab, forecastDays, fetchBreakdown, getValidForecastDays]);
 
   useEffect(() => {
     const handlePointerDown = (event) => {
@@ -454,9 +550,11 @@ const Dashboard = () => {
       const data = await syncInventory(shop);
       if (data?.status === "success") {
         setInventoryMessage(data.message || "Inventory synced.");
+        setInventorySynced(true);
       } else if (data?.status === "skipped") {
         const lastUpdated = data.last_updated_at ? ` Last updated at: ${data.last_updated_at}` : "";
         setInventoryMessage(`${data.reason || "Inventory sync skipped."}${lastUpdated}`);
+        setInventorySynced(true);
       } else {
         setInventoryMessage("Inventory sync completed.");
       }
@@ -483,9 +581,11 @@ const Dashboard = () => {
       const data = await syncSales(shop, startDate, endDate);
       if (data?.status === "success") {
         setSalesMessage(data.message || "Sales synced.");
+        setSalesSynced(true);
       } else if (data?.status === "skipped") {
         const period = data.sales_period ? ` Sales period: ${JSON.stringify(data.sales_period)}` : "";
         setSalesMessage(`${data.reason || "Sales sync skipped."}${period}`);
+        setSalesSynced(true);
       } else {
         setSalesMessage("Sales sync completed.");
       }
@@ -511,6 +611,8 @@ const Dashboard = () => {
     if (!getApiBase() || !startDate || !endDate) return;
 
     setForecastGenerating(true);
+    setRestockLoading(true);
+    setRestockError("");
     setForecastMessage("");
 
     try {
@@ -525,6 +627,7 @@ const Dashboard = () => {
         return;
       }
       const numberOfDays = Math.floor(rawDays);
+      setForecastDaysError("");
 
       if (forecastScope === "specific" && selectedItems.length === 0) {
         setForecastMessage("Select at least 1 item");
@@ -540,12 +643,14 @@ const Dashboard = () => {
 
       if (forecastScope === "all") {
         candidateUrls = [
+          `${base}/export/report?${query.toString()}`,
           `${base}/report?${query.toString()}`,
           `${base}/requests/report?${query.toString()}`,
         ];
       } else {
         selectedItems.forEach((item) => query.append("items", item.id));
         candidateUrls = [
+          `${base}/export/customized/report?${query.toString()}`,
           `${base}/customized/report?${query.toString()}`,
           `${base}/requests/customized/report?${query.toString()}`,
         ];
@@ -553,6 +658,7 @@ const Dashboard = () => {
       }
 
       let csvBlob = null;
+      let csvText = "";
       let filename = fallbackFilename;
 
       for (const url of candidateUrls) {
@@ -578,6 +684,7 @@ const Dashboard = () => {
         if (match?.[1]) filename = match[1];
 
         csvBlob = await response.blob();
+        csvText = await csvBlob.text();
         break;
       }
 
@@ -586,16 +693,47 @@ const Dashboard = () => {
       }
 
       triggerCsvDownload(csvBlob, filename);
+      setRestockSuggestions(extractRestockSuggestions(csvText));
 
       setForecastMessage("Forecast generated and downloaded.");
       clearGlobalError();
       await fetchDashboardMetrics(shop);
+      if (activeTab === "Item Breakdown") {
+        await fetchBreakdown();
+      }
     } catch (error) {
       setForecastMessage(error?.message || "Forecast generation failed.");
+      setRestockError(error?.message || "Failed to load restock suggestions.");
+      setRestockSuggestions([]);
       handleApiError(error, "Forecast generation failed.", handleGenerateForecast);
     } finally {
       setForecastGenerating(false);
+      setRestockLoading(false);
     }
+  };
+
+  const filteredBreakdownRows = useMemo(() => {
+    const search = breakdownSearch.trim().toLowerCase();
+    return breakdownRows.filter((row) => {
+      const title = String(row?.title || row?.name || row?.item || "").toLowerCase();
+      const alert = getLifetimeAlert(row);
+      const matchesSearch = !search || title.includes(search);
+      const matchesAlert = breakdownAlertFilter === "all" || alert === breakdownAlertFilter;
+      return matchesSearch && matchesAlert;
+    });
+  }, [breakdownRows, breakdownSearch, breakdownAlertFilter, getLifetimeAlert]);
+
+  const handleExportBreakdownCsv = () => {
+    if (filteredBreakdownRows.length === 0) return;
+    const header = ["Title", "Quantity", "Alert"];
+    const lines = filteredBreakdownRows.map((row) => {
+      const title = String(row?.title || row?.name || row?.item || "-").replace(/"/g, '""');
+      const quantity = String(row?.quantity ?? row?.qty ?? row?.count ?? "-").replace(/"/g, '""');
+      const alert = getLifetimeAlert(row).replace(/"/g, '""');
+      return `"${title}","${quantity}","${alert}"`;
+    });
+    const csv = `${header.join(",")}\n${lines.join("\n")}`;
+    triggerCsvDownload(new Blob([csv], { type: "text/csv;charset=utf-8;" }), "item_breakdown.csv");
   };
 
   const renderKpiValue = (value) => {
@@ -916,32 +1054,111 @@ const Dashboard = () => {
                   ) : null}
 
                   {!breakdownLoading && !breakdownError ? (
-                    <div className="overflow-hidden rounded-xl border border-white/10">
+                    <>
+                      <div className="mb-3 flex flex-wrap items-center gap-2">
+                        <input
+                          type="text"
+                          value={breakdownSearch}
+                          onChange={(event) => setBreakdownSearch(event.target.value)}
+                          placeholder="Search items..."
+                          className="dashboard-input h-10 min-w-[220px] rounded-xl px-3"
+                        />
+                        <select
+                          value={breakdownAlertFilter}
+                          onChange={(event) => setBreakdownAlertFilter(event.target.value)}
+                          className="dashboard-input h-10 rounded-xl px-3"
+                        >
+                          <option value="all">All Alerts</option>
+                          <option value="Critical">Critical</option>
+                          <option value="Warning">Warning</option>
+                          <option value="Healthy">Healthy</option>
+                        </select>
+                        <Button
+                          variant="secondary"
+                          className="!h-10 !w-auto px-4"
+                          disabled={filteredBreakdownRows.length === 0}
+                          onClick={handleExportBreakdownCsv}
+                        >
+                          Export CSV
+                        </Button>
+                      </div>
+                      <div className="overflow-hidden rounded-xl border border-white/10">
                       <table className="w-full text-left text-sm">
                         <thead className="bg-white/5">
                           <tr>
                             <th className="px-4 py-3">Title</th>
                             <th className="px-4 py-3">Quantity</th>
+                            <th className="px-4 py-3">Alert</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {breakdownRows.length === 0 ? (
+                          {filteredBreakdownRows.length === 0 ? (
                             <tr>
-                              <td className="px-4 py-3 text-[#a4b0d4]" colSpan={2}>
-                                No breakdown data available.
+                              <td className="px-4 py-3 text-[#a4b0d4]" colSpan={3}>
+                                Run a forecast to see item breakdown.
                               </td>
                             </tr>
                           ) : (
-                            breakdownRows.map((row, index) => (
+                            filteredBreakdownRows.map((row, index) => {
+                              const alert = getLifetimeAlert(row);
+                              const alertClass =
+                                alert === "Critical"
+                                  ? "text-[#f87171]"
+                                  : alert === "Warning"
+                                    ? "text-[#facc15]"
+                                    : "text-[#4ade80]";
+                              return (
                               <tr key={`breakdown-${index}`} className="border-t border-white/10">
                                 <td className="px-4 py-3">{row?.title || row?.name || row?.item || "-"}</td>
                                 <td className="px-4 py-3">{row?.quantity ?? row?.qty ?? row?.count ?? "-"}</td>
+                                <td className={`px-4 py-3 ${alertClass}`}>{alert}</td>
                               </tr>
-                            ))
+                              );
+                            })
                           )}
                         </tbody>
                       </table>
                     </div>
+                    </>
+                  ) : null}
+                </div>
+              ) : activeTab === "Restock Suggestions" ? (
+                <div className="mt-6">
+                  {restockLoading ? (
+                    <div className="space-y-2">
+                      <Skeleton className="h-9 w-full" />
+                      <Skeleton className="h-9 w-full" />
+                      <Skeleton className="h-9 w-full" />
+                    </div>
+                  ) : null}
+
+                  {!restockLoading && restockError ? (
+                    <p className="panel-message">{restockError}</p>
+                  ) : null}
+
+                  {!restockLoading && !restockError ? (
+                    restockSuggestions.length > 0 ? (
+                      <div className="overflow-hidden rounded-xl border border-white/10">
+                        <table className="w-full text-left text-sm">
+                          <thead className="bg-white/5">
+                            <tr>
+                              <th className="px-4 py-3">Title</th>
+                              <th className="px-4 py-3">Amount To Restock</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {restockSuggestions.map((item, index) => (
+                              <tr key={`restock-${index}`} className="border-t border-white/10">
+                                <td className="px-4 py-3">{item?.title || "-"}</td>
+                                <td className="px-4 py-3">{item?.amount_to_restock ?? "-"}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <p className="panel-text">Run a forecast to see restock suggestions.</p>
+                    )
                   ) : null}
                 </div>
               ) : (
