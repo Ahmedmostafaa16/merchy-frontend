@@ -180,54 +180,6 @@ const Dashboard = () => {
     window.URL.revokeObjectURL(objectUrl);
   }, []);
 
-  const parseCsvLine = useCallback((line) => {
-    const values = [];
-    let current = "";
-    let inQuotes = false;
-    for (let i = 0; i < line.length; i += 1) {
-      const char = line[i];
-      if (char === '"') {
-        if (inQuotes && line[i + 1] === '"') {
-          current += '"';
-          i += 1;
-        } else {
-          inQuotes = !inQuotes;
-        }
-      } else if (char === "," && !inQuotes) {
-        values.push(current.trim());
-        current = "";
-      } else {
-        current += char;
-      }
-    }
-    values.push(current.trim());
-    return values;
-  }, []);
-
-  const extractRestockSuggestions = useCallback((csvText) => {
-    if (!csvText || typeof csvText !== "string") return [];
-    const lines = csvText
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter(Boolean);
-
-    if (lines.length < 2) return [];
-
-    const headers = parseCsvLine(lines[0]).map((header) => header.toLowerCase());
-    const titleIndex = headers.findIndex((header) => ["title", "product_title", "name", "item"].includes(header));
-    const amountIndex = headers.findIndex((header) => ["amount_to_restock", "restock_qty", "quantity", "qty"].includes(header));
-
-    if (titleIndex === -1 || amountIndex === -1) return [];
-
-    return lines.slice(1).map((line) => {
-      const cols = parseCsvLine(line);
-      return {
-        title: cols[titleIndex] || "-",
-        amount_to_restock: cols[amountIndex] || "-",
-      };
-    });
-  }, [parseCsvLine]);
-
   const getLifetimeAlert = useCallback((row) => {
     const rawLifetime = Number(
       row?.lifetime ?? row?.life_time ?? row?.coverage_days ?? row?.coverage ?? row?.days ?? row?.lifetime_days
@@ -267,44 +219,22 @@ const Dashboard = () => {
       shop_domain: shop,
       number_of_days: String(validDays),
     }).toString();
-    const queryWithoutShop = new URLSearchParams({
-      number_of_days: String(validDays),
-    }).toString();
-
-    const candidateUrls = [
-      `${base}/export/breakdown?${queryWithoutShop}`,
-      `${base}/breakdown?${queryWithShop}`,
-      `${base}/requests/breakdown?${queryWithShop}`,
-    ];
+    const url = `${base}/export/breakdown?${queryWithShop}`;
     const requestId = breakdownRequestRef.current + 1;
     breakdownRequestRef.current = requestId;
 
     try {
-      let successData = null;
+      const response = await fetchWithToken(url, {
+        headers: { "ngrok-skip-browser-warning": "true" },
+      });
 
-      for (const url of candidateUrls) {
-        const response = await fetchWithToken(url, {
-          headers: { "ngrok-skip-browser-warning": "true" },
-        });
-
-        if (response.status === 404) {
-          continue;
-        }
-
-        if (!response.ok) {
-          const maybeJson = await parseJsonSafe(response);
-          const text = maybeJson?.detail || maybeJson?.error || `Request failed (${response.status})`;
-          throw new Error(text);
-        }
-
-        successData = await response.json();
-        break;
+      if (!response.ok) {
+        const maybeJson = await parseJsonSafe(response);
+        const text = maybeJson?.detail || maybeJson?.error || `Request failed (${response.status})`;
+        throw new Error(text);
       }
 
-      if (!successData) {
-        throw new Error("Breakdown endpoint not found.");
-      }
-
+      const successData = await response.json();
       const rows = Array.isArray(successData) ? successData : [];
       if (breakdownRequestRef.current === requestId) {
         setBreakdownRows(rows);
@@ -632,69 +562,36 @@ const Dashboard = () => {
         shop_domain: shop,
         number_of_days: String(numberOfDays),
       });
-      let candidateUrls = [];
-      let fallbackFilename = "restock_report.csv";
+      let forecastUrl = "";
 
       if (forecastScope === "all") {
-        candidateUrls = [
-          `${base}/export/report?${query.toString()}`,
-          `${base}/report?${query.toString()}`,
-          `${base}/requests/report?${query.toString()}`,
-        ];
+        forecastUrl = `${base}/export/report?${query.toString()}`;
       } else {
         selectedItems.forEach((item) => query.append("items", item.id));
-        candidateUrls = [
-          `${base}/export/customized/report?${query.toString()}`,
-          `${base}/customized/report?${query.toString()}`,
-          `${base}/requests/customized/report?${query.toString()}`,
-        ];
-        fallbackFilename = "customized_restock_report.csv";
+        forecastUrl = `${base}/export/customized/report?${query.toString()}`;
       }
 
-      let csvBlob = null;
-      let csvText = "";
-      let filename = fallbackFilename;
+      const response = await fetchWithToken(forecastUrl, {
+        method: "POST",
+        headers: {
+          "ngrok-skip-browser-warning": "true",
+        },
+      });
 
-      for (const url of candidateUrls) {
-        const response = await fetchWithToken(url, {
-          method: "POST",
-          headers: {
-            "ngrok-skip-browser-warning": "true",
-          },
-        });
-
-        if (response.status === 404) {
-          continue;
-        }
-
-        if (!response.ok) {
-          const maybeJson = await parseJsonSafe(response);
-          const message = maybeJson?.detail || maybeJson?.error || `Request failed (${response.status})`;
-          throw new Error(message);
-        }
-
-        const disposition = response.headers.get("content-disposition") || "";
-        const match = disposition.match(/filename="?([^"]+)"?/i);
-        if (match?.[1]) filename = match[1];
-
-        csvBlob = await response.blob();
-        csvText = await csvBlob.text();
-        break;
+      if (!response.ok) {
+        const maybeJson = await parseJsonSafe(response);
+        const message = maybeJson?.detail || maybeJson?.error || `Request failed (${response.status})`;
+        throw new Error(message);
       }
 
-      if (!csvBlob) {
-        throw new Error("Forecast endpoint not found.");
-      }
+      const payload = await response.json();
+      setRestockSuggestions(Array.isArray(payload) ? payload : []);
+      setRestockError("");
 
-      triggerCsvDownload(csvBlob, filename);
-      setRestockSuggestions(extractRestockSuggestions(csvText));
-
-      setForecastMessage("Forecast generated and downloaded.");
+      setForecastMessage("Forecast generated successfully.");
       clearGlobalError();
       await fetchDashboardMetrics(shop);
-      if (activeTab === "Item Breakdown") {
-        await fetchBreakdown();
-      }
+      await fetchBreakdown();
     } catch (error) {
       setForecastMessage(error?.message || "Forecast generation failed.");
       setRestockError(error?.message || "Failed to load restock suggestions.");
@@ -704,6 +601,20 @@ const Dashboard = () => {
       setForecastGenerating(false);
       setRestockLoading(false);
     }
+  };
+
+  const handleGenerateCsv = () => {
+    if (restockSuggestions.length === 0) {
+      setForecastMessage("No forecast data available for CSV export.");
+      return;
+    }
+
+    const csv = [
+      "title,amount_to_restock",
+      ...restockSuggestions.map((row) => `${row?.title ?? ""},${row?.amount_to_restock ?? ""}`),
+    ].join("\n");
+
+    triggerCsvDownload(new Blob([csv], { type: "text/csv;charset=utf-8;" }), "restock_report.csv");
   };
 
   const filteredBreakdownRows = useMemo(() => {
@@ -981,7 +892,12 @@ const Dashboard = () => {
               >
                 {forecastGenerating ? "Generating..." : "Generate Forecast"}
               </Button>
-              <Button variant="disabled" className="mt-3" disabled>
+              <Button
+                variant="secondary"
+                className="mt-3"
+                disabled={restockSuggestions.length === 0 || restockLoading}
+                onClick={restockSuggestions.length === 0 || restockLoading ? undefined : handleGenerateCsv}
+              >
                 Generate CSV
               </Button>
               {forecastMessage ? <p className="panel-message mt-3">{forecastMessage}</p> : null}
@@ -1065,12 +981,12 @@ const Dashboard = () => {
                         </Button>
                       </div>
                       <div className="overflow-hidden rounded-xl border border-white/10">
-                      <table className="w-full text-left text-sm">
+                      <table className="w-full text-left text-sm text-zinc-400">
                         <thead className="bg-white/5">
                           <tr>
-                            <th className="px-4 py-3">Title</th>
-                            <th className="px-4 py-3">Quantity</th>
-                            <th className="px-4 py-3">Alert</th>
+                            <th className="px-4 py-3 text-zinc-400">Title</th>
+                            <th className="px-4 py-3 text-zinc-400">Quantity</th>
+                            <th className="px-4 py-3 text-zinc-400">Alert</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1090,9 +1006,9 @@ const Dashboard = () => {
                                     ? "text-[#facc15]"
                                     : "text-[#4ade80]";
                               return (
-                              <tr key={`breakdown-${index}`} className="border-t border-white/10">
-                                <td className="px-4 py-3">{row?.title || row?.name || row?.item || "-"}</td>
-                                <td className="px-4 py-3">{row?.quantity ?? row?.qty ?? row?.count ?? "-"}</td>
+                              <tr key={`breakdown-${index}`} className="border-t border-white/10 text-zinc-400">
+                                <td className="px-4 py-3 text-zinc-400">{row?.title || row?.name || row?.item || "-"}</td>
+                                <td className="px-4 py-3 text-zinc-400">{row?.quantity ?? row?.qty ?? row?.count ?? "-"}</td>
                                 <td className={`px-4 py-3 ${alertClass}`}>{alert}</td>
                               </tr>
                               );
@@ -1121,18 +1037,18 @@ const Dashboard = () => {
                   {!restockLoading && !restockError ? (
                     restockSuggestions.length > 0 ? (
                       <div className="overflow-hidden rounded-xl border border-white/10">
-                        <table className="w-full text-left text-sm">
+                        <table className="w-full text-left text-sm text-zinc-400">
                           <thead className="bg-white/5">
                             <tr>
-                              <th className="px-4 py-3">Title</th>
-                              <th className="px-4 py-3">Amount To Restock</th>
+                              <th className="px-4 py-3 text-zinc-400">Title</th>
+                              <th className="px-4 py-3 text-zinc-400">Amount To Restock</th>
                             </tr>
                           </thead>
                           <tbody>
                             {restockSuggestions.map((item, index) => (
-                              <tr key={`restock-${index}`} className="border-t border-white/10">
-                                <td className="px-4 py-3">{item?.title || "-"}</td>
-                                <td className="px-4 py-3">{item?.amount_to_restock ?? "-"}</td>
+                              <tr key={`restock-${index}`} className="border-t border-white/10 text-zinc-400">
+                                <td className="px-4 py-3 text-zinc-400">{item?.title || "-"}</td>
+                                <td className="px-4 py-3 text-zinc-400">{item?.amount_to_restock ?? "-"}</td>
                               </tr>
                             ))}
                           </tbody>
