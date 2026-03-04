@@ -219,7 +219,7 @@ const Dashboard = () => {
       shop_domain: shop,
       number_of_days: String(validDays),
     }).toString();
-    const url = `${base}/export/breakdown?${queryWithShop}`;
+    const url = `${base}/requests/breakdown?${queryWithShop}`;
     const requestId = breakdownRequestRef.current + 1;
     breakdownRequestRef.current = requestId;
 
@@ -565,10 +565,10 @@ const Dashboard = () => {
       let forecastUrl = "";
 
       if (forecastScope === "all") {
-        forecastUrl = `${base}/export/report?${query.toString()}`;
+        forecastUrl = `${base}/requests/report?${query.toString()}`;
       } else {
         selectedItems.forEach((item) => query.append("items", item.id));
-        forecastUrl = `${base}/export/customized/report?${query.toString()}`;
+        forecastUrl = `${base}/requests/customized/report?${query.toString()}`;
       }
 
       const response = await fetchWithToken(forecastUrl, {
