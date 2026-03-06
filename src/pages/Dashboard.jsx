@@ -36,6 +36,8 @@ const Dashboard = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(true);
   const [inventorySynced, setInventorySynced] = useState(false);
   const [salesSynced, setSalesSynced] = useState(false);
+  const [inventoryStatus, setInventoryStatus] = useState("not_synced");
+  const [salesStatus, setSalesStatus] = useState("not_synced");
   const [restockSuggestions, setRestockSuggestions] = useState([]);
   const [restockLoading, setRestockLoading] = useState(false);
   const [restockError, setRestockError] = useState("");
@@ -61,6 +63,7 @@ const Dashboard = () => {
   const [rawTableStatusFilter, setRawTableStatusFilter] = useState("all");
   const itemSearchBoxRef = useRef(null);
   const breakdownRequestRef = useRef(0);
+  const canShowKpis = inventorySynced && salesSynced;
 
   const extractMetricValue = useCallback((payload) => {
     if (payload === null || payload === undefined) return null;
@@ -347,8 +350,12 @@ const Dashboard = () => {
   }, [getNumberOfDays]);
 
   useEffect(() => {
+    if (!shop || !canShowKpis) {
+      setLoadingKpis(false);
+      return;
+    }
     fetchDashboardMetrics(shop);
-  }, [shop, fetchDashboardMetrics]);
+  }, [shop, canShowKpis, fetchDashboardMetrics]);
 
   useEffect(() => {
     if (activeTab === "Item Breakdown" && getValidForecastDays() >= 1) {
@@ -379,7 +386,7 @@ const Dashboard = () => {
     }
 
     const queryText = itemSearchQuery.trim();
-    if (forecastScope !== "specific" || queryText.length < 2) {
+    if (forecastScope !== "custom" || queryText.length < 2) {
       setItemSearchResults([]);
       setItemSearchError("");
       return undefined;
@@ -479,15 +486,16 @@ const Dashboard = () => {
       if (data?.status === "success") {
         setInventoryMessage(data.message || "Inventory synced.");
         setInventorySynced(true);
+        setInventoryStatus("synced");
       } else if (data?.status === "skipped") {
         const lastUpdated = data.last_updated_at ? ` Last updated at: ${data.last_updated_at}` : "";
         setInventoryMessage(`${data.reason || "Inventory sync skipped."}${lastUpdated}`);
         setInventorySynced(true);
+        setInventoryStatus("synced");
       } else {
         setInventoryMessage("Inventory sync completed.");
       }
       clearGlobalError();
-      await fetchDashboardMetrics(shop);
     } catch (error) {
       if (error?.status === 404) {
         setInventoryMessage("Shop not found.");
@@ -510,10 +518,12 @@ const Dashboard = () => {
       if (data?.status === "success") {
         setSalesMessage(data.message || "Sales synced.");
         setSalesSynced(true);
+        setSalesStatus("synced");
       } else if (data?.status === "skipped") {
         const period = data.sales_period ? ` Sales period: ${JSON.stringify(data.sales_period)}` : "";
         setSalesMessage(`${data.reason || "Sales sync skipped."}${period}`);
         setSalesSynced(true);
+        setSalesStatus("synced");
       } else {
         setSalesMessage("Sales sync completed.");
       }
@@ -536,7 +546,7 @@ const Dashboard = () => {
       setForecastMessage("Missing shop domain");
       return;
     }
-    if (!getApiBase() || !startDate || !endDate) return;
+    if (!getApiBase()) return;
 
     setForecastGenerating(true);
     setRestockLoading(true);
@@ -561,14 +571,39 @@ const Dashboard = () => {
         setForecastMessage("Minimum Restock Value must be 0 or greater");
         return;
       }
+      let payload = [];
+      if (forecastScope === "all") {
+        payload = await apiClient.post("/requests/report", {
+          query: {
+            shop_domain: shop,
+            number_of_days: numberOfDays,
+            minimum_value: Math.floor(parsedMinimumValue),
+          },
+        });
+      } else {
+        if (selectedItems.length === 0) {
+          setForecastMessage("Select at least 1 item");
+          return;
+        }
 
-      const payload = await apiClient.post("/requests/report", {
-        query: {
+        const params = new URLSearchParams({
           shop_domain: shop,
-          number_of_days: numberOfDays,
-          minimum_value: Math.floor(parsedMinimumValue),
-        },
-      });
+          number_of_days: String(numberOfDays),
+          minimum_value: String(Math.floor(parsedMinimumValue)),
+        });
+        selectedItems.forEach((item) => params.append("items", item.id));
+
+        const response = await fetchWithToken(`${base}/requests/customized/report?${params.toString()}`, {
+          method: "POST",
+          headers: { "ngrok-skip-browser-warning": "true" },
+        });
+        if (!response.ok) {
+          const maybeJson = await parseJsonSafe(response);
+          const message = maybeJson?.detail || maybeJson?.error || `Request failed (${response.status})`;
+          throw new Error(message);
+        }
+        payload = await response.json();
+      }
       const rows = Array.isArray(payload) ? payload : [];
       setForecastData(rows);
       setRestockSuggestions([]);
@@ -588,20 +623,6 @@ const Dashboard = () => {
       setForecastGenerating(false);
       setRestockLoading(false);
     }
-  };
-
-  const handleGenerateCsv = () => {
-    if (restockSuggestions.length === 0) {
-      setForecastMessage("No forecast data available for CSV export.");
-      return;
-    }
-
-    const csv = [
-      "title,amount_to_restock",
-      ...restockSuggestions.map((row) => `${row?.title ?? ""},${row?.amount_to_restock ?? ""}`),
-    ].join("\n");
-
-    triggerCsvDownload(new Blob([csv], { type: "text/csv;charset=utf-8;" }), "restock_report.csv");
   };
 
   const getRawStatusClasses = useCallback((status) => {
@@ -695,7 +716,7 @@ const Dashboard = () => {
             <Card className="dashboard-panel p-6">
               <h2 className="panel-title">Inventory Sync</h2>
               <p className="panel-text mt-2">
-                Status: <span className="panel-text-strong">Not Synced</span>
+                Status: <span className="panel-text-strong">{inventoryStatus === "synced" ? "Synced" : "Not Synced"}</span>
               </p>
               <Button
                 className="mt-7"
@@ -756,7 +777,7 @@ const Dashboard = () => {
 
               <div className="panel-meta mt-5 flex items-center justify-between">
                 <p>
-                  Status: <span className="panel-meta-value">Not Synced</span>
+                  Status: <span className="panel-meta-value">{salesStatus === "synced" ? "Synced" : "Not Synced"}</span>
                 </p>
               </div>
 
@@ -770,8 +791,8 @@ const Dashboard = () => {
               </Button>
               <Button
                 className="mt-2"
-                disabled={salesSyncing || !shop || !startDate || !endDate}
-                onClick={salesSyncing || !shop || !startDate || !endDate ? undefined : handleSyncSales}
+                disabled={salesSyncing || !shop || !startDate || !endDate || !inventorySynced}
+                onClick={salesSyncing || !shop || !startDate || !endDate || !inventorySynced ? undefined : handleSyncSales}
               >
                 {salesSyncing ? "Syncing..." : "Sync Sales"}
               </Button>
@@ -800,14 +821,14 @@ const Dashboard = () => {
                     type="radio"
                     name="scope"
                     className="scope-radio h-5 w-5 accent-[#22c55e]"
-                    checked={forecastScope === "specific"}
-                    onChange={() => setForecastScope("specific")}
+                    checked={forecastScope === "custom"}
+                    onChange={() => setForecastScope("custom")}
                   />
                   Select specific items
                 </label>
               </div>
 
-              {forecastScope === "specific" ? (
+              {forecastScope === "custom" ? (
                 <div ref={itemSearchBoxRef} className="mt-6 space-y-3">
                   <input
                     type="text"
@@ -921,22 +942,14 @@ const Dashboard = () => {
 
               <Button
                 className="mt-7"
-                disabled={forecastGenerating || !shop || !startDate || !endDate}
+                disabled={forecastGenerating || !shop || !inventorySynced || !salesSynced}
                 onClick={
-                  forecastGenerating || !shop || !startDate || !endDate
+                  forecastGenerating || !shop || !inventorySynced || !salesSynced
                     ? undefined
                     : handleGenerateForecast
                 }
               >
                 {forecastGenerating ? "Generating..." : "Generate Forecast"}
-              </Button>
-              <Button
-                variant="secondary"
-                className="mt-3"
-                disabled={restockSuggestions.length === 0 || restockLoading}
-                onClick={restockSuggestions.length === 0 || restockLoading ? undefined : handleGenerateCsv}
-              >
-                Generate CSV
               </Button>
               {forecastMessage ? <p className="panel-message mt-3">{forecastMessage}</p> : null}
             </Card>
@@ -944,7 +957,11 @@ const Dashboard = () => {
 
           <div className="space-y-5">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {loadingKpis ? (
+              {!canShowKpis ? (
+                <Card className="dashboard-panel p-4 sm:col-span-2 lg:col-span-4">
+                  <p className="panel-note">Complete Inventory Sync and Sales Sync to load KPI cards.</p>
+                </Card>
+              ) : loadingKpis ? (
                 <>
                   <KPIStatCard label="Total SKUs" />
                   <KPIStatCard label="Avg Sales / day" />
