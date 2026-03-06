@@ -32,6 +32,7 @@ const Dashboard = () => {
   const [forecastGenerating, setForecastGenerating] = useState(false);
   const [forecastDays, setForecastDays] = useState("1");
   const [forecastDaysError, setForecastDaysError] = useState("");
+  const [minimumValue, setMinimumValue] = useState(5);
   const [isAuthenticated, setIsAuthenticated] = useState(true);
   const [inventorySynced, setInventorySynced] = useState(false);
   const [salesSynced, setSalesSynced] = useState(false);
@@ -55,6 +56,9 @@ const Dashboard = () => {
   const [breakdownRows, setBreakdownRows] = useState([]);
   const [breakdownSearch, setBreakdownSearch] = useState("");
   const [breakdownAlertFilter, setBreakdownAlertFilter] = useState("all");
+  const [forecastData, setForecastData] = useState([]);
+  const [rawTableSearch, setRawTableSearch] = useState("");
+  const [rawTableStatusFilter, setRawTableStatusFilter] = useState("all");
   const itemSearchBoxRef = useRef(null);
   const breakdownRequestRef = useRef(0);
 
@@ -552,40 +556,22 @@ const Dashboard = () => {
       }
       const numberOfDays = Math.floor(rawDays);
       setForecastDaysError("");
-
-      if (forecastScope === "specific" && selectedItems.length === 0) {
-        setForecastMessage("Select at least 1 item");
+      const parsedMinimumValue = Number(minimumValue);
+      if (!Number.isFinite(parsedMinimumValue) || parsedMinimumValue < 0) {
+        setForecastMessage("Minimum Restock Value must be 0 or greater");
         return;
       }
 
-      const query = new URLSearchParams({
-        shop_domain: shop,
-        number_of_days: String(numberOfDays),
-      });
-      let forecastUrl = "";
-
-      if (forecastScope === "all") {
-        forecastUrl = `${base}/requests/report?${query.toString()}`;
-      } else {
-        selectedItems.forEach((item) => query.append("items", item.id));
-        forecastUrl = `${base}/requests/customized/report?${query.toString()}`;
-      }
-
-      const response = await fetchWithToken(forecastUrl, {
-        method: "POST",
-        headers: {
-          "ngrok-skip-browser-warning": "true",
+      const payload = await apiClient.post("/requests/report", {
+        query: {
+          shop_domain: shop,
+          number_of_days: numberOfDays,
+          minimum_value: Math.floor(parsedMinimumValue),
         },
       });
-
-      if (!response.ok) {
-        const maybeJson = await parseJsonSafe(response);
-        const message = maybeJson?.detail || maybeJson?.error || `Request failed (${response.status})`;
-        throw new Error(message);
-      }
-
-      const payload = await response.json();
-      setRestockSuggestions(Array.isArray(payload) ? payload : []);
+      const rows = Array.isArray(payload) ? payload : [];
+      setForecastData(rows);
+      setRestockSuggestions([]);
       setRestockError("");
 
       setForecastMessage("Forecast generated successfully.");
@@ -596,6 +582,7 @@ const Dashboard = () => {
       setForecastMessage(error?.message || "Forecast generation failed.");
       setRestockError(error?.message || "Failed to load restock suggestions.");
       setRestockSuggestions([]);
+      setForecastData([]);
       handleApiError(error, "Forecast generation failed.", handleGenerateForecast);
     } finally {
       setForecastGenerating(false);
@@ -615,6 +602,46 @@ const Dashboard = () => {
     ].join("\n");
 
     triggerCsvDownload(new Blob([csv], { type: "text/csv;charset=utf-8;" }), "restock_report.csv");
+  };
+
+  const getRawStatusClasses = useCallback((status) => {
+    const normalized = String(status || "").toLowerCase();
+    if (normalized === "fast_moving") return "bg-green-500/20 text-green-400 border border-green-500/40";
+    if (normalized === "moderate") return "bg-blue-500/20 text-blue-400 border border-blue-500/40";
+    if (normalized === "slow_moving") return "bg-orange-500/20 text-orange-300 border border-orange-500/40";
+    if (normalized === "never_sold") return "bg-zinc-500/20 text-zinc-300 border border-zinc-500/40";
+    if (normalized === "stock_out") return "bg-red-500/20 text-red-400 border border-red-500/40";
+    return "bg-zinc-500/20 text-zinc-300 border border-zinc-500/40";
+  }, []);
+
+  const filteredRawTableRows = useMemo(() => {
+    const search = rawTableSearch.trim().toLowerCase();
+    return forecastData.filter((row) => {
+      const title = String(row?.title || "").toLowerCase();
+      const sku = String(row?.sku || "").toLowerCase();
+      const status = String(row?.status || "").toLowerCase();
+      const matchesSearch = !search || title.includes(search) || sku.includes(search);
+      const matchesStatus = rawTableStatusFilter === "all" || status === rawTableStatusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [forecastData, rawTableSearch, rawTableStatusFilter]);
+
+  const handleExportRawTableCsv = () => {
+    if (filteredRawTableRows.length === 0) return;
+    const header = ["title", "size", "sku", "lifetime", "sales_per_day", "status", "restock_amount"];
+    const lines = filteredRawTableRows.map((row) => (
+      [
+        row?.title ?? "",
+        row?.size ?? "",
+        row?.sku ?? "",
+        row?.lifetime ?? "",
+        row?.sales_per_day ?? "",
+        row?.status ?? "",
+        row?.restock_amount ?? "",
+      ].join(",")
+    ));
+    const csv = `${header.join(",")}\n${lines.join("\n")}`;
+    triggerCsvDownload(new Blob([csv], { type: "text/csv;charset=utf-8;" }), "forecast_raw_table.csv");
   };
 
   const filteredBreakdownRows = useMemo(() => {
@@ -880,6 +907,17 @@ const Dashboard = () => {
                 />
                 {forecastDaysError ? <p className="panel-message mt-2">{forecastDaysError}</p> : null}
               </div>
+              <div className="mt-4">
+                <label className="field-label mb-2 block">Minimum Restock Value</label>
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={minimumValue}
+                  onChange={(event) => setMinimumValue(event.target.value)}
+                  className="dashboard-input h-11 w-full rounded-xl px-3"
+                />
+              </div>
 
               <Button
                 className="mt-7"
@@ -1057,6 +1095,90 @@ const Dashboard = () => {
                     ) : (
                       <p className="panel-text">Run a forecast to see restock suggestions.</p>
                     )
+                  ) : null}
+                </div>
+              ) : activeTab === "Raw Table" ? (
+                <div className="mt-6">
+                  {forecastGenerating ? (
+                    <div className="space-y-2">
+                      <Skeleton className="h-9 w-full" />
+                      <Skeleton className="h-9 w-full" />
+                      <Skeleton className="h-9 w-full" />
+                    </div>
+                  ) : null}
+
+                  {!forecastGenerating ? (
+                    <>
+                      <div className="mb-3 flex flex-wrap items-center gap-2">
+                        <input
+                          type="text"
+                          value={rawTableSearch}
+                          onChange={(event) => setRawTableSearch(event.target.value)}
+                          placeholder="Search title or SKU..."
+                          className="dashboard-input h-10 min-w-[220px] rounded-xl px-3"
+                        />
+                        <select
+                          value={rawTableStatusFilter}
+                          onChange={(event) => setRawTableStatusFilter(event.target.value)}
+                          className="dashboard-input h-10 rounded-xl px-3"
+                        >
+                          <option value="all">All Status</option>
+                          <option value="fast_moving">fast_moving</option>
+                          <option value="moderate">moderate</option>
+                          <option value="slow_moving">slow_moving</option>
+                          <option value="never_sold">never_sold</option>
+                          <option value="stock_out">stock_out</option>
+                        </select>
+                        <Button
+                          variant="secondary"
+                          className="!h-10 !w-auto px-4"
+                          disabled={filteredRawTableRows.length === 0}
+                          onClick={handleExportRawTableCsv}
+                        >
+                          Export CSV
+                        </Button>
+                      </div>
+                      <div className="overflow-hidden rounded-xl border border-white/10">
+                        <table className="w-full text-left text-sm text-zinc-400">
+                          <thead className="bg-white/5">
+                            <tr>
+                              <th className="px-4 py-3 text-zinc-400">Title</th>
+                              <th className="px-4 py-3 text-zinc-400">Size</th>
+                              <th className="px-4 py-3 text-zinc-400">SKU</th>
+                              <th className="px-4 py-3 text-zinc-400">Lifetime</th>
+                              <th className="px-4 py-3 text-zinc-400">Sales Per Day</th>
+                              <th className="px-4 py-3 text-zinc-400">Status</th>
+                              <th className="px-4 py-3 text-zinc-400">Restock Amount</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {filteredRawTableRows.length === 0 ? (
+                              <tr>
+                                <td className="px-4 py-3 text-zinc-400" colSpan={7}>
+                                  No forecast generated yet.
+                                </td>
+                              </tr>
+                            ) : (
+                              filteredRawTableRows.map((row, index) => (
+                                <tr key={`raw-${index}`} className="border-t border-white/10 text-zinc-400">
+                                  <td className="px-4 py-3 text-zinc-400">{row?.title || "-"}</td>
+                                  <td className="px-4 py-3 text-zinc-400">{row?.size || "-"}</td>
+                                  <td className="px-4 py-3 text-zinc-400">{row?.sku || "-"}</td>
+                                  <td className="px-4 py-3 text-zinc-400">{row?.lifetime ?? "-"}</td>
+                                  <td className="px-4 py-3 text-zinc-400">{row?.sales_per_day ?? "-"}</td>
+                                  <td className="px-4 py-3">
+                                    <span className={`inline-flex rounded-full px-2 py-1 text-xs ${getRawStatusClasses(row?.status)}`}>
+                                      {row?.status || "-"}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3 text-zinc-400">{row?.restock_amount ?? "-"}</td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
                   ) : null}
                 </div>
               ) : (
