@@ -1091,7 +1091,7 @@ const Dashboard = () => {
 
                   {!restockLoading && !restockError ? (
                     restockSuggestions.length > 0 ? (
-                      <div className="overflow-hidden rounded-xl border border-white/10">
+                      <div className="max-h-[420px] overflow-auto rounded-xl border border-white/10">
                         <table className="w-full text-left text-sm text-zinc-400">
                           <thead className="bg-white/5">
                             <tr>
