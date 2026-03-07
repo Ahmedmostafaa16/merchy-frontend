@@ -21,8 +21,8 @@ const Dashboard = () => {
   const [kpiError, setKpiError] = useState("");
   const [totalSkus, setTotalSkus] = useState(null);
   const [avgSalesPerDay, setAvgSalesPerDay] = useState(null);
-  const [coverageDays, setCoverageDays] = useState(null);
-  const [stockRisk, setStockRisk] = useState(null);
+  const [inventoryValue, setInventoryValue] = useState(null);
+  const [unitsInStock, setUnitsInStock] = useState(null);
   const [activePeriod, setActivePeriod] = useState("Yesterday");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -310,17 +310,17 @@ const Dashboard = () => {
     try {
       const query = { shop_domain: shopDomain };
 
-      const [totalSkusData, avgSalesData, coverageData, stockRiskData] = await Promise.all([
+      const [totalSkusData, avgSalesData, inventoryValueData, unitsInStockData] = await Promise.all([
         apiClient.get("/dashboard/total-skus", { query }),
         apiClient.get("/dashboard/average-sales-per-day", { query }),
-        apiClient.get("/dashboard/coverage-days", { query }),
-        apiClient.get("/dashboard/stock-risk", { query }),
+        apiClient.get("/dashboard/inventory-value", { query }),
+        apiClient.get("/dashboard/units-in-stock", { query }),
       ]);
 
       setTotalSkus(extractMetricValue(totalSkusData));
       setAvgSalesPerDay(extractMetricValue(avgSalesData));
-      setCoverageDays(extractMetricValue(coverageData));
-      setStockRisk(extractMetricValue(stockRiskData));
+      setInventoryValue(extractMetricValue(inventoryValueData));
+      setUnitsInStock(extractMetricValue(unitsInStockData));
       setIsAuthenticated(true);
       clearGlobalError();
     } catch (error) {
@@ -649,12 +649,13 @@ const Dashboard = () => {
 
   const handleExportRawTableCsv = () => {
     if (filteredRawTableRows.length === 0) return;
-    const header = ["title", "size", "sku", "lifetime", "sales_per_day", "status", "restock_amount"];
+    const header = ["title", "size", "sku", "inventory", "lifetime", "sales_per_day", "status", "restock_amount"];
     const lines = filteredRawTableRows.map((row) => (
       [
         row?.title ?? "",
         row?.size ?? "",
         row?.sku ?? "",
+        row?.inventory ?? "",
         row?.lifetime ?? "",
         row?.sales_per_day ?? "",
         row?.status ?? "",
@@ -965,8 +966,8 @@ const Dashboard = () => {
                 <>
                   <KPIStatCard label="Total SKUs" />
                   <KPIStatCard label="Avg Sales / day" />
-                  <KPIStatCard label="Stock Risk" />
-                  <KPIStatCard label="Coverage days" />
+                  <KPIStatCard label="Inventory Value" />
+                  <KPIStatCard label="Units in Stock" />
                 </>
               ) : (
                 <>
@@ -979,12 +980,12 @@ const Dashboard = () => {
                     {renderKpiValue(avgSalesPerDay)}
                   </Card>
                   <Card className="dashboard-panel p-4">
-                    <p className="kpi-label">Stock Risk</p>
-                    {renderKpiValue(stockRisk)}
+                    <p className="kpi-label">Inventory Value</p>
+                    {renderKpiValue(inventoryValue)}
                   </Card>
                   <Card className="dashboard-panel p-4">
-                    <p className="kpi-label">Coverage days</p>
-                    {renderKpiValue(coverageDays)}
+                    <p className="kpi-label">Units in Stock</p>
+                    {renderKpiValue(unitsInStock)}
                   </Card>
                 </>
               )}
@@ -1155,13 +1156,14 @@ const Dashboard = () => {
                           Export CSV
                         </Button>
                       </div>
-                      <div className="overflow-hidden rounded-xl border border-white/10">
-                        <table className="w-full text-left text-sm text-zinc-400">
+                      <div className="max-h-[420px] overflow-y-auto overflow-x-auto rounded-xl border border-white/10">
+                        <table className="w-full min-w-[980px] text-left text-sm text-zinc-400">
                           <thead className="bg-white/5">
                             <tr>
                               <th className="px-4 py-3 text-zinc-400">Title</th>
                               <th className="px-4 py-3 text-zinc-400">Size</th>
                               <th className="px-4 py-3 text-zinc-400">SKU</th>
+                              <th className="px-4 py-3 text-zinc-400">Inventory</th>
                               <th className="px-4 py-3 text-zinc-400">Lifetime</th>
                               <th className="px-4 py-3 text-zinc-400">Sales Per Day</th>
                               <th className="px-4 py-3 text-zinc-400">Status</th>
@@ -1171,7 +1173,7 @@ const Dashboard = () => {
                           <tbody>
                             {filteredRawTableRows.length === 0 ? (
                               <tr>
-                                <td className="px-4 py-3 text-zinc-400" colSpan={7}>
+                                <td className="px-4 py-3 text-zinc-400" colSpan={8}>
                                   No forecast generated yet.
                                 </td>
                               </tr>
@@ -1181,6 +1183,7 @@ const Dashboard = () => {
                                   <td className="px-4 py-3 text-zinc-400">{row?.title || "-"}</td>
                                   <td className="px-4 py-3 text-zinc-400">{row?.size || "-"}</td>
                                   <td className="px-4 py-3 text-zinc-400">{row?.sku || "-"}</td>
+                                  <td className="px-4 py-3 text-zinc-400">{row?.inventory ?? "-"}</td>
                                   <td className="px-4 py-3 text-zinc-400">{row?.lifetime ?? "-"}</td>
                                   <td className="px-4 py-3 text-zinc-400">{row?.sales_per_day ?? "-"}</td>
                                   <td className="px-4 py-3">
