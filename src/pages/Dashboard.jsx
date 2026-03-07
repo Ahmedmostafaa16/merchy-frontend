@@ -625,27 +625,31 @@ const Dashboard = () => {
     }
   };
 
-  const getRawStatusClasses = useCallback((status) => {
-    const normalized = String(status || "").toLowerCase();
-    if (normalized === "fast_moving") return "bg-green-500/20 text-green-400 border border-green-500/40";
-    if (normalized === "moderate") return "bg-blue-500/20 text-blue-400 border border-blue-500/40";
-    if (normalized === "slow_moving") return "bg-orange-500/20 text-orange-300 border border-orange-500/40";
-    if (normalized === "never_sold") return "bg-zinc-500/20 text-zinc-300 border border-zinc-500/40";
-    if (normalized === "stock_out") return "bg-red-500/20 text-red-400 border border-red-500/40";
-    return "bg-zinc-500/20 text-zinc-300 border border-zinc-500/40";
+  const normalizeStatusValue = useCallback((status) => {
+    return String(status || "").toLowerCase().replace(/[_\s]+/g, "");
   }, []);
+
+  const getRawStatusClasses = useCallback((status) => {
+    const normalized = normalizeStatusValue(status);
+    if (normalized === "fastmoving") return "bg-green-500/20 text-green-400 border border-green-500/40";
+    if (normalized === "moderate") return "bg-blue-500/20 text-blue-400 border border-blue-500/40";
+    if (normalized === "slowmoving") return "bg-orange-500/20 text-orange-300 border border-orange-500/40";
+    if (normalized === "neversold") return "bg-zinc-500/20 text-zinc-300 border border-zinc-500/40";
+    if (normalized === "stockout") return "bg-red-500/20 text-red-400 border border-red-500/40";
+    return "bg-zinc-500/20 text-zinc-300 border border-zinc-500/40";
+  }, [normalizeStatusValue]);
 
   const filteredRawTableRows = useMemo(() => {
     const search = rawTableSearch.trim().toLowerCase();
     return forecastData.filter((row) => {
       const title = String(row?.title || "").toLowerCase();
       const sku = String(row?.sku || "").toLowerCase();
-      const status = String(row?.status || "").toLowerCase();
+      const status = normalizeStatusValue(row?.status);
       const matchesSearch = !search || title.includes(search) || sku.includes(search);
       const matchesStatus = rawTableStatusFilter === "all" || status === rawTableStatusFilter;
       return matchesSearch && matchesStatus;
     });
-  }, [forecastData, rawTableSearch, rawTableStatusFilter]);
+  }, [forecastData, rawTableSearch, rawTableStatusFilter, normalizeStatusValue]);
 
   const handleExportRawTableCsv = () => {
     if (filteredRawTableRows.length === 0) return;
@@ -1141,11 +1145,11 @@ const Dashboard = () => {
                           className="dashboard-input h-10 rounded-xl px-3"
                         >
                           <option value="all">All Status</option>
-                          <option value="fast_moving">fast_moving</option>
+                          <option value="fastmoving">fast moving</option>
                           <option value="moderate">moderate</option>
-                          <option value="slow_moving">slow_moving</option>
-                          <option value="never_sold">never_sold</option>
-                          <option value="stock_out">stock_out</option>
+                          <option value="slowmoving">slow moving</option>
+                          <option value="neversold">never sold</option>
+                          <option value="stockout">stock out</option>
                         </select>
                         <Button
                           variant="secondary"
