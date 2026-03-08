@@ -62,6 +62,7 @@ const Dashboard = () => {
   const [rawTableSearch, setRawTableSearch] = useState("");
   const [rawTableStatusFilter, setRawTableStatusFilter] = useState("all");
   const [showDaysHelp, setShowDaysHelp] = useState(false);
+  const [showStatusHelp, setShowStatusHelp] = useState(false);
   const itemSearchBoxRef = useRef(null);
   const breakdownRequestRef = useRef(0);
   const daysHelpRef = useRef(null);
@@ -1229,7 +1230,40 @@ const Dashboard = () => {
                               <th className="px-4 py-3 text-zinc-400">Inventory</th>
                               <th className="px-4 py-3 text-zinc-400">Lifetime</th>
                               <th className="px-4 py-3 text-zinc-400">Sales Per Day</th>
-                              <th className="px-4 py-3 text-zinc-400">Status</th>
+                              <th className="px-4 py-3 text-zinc-400">
+                                <div className="relative inline-flex items-center gap-1">
+                                  <span>Status</span>
+                                  <button
+                                    type="button"
+                                    aria-label="Status explanation"
+                                    onMouseEnter={() => setShowStatusHelp(true)}
+                                    onMouseLeave={() => setShowStatusHelp(false)}
+                                    onFocus={() => setShowStatusHelp(true)}
+                                    onBlur={() => setShowStatusHelp(false)}
+                                    className="inline-flex h-4 min-w-4 items-center justify-center rounded-full border border-white/15 text-[10px] leading-none text-zinc-400 transition-colors hover:border-white/30 hover:text-white"
+                                  >
+                                    i
+                                  </button>
+                                  {showStatusHelp ? (
+                                    <div
+                                      className="absolute right-0 top-[calc(100%+8px)] z-30 w-[360px] max-w-[calc(100vw-3rem)] rounded-xl border border-white/15 bg-[#0f1528] p-3 text-left shadow-[0_10px_30px_rgba(0,0,0,0.35)]"
+                                      onMouseEnter={() => setShowStatusHelp(true)}
+                                      onMouseLeave={() => setShowStatusHelp(false)}
+                                    >
+                                      <p className="text-xs text-white">
+                                        Status is based on sales velocity percentile (sales per day) across the catalog.
+                                      </p>
+                                      <ul className="mt-2 space-y-1 text-[11px] leading-5 text-zinc-300">
+                                        <li><span className="text-white">Fast Moving (Top 20%)</span>: Sales velocity in the top 20% of items.</li>
+                                        <li><span className="text-white">Moderate (50%-80%)</span>: Sales velocity between the 50th and 80th percentile.</li>
+                                        <li><span className="text-white">Slow Moving (Bottom 50%)</span>: Sales velocity in the bottom 50% of items.</li>
+                                        <li><span className="text-white">Never Sold</span>: Zero sales in the selected period.</li>
+                                        <li><span className="text-white">Stock Out</span>: Previously sold, but current inventory is zero.</li>
+                                      </ul>
+                                    </div>
+                                  ) : null}
+                                </div>
+                              </th>
                               <th className="px-4 py-3 text-zinc-400">Restock Amount</th>
                             </tr>
                           </thead>
