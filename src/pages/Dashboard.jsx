@@ -61,8 +61,10 @@ const Dashboard = () => {
   const [forecastData, setForecastData] = useState([]);
   const [rawTableSearch, setRawTableSearch] = useState("");
   const [rawTableStatusFilter, setRawTableStatusFilter] = useState("all");
+  const [showDaysHelp, setShowDaysHelp] = useState(false);
   const itemSearchBoxRef = useRef(null);
   const breakdownRequestRef = useRef(0);
+  const daysHelpRef = useRef(null);
   const canShowKpis = inventorySynced && salesSynced;
 
   const extractMetricValue = useCallback((payload) => {
@@ -378,6 +380,25 @@ const Dashboard = () => {
       document.removeEventListener("touchstart", handlePointerDown);
     };
   }, []);
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (!daysHelpRef.current) return;
+      if (!daysHelpRef.current.contains(event.target)) {
+        setShowDaysHelp(false);
+      }
+    };
+
+    if (showDaysHelp) {
+      document.addEventListener("mousedown", handleOutsideClick);
+      document.addEventListener("touchstart", handleOutsideClick);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("touchstart", handleOutsideClick);
+    };
+  }, [showDaysHelp]);
 
   useEffect(() => {
     if (!shop) {
@@ -920,8 +941,39 @@ const Dashboard = () => {
                 <p className="panel-note">Sync inventory to proceed</p>
               </div>
 
-              <div className="mt-5">
-                <label className="field-label mb-2 block">Number of days</label>
+              <div className="relative mt-5" ref={daysHelpRef}>
+                <div className="mb-2 flex items-center gap-2">
+                  <label className="field-label">Number of days</label>
+                  <button
+                    type="button"
+                    aria-label="How number of days works"
+                    onClick={() => setShowDaysHelp((prev) => !prev)}
+                    className="inline-flex h-5 min-w-5 items-center justify-center rounded-full border border-white/15 text-[11px] text-zinc-300 transition-colors hover:border-white/30 hover:text-white"
+                  >
+                    ?
+                  </button>
+                </div>
+                {showDaysHelp ? (
+                  <div className="absolute left-0 top-[calc(100%+8px)] z-30 w-[320px] max-w-[calc(100vw-3rem)] rounded-xl border border-white/15 bg-[#0f1528] p-3 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
+                    <div className="mb-1 flex items-start justify-between gap-3">
+                      <p className="text-sm font-semibold text-[#e7ecff]">How long should this stock last?</p>
+                      <button
+                        type="button"
+                        aria-label="Close number of days help"
+                        onClick={() => setShowDaysHelp(false)}
+                        className="text-xs text-zinc-400 transition-colors hover:text-white"
+                      >
+                        x
+                      </button>
+                    </div>
+                    <p className="text-xs leading-5 text-zinc-300">
+                      Enter the number of days you want your inventory to cover. This helps generate a better restock estimate.
+                    </p>
+                    <p className="mt-1 text-[11px] text-zinc-400">
+                      Example: 30 means you want enough stock for the next 30 days.
+                    </p>
+                  </div>
+                ) : null}
                 <input
                   type="number"
                   step={1}
