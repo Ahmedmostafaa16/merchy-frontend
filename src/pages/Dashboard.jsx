@@ -1191,7 +1191,7 @@ const Dashboard = () => {
                                   <td className="px-4 py-3 text-zinc-400">{row?.lifetime ?? "-"}</td>
                                   <td className="px-4 py-3 text-zinc-400">{row?.sales_per_day ?? "-"}</td>
                                   <td className="px-4 py-3">
-                                    <span className={`inline-flex rounded-full px-2 py-1 text-xs ${getRawStatusClasses(row?.status)}`}>
+                                    <span className={`inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] leading-none ${getRawStatusClasses(row?.status)}`}>
                                       {row?.status || "-"}
                                     </span>
                                   </td>
