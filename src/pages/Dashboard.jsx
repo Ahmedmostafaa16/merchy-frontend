@@ -694,10 +694,17 @@ const Dashboard = () => {
     triggerCsvDownload(new Blob([csv], { type: "text/csv;charset=utf-8;" }), "item_breakdown.csv");
   };
 
-  const renderKpiValue = (value) => {
+  const renderKpiValue = (value, formatNumber = false) => {
     if (loadingKpis) return <Skeleton className="mt-3 h-7 w-24" />;
     if (kpiError) return <p className="kpi-fallback mt-3">Unavailable</p>;
-    return <p className="kpi-value mt-3">{value ?? "-"}</p>;
+    if (value === null || value === undefined || value === "") {
+      return <p className="kpi-value mt-3">-</p>;
+    }
+    const normalizedValue = Number(value);
+    const displayValue = formatNumber && Number.isFinite(normalizedValue)
+      ? normalizedValue.toLocaleString("en-US")
+      : value;
+    return <p className="kpi-value mt-3">{displayValue}</p>;
   };
 
   return (
@@ -985,11 +992,11 @@ const Dashboard = () => {
                   </Card>
                   <Card className="dashboard-panel p-4">
                     <p className="kpi-label">Inventory Value</p>
-                    {renderKpiValue(inventoryValue)}
+                    {renderKpiValue(inventoryValue, true)}
                   </Card>
                   <Card className="dashboard-panel p-4">
                     <p className="kpi-label">Units in Stock</p>
-                    {renderKpiValue(unitsInStock)}
+                    {renderKpiValue(unitsInStock, true)}
                   </Card>
                 </>
               )}
