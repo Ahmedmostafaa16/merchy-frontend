@@ -30,9 +30,9 @@ const Dashboard = () => {
   const [inventorySyncing, setInventorySyncing] = useState(false);
   const [salesSyncing, setSalesSyncing] = useState(false);
   const [forecastGenerating, setForecastGenerating] = useState(false);
-  const [forecastDays, setForecastDays] = useState("1");
+  const [forecastDays, setForecastDays] = useState("");
   const [forecastDaysError, setForecastDaysError] = useState("");
-  const [minimumValue, setMinimumValue] = useState("5");
+  const [minimumValue, setMinimumValue] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(true);
   const [inventorySynced, setInventorySynced] = useState(false);
   const [salesSynced, setSalesSynced] = useState(false);
@@ -322,7 +322,6 @@ const Dashboard = () => {
     const initialRange = getRangeFromPeriod("Yesterday");
     setStartDate(initialRange.start);
     setEndDate(initialRange.end);
-    setForecastDays("1");
   }, [getRangeFromPeriod]);
 
   useEffect(() => {
@@ -990,7 +989,7 @@ const Dashboard = () => {
                   type="number"
                   min="1"
                   inputMode="numeric"
-                  placeholder="Enter minimum value"
+                  placeholder="Enter minimum restock value"
                   step={1}
                   value={minimumValue}
                   onKeyDown={blockInvalidNumberKeys}
