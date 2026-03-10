@@ -30,9 +30,9 @@ const Dashboard = () => {
   const [inventorySyncing, setInventorySyncing] = useState(false);
   const [salesSyncing, setSalesSyncing] = useState(false);
   const [forecastGenerating, setForecastGenerating] = useState(false);
-  const [forecastDays, setForecastDays] = useState("");
+  const [forecastDays, setForecastDays] = useState("1");
   const [forecastDaysError, setForecastDaysError] = useState("");
-  const [minimumValue, setMinimumValue] = useState("");
+  const [minimumValue, setMinimumValue] = useState("5");
   const [isAuthenticated, setIsAuthenticated] = useState(true);
   const [inventorySynced, setInventorySynced] = useState(false);
   const [salesSynced, setSalesSynced] = useState(false);
@@ -111,29 +111,6 @@ const Dashboard = () => {
       end: toIsoDate(today),
     };
   }, [toIsoDate]);
-
-  const getNumberOfDays = useCallback(() => {
-    const periodMap = {
-      Yesterday: 1,
-      "Last 7 days": 7,
-      "Last 30 days": 30,
-      "Last 90 days": 90,
-      "Last 365 days": 365,
-    };
-
-    if (activePeriod && periodMap[activePeriod]) {
-      return periodMap[activePeriod];
-    }
-
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-      return 1;
-    }
-
-    const diff = Math.floor((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)) + 1;
-    return diff > 0 ? diff : 1;
-  }, [activePeriod, startDate, endDate]);
 
   const getValidForecastDays = useCallback(() => {
     const parsed = Number(forecastDays);
@@ -345,6 +322,7 @@ const Dashboard = () => {
     const initialRange = getRangeFromPeriod("Yesterday");
     setStartDate(initialRange.start);
     setEndDate(initialRange.end);
+    setForecastDays("1");
   }, [getRangeFromPeriod]);
 
   useEffect(() => {
