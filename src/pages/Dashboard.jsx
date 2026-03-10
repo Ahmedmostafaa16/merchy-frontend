@@ -30,9 +30,9 @@ const Dashboard = () => {
   const [inventorySyncing, setInventorySyncing] = useState(false);
   const [salesSyncing, setSalesSyncing] = useState(false);
   const [forecastGenerating, setForecastGenerating] = useState(false);
-  const [forecastDays, setForecastDays] = useState("1");
+  const [forecastDays, setForecastDays] = useState("");
   const [forecastDaysError, setForecastDaysError] = useState("");
-  const [minimumValue, setMinimumValue] = useState(5);
+  const [minimumValue, setMinimumValue] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(true);
   const [inventorySynced, setInventorySynced] = useState(false);
   const [salesSynced, setSalesSynced] = useState(false);
@@ -345,12 +345,7 @@ const Dashboard = () => {
     const initialRange = getRangeFromPeriod("Yesterday");
     setStartDate(initialRange.start);
     setEndDate(initialRange.end);
-    setForecastDays("1");
   }, [getRangeFromPeriod]);
-
-  useEffect(() => {
-    setForecastDays(String(getNumberOfDays()));
-  }, [getNumberOfDays]);
 
   useEffect(() => {
     if (!shop || !canShowKpis) {
@@ -496,6 +491,25 @@ const Dashboard = () => {
 
   const removeSelectedItem = (id) => {
     setSelectedItems((prev) => prev.filter((entry) => entry.id !== id));
+  };
+
+  const handlePositiveIntegerInput = (value, setter) => {
+    if (value === "") {
+      setter("");
+      return;
+    }
+
+    if (!/^[1-9]\d*$/.test(value)) {
+      return;
+    }
+
+    setter(value);
+  };
+
+  const blockInvalidNumberKeys = (event) => {
+    if (["e", "E", "+", "-", "."].includes(event.key)) {
+      event.preventDefault();
+    }
   };
 
   const handleSyncInventory = async () => {
@@ -977,17 +991,16 @@ const Dashboard = () => {
                 ) : null}
                 <input
                   type="number"
+                  min="1"
+                  inputMode="numeric"
+                  placeholder="Enter number of days"
                   step={1}
                   value={forecastDays}
+                  onKeyDown={blockInvalidNumberKeys}
                   onChange={(event) => {
                     const value = event.target.value;
-                    setForecastDays(value);
-                    const num = Number(value);
-                    if (value !== "" && Number.isFinite(num) && num <= 0) {
-                      setForecastDaysError("Number of days must be greater than 0");
-                    } else {
-                      setForecastDaysError("");
-                    }
+                    handlePositiveIntegerInput(value, setForecastDays);
+                    setForecastDaysError("");
                   }}
                   className="dashboard-input h-11 w-full rounded-xl px-3"
                 />
@@ -997,10 +1010,13 @@ const Dashboard = () => {
                 <label className="field-label mb-2 block">Minimum Restock Value</label>
                 <input
                   type="number"
-                  min={0}
+                  min="1"
+                  inputMode="numeric"
+                  placeholder="Enter minimum value"
                   step={1}
                   value={minimumValue}
-                  onChange={(event) => setMinimumValue(event.target.value)}
+                  onKeyDown={blockInvalidNumberKeys}
+                  onChange={(event) => handlePositiveIntegerInput(event.target.value, setMinimumValue)}
                   className="dashboard-input h-11 w-full rounded-xl px-3"
                 />
               </div>
