@@ -12,7 +12,8 @@ import { fetchWithToken } from "../lib/authFetch";
 import "../styles/dashboard.css";
 
 const salesPeriods = ["Yesterday", "Last 7 days", "Last 30 days", "Last 90 days", "Last 365 days"];
-const tabs = ["Restock Suggestions", "Item Breakdown", "Raw Table"];
+// Temporary review mode: keep only Raw Table visible. The other tab content stays in place for easy restore.
+const tabs = ["Raw Table"];
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState(tabs[0]);
@@ -989,7 +990,7 @@ const Dashboard = () => {
                   type="number"
                   min="1"
                   inputMode="numeric"
-                  placeholder="Enter minimum restock value"
+                  placeholder="Enter minimum restock value per sku"
                   step={1}
                   value={minimumValue}
                   onKeyDown={blockInvalidNumberKeys}
