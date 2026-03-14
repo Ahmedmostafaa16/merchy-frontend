@@ -13,7 +13,7 @@ import "../styles/dashboard.css";
 
 const salesPeriods = ["Yesterday", "Last 7 days", "Last 30 days", "Last 90 days", "Last 365 days"];
 
-const Dashboard = ({ page = "overview" }) => {
+const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading = false }) => {
   const [shop, setShop] = useState("");
   const [loadingKpis, setLoadingKpis] = useState(true);
   const [kpiError, setKpiError] = useState("");
@@ -54,6 +54,12 @@ const Dashboard = ({ page = "overview" }) => {
   const itemSearchBoxRef = useRef(null);
   const daysHelpRef = useRef(null);
   const canShowKpis = inventorySynced && salesSynced;
+
+  useEffect(() => {
+    if (page === "raw-data") {
+      setForecastData(Array.isArray(initialForecastData) ? initialForecastData : []);
+    }
+  }, [page, initialForecastData]);
 
   const extractMetricValue = useCallback((payload) => {
     if (payload === null || payload === undefined) return null;
@@ -517,6 +523,14 @@ const Dashboard = ({ page = "overview" }) => {
       }
       const rows = Array.isArray(payload) ? payload : [];
       setForecastData(rows);
+      window.sessionStorage.setItem("merchy_forecast_rows", JSON.stringify(rows));
+      window.sessionStorage.setItem("merchy_forecast_request", JSON.stringify({
+        scope: forecastScope,
+        shop_domain: shop,
+        number_of_days: numberOfDays,
+        minimum_value: Math.floor(parsedMinimumValue),
+        items: forecastScope === "custom" ? selectedItems.map((item) => item.id) : [],
+      }));
 
       setForecastMessage("Forecast generated successfully.");
       clearGlobalError();
@@ -685,7 +699,7 @@ const Dashboard = ({ page = "overview" }) => {
                 />
                 <Card className="dashboard-panel p-6">
                   <RawTable
-                    forecastGenerating={forecastGenerating}
+                    forecastGenerating={forecastGenerating || rawDataLoading}
                     rawTableSearch={rawTableSearch}
                     setRawTableSearch={setRawTableSearch}
                     rawTableStatusFilter={rawTableStatusFilter}
