@@ -31,10 +31,14 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
   const [forecastDays, setForecastDays] = useState("");
   const [forecastDaysError, setForecastDaysError] = useState("");
   const [minimumValue, setMinimumValue] = useState("");
-  const [inventorySynced, setInventorySynced] = useState(false);
-  const [salesSynced, setSalesSynced] = useState(false);
-  const [inventoryStatus, setInventoryStatus] = useState("not_synced");
-  const [salesStatus, setSalesStatus] = useState("not_synced");
+  const [inventorySynced, setInventorySynced] = useState(() => window.sessionStorage.getItem("merchy_inventory_synced") === "true");
+  const [salesSynced, setSalesSynced] = useState(() => window.sessionStorage.getItem("merchy_sales_synced") === "true");
+  const [inventoryStatus, setInventoryStatus] = useState(() => (
+    window.sessionStorage.getItem("merchy_inventory_synced") === "true" ? "synced" : "not_synced"
+  ));
+  const [salesStatus, setSalesStatus] = useState(() => (
+    window.sessionStorage.getItem("merchy_sales_synced") === "true" ? "synced" : "not_synced"
+  ));
   const [inventoryMessage, setInventoryMessage] = useState("");
   const [salesMessage, setSalesMessage] = useState("");
   const [forecastMessage, setForecastMessage] = useState("");
@@ -406,11 +410,13 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
         setInventoryMessage(data.message || "Inventory synced.");
         setInventorySynced(true);
         setInventoryStatus("synced");
+        window.sessionStorage.setItem("merchy_inventory_synced", "true");
       } else if (data?.status === "skipped") {
         const lastUpdated = data.last_updated_at ? ` Last updated at: ${data.last_updated_at}` : "";
         setInventoryMessage(`${data.reason || "Inventory sync skipped."}${lastUpdated}`);
         setInventorySynced(true);
         setInventoryStatus("synced");
+        window.sessionStorage.setItem("merchy_inventory_synced", "true");
       } else {
         setInventoryMessage("Inventory sync completed.");
       }
@@ -438,11 +444,13 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
         setSalesMessage(data.message || "Sales synced.");
         setSalesSynced(true);
         setSalesStatus("synced");
+        window.sessionStorage.setItem("merchy_sales_synced", "true");
       } else if (data?.status === "skipped") {
         const period = data.sales_period ? ` Sales period: ${JSON.stringify(data.sales_period)}` : "";
         setSalesMessage(`${data.reason || "Sales sync skipped."}${period}`);
         setSalesSynced(true);
         setSalesStatus("synced");
+        window.sessionStorage.setItem("merchy_sales_synced", "true");
       } else {
         setSalesMessage("Sales sync completed.");
       }
