@@ -75,9 +75,9 @@ const RawTable = ({
                         onMouseLeave={() => setShowStatusHelp(false)}
                         onFocus={() => setShowStatusHelp(true)}
                         onBlur={() => setShowStatusHelp(false)}
-                        className="inline-flex h-4 min-w-4 items-center justify-center rounded-full border border-white/15 text-[10px] leading-none text-zinc-400 transition-colors hover:border-white/30 hover:text-white"
+                        className="text-[11px] leading-none text-zinc-400 transition-colors hover:text-white"
                       >
-                        i
+                        About
                       </button>
                       {showStatusHelp ? (
                         <div

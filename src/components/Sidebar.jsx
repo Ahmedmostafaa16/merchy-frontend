@@ -1,3 +1,4 @@
+import { LayoutDashboard, Database } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import logo from "../assets/logo.png";
 
@@ -17,16 +18,18 @@ const Sidebar = () => {
         <img
           src={logo}
           alt="Merchy"
-          className="h-12 w-auto object-contain"
+          className="h-24 w-auto object-contain"
         />
       </div>
 
       <nav className="space-y-2">
         <NavLink to={`/overview${search}`} className={linkClassName}>
-          Overview
+          <LayoutDashboard size={18} />
+          <span className="ml-2">Overview</span>
         </NavLink>
         <NavLink to={`/raw-data${search}`} className={linkClassName}>
-          Raw Data
+          <Database size={18} />
+          <span className="ml-2">Raw Data</span>
         </NavLink>
       </nav>
 

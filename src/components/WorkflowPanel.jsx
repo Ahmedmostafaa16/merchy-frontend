@@ -257,9 +257,9 @@ const WorkflowPanel = ({
               type="button"
               aria-label="How number of days works"
               onClick={() => setShowDaysHelp((prev) => !prev)}
-              className="inline-flex h-5 min-w-5 items-center justify-center rounded-full border border-white/15 text-[11px] text-zinc-300 transition-colors hover:border-white/30 hover:text-white"
+              className="text-[11px] text-zinc-300 transition-colors hover:text-white"
             >
-              ?
+              How it works
             </button>
           </div>
           {showDaysHelp ? (
