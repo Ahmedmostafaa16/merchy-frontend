@@ -1,22 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Header from "../components/Header";
 import Button from "../components/ui/Button";
 import Card from "../components/ui/Card";
-import KPIStatCard from "../components/ui/KPIStatCard";
 import PillChip from "../components/ui/PillChip";
-import Tabs from "../components/ui/Tabs";
 import Skeleton from "../components/ui/Skeleton";
+import Sidebar from "../components/Sidebar";
+import KPICards from "../components/KPICards";
+import RawTable from "../components/RawTable";
 import { syncInventory, syncSales } from "../services/requestsApi";
 import { apiClient, getApiBase } from "../lib/apiClient";
 import { fetchWithToken } from "../lib/authFetch";
 import "../styles/dashboard.css";
 
 const salesPeriods = ["Yesterday", "Last 7 days", "Last 30 days", "Last 90 days", "Last 365 days"];
-// Temporary review mode: keep only Raw Table visible. The other tab content stays in place for easy restore.
-const tabs = ["Raw Table"];
 
-const Dashboard = () => {
-  const [activeTab, setActiveTab] = useState(tabs[0]);
+const Dashboard = ({ page = "overview" }) => {
   const [shop, setShop] = useState("");
   const [loadingKpis, setLoadingKpis] = useState(true);
   const [kpiError, setKpiError] = useState("");
@@ -39,9 +36,6 @@ const Dashboard = () => {
   const [salesSynced, setSalesSynced] = useState(false);
   const [inventoryStatus, setInventoryStatus] = useState("not_synced");
   const [salesStatus, setSalesStatus] = useState("not_synced");
-  const [restockSuggestions, setRestockSuggestions] = useState([]);
-  const [restockLoading, setRestockLoading] = useState(false);
-  const [restockError, setRestockError] = useState("");
   const [inventoryMessage, setInventoryMessage] = useState("");
   const [salesMessage, setSalesMessage] = useState("");
   const [forecastMessage, setForecastMessage] = useState("");
@@ -63,7 +57,6 @@ const Dashboard = () => {
   const [rawTableSearch, setRawTableSearch] = useState("");
   const [rawTableStatusFilter, setRawTableStatusFilter] = useState("all");
   const [showDaysHelp, setShowDaysHelp] = useState(false);
-  const [showStatusHelp, setShowStatusHelp] = useState(false);
   const itemSearchBoxRef = useRef(null);
   const breakdownRequestRef = useRef(0);
   const daysHelpRef = useRef(null);
@@ -334,10 +327,10 @@ const Dashboard = () => {
   }, [shop, canShowKpis, fetchDashboardMetrics]);
 
   useEffect(() => {
-    if (activeTab === "Item Breakdown" && getValidForecastDays() >= 1) {
+    if (page === "raw-data" && getValidForecastDays() >= 1) {
       fetchBreakdown();
     }
-  }, [activeTab, forecastDays, fetchBreakdown, getValidForecastDays]);
+  }, [page, forecastDays, fetchBreakdown, getValidForecastDays]);
 
   useEffect(() => {
     const handlePointerDown = (event) => {
@@ -563,8 +556,6 @@ const Dashboard = () => {
     if (!getApiBase()) return;
 
     setForecastGenerating(true);
-    setRestockLoading(true);
-    setRestockError("");
     setForecastMessage("");
 
     try {
@@ -620,8 +611,6 @@ const Dashboard = () => {
       }
       const rows = Array.isArray(payload) ? payload : [];
       setForecastData(rows);
-      setRestockSuggestions([]);
-      setRestockError("");
 
       setForecastMessage("Forecast generated successfully.");
       clearGlobalError();
@@ -629,13 +618,10 @@ const Dashboard = () => {
       await fetchBreakdown();
     } catch (error) {
       setForecastMessage(error?.message || "Forecast generation failed.");
-      setRestockError(error?.message || "Failed to load restock suggestions.");
-      setRestockSuggestions([]);
       setForecastData([]);
       handleApiError(error, "Forecast generation failed.", handleGenerateForecast);
     } finally {
       setForecastGenerating(false);
-      setRestockLoading(false);
     }
   };
 
@@ -723,8 +709,6 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard-page min-h-screen">
-      <Header />
-
       <main className="mx-auto max-w-[1320px] px-4 py-6 sm:px-6">
         {globalError ? (
           <div className="mb-4 flex items-center justify-between rounded-xl border border-white/15 bg-[#2f1638]/60 px-4 py-3 text-sm text-[#f3d9ff]">
@@ -737,7 +721,9 @@ const Dashboard = () => {
           </div>
         ) : null}
 
-        <div className="grid gap-5 lg:grid-cols-[360px_minmax(0,1fr)]">
+        <div className="grid gap-5 lg:grid-cols-[220px_360px_minmax(0,1fr)]">
+          <Sidebar />
+
           <div className="space-y-5">
             <Card className="dashboard-panel p-6">
               <h2 className="panel-title">Inventory Sync</h2>
@@ -1015,289 +1001,118 @@ const Dashboard = () => {
           </div>
 
           <div className="space-y-5">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {!canShowKpis ? (
-                <Card className="dashboard-panel p-4 sm:col-span-2 lg:col-span-4">
-                  <p className="panel-note">Complete Inventory Sync and Sales Sync to load KPI cards.</p>
+            {page === "overview" ? (
+              <KPICards
+                canShowKpis={canShowKpis}
+                loadingKpis={loadingKpis}
+                totalSkus={totalSkus}
+                avgSalesPerDay={avgSalesPerDay}
+                inventoryValue={inventoryValue}
+                unitsInStock={unitsInStock}
+                renderKpiValue={renderKpiValue}
+              />
+            ) : (
+              <>
+                <Card className="dashboard-panel p-6">
+                  <RawTable
+                    forecastGenerating={forecastGenerating}
+                    rawTableSearch={rawTableSearch}
+                    setRawTableSearch={setRawTableSearch}
+                    rawTableStatusFilter={rawTableStatusFilter}
+                    setRawTableStatusFilter={setRawTableStatusFilter}
+                    filteredRawTableRows={filteredRawTableRows}
+                    handleExportRawTableCsv={handleExportRawTableCsv}
+                    getRawStatusClasses={getRawStatusClasses}
+                  />
                 </Card>
-              ) : loadingKpis ? (
-                <>
-                  <KPIStatCard label="Total SKUs" />
-                  <KPIStatCard label="Avg Sales / day" />
-                  <KPIStatCard label="Inventory Value" />
-                  <KPIStatCard label="Units in Stock" />
-                </>
-              ) : (
-                <>
-                  <Card className="dashboard-panel p-4">
-                    <p className="kpi-label">Total SKUs</p>
-                    {renderKpiValue(totalSkus)}
-                  </Card>
-                  <Card className="dashboard-panel p-4">
-                    <p className="kpi-label">Avg Sales / day</p>
-                    {renderKpiValue(avgSalesPerDay)}
-                  </Card>
-                  <Card className="dashboard-panel p-4">
-                    <p className="kpi-label">Inventory Value</p>
-                    {renderKpiValue(inventoryValue, true)}
-                  </Card>
-                  <Card className="dashboard-panel p-4">
-                    <p className="kpi-label">Units in Stock</p>
-                    {renderKpiValue(unitsInStock, true)}
-                  </Card>
-                </>
-              )}
-            </div>
 
-            <Card className="dashboard-panel p-6">
-              <Tabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
-              {activeTab === "Item Breakdown" ? (
-                <div className="mt-6">
-                  {breakdownLoading ? (
-                    <div className="space-y-2">
-                      <Skeleton className="h-9 w-full" />
-                      <Skeleton className="h-9 w-full" />
-                      <Skeleton className="h-9 w-full" />
-                    </div>
-                  ) : null}
-
-                  {!breakdownLoading && breakdownError ? (
-                    <p className="panel-message">{breakdownError}</p>
-                  ) : null}
-
-                  {!breakdownLoading && !breakdownError ? (
-                    <>
-                      <div className="mb-3 flex flex-wrap items-center gap-2">
-                        <input
-                          type="text"
-                          value={breakdownSearch}
-                          onChange={(event) => setBreakdownSearch(event.target.value)}
-                          placeholder="Search items..."
-                          className="dashboard-input h-10 min-w-[220px] rounded-xl px-3"
-                        />
-                        <select
-                          value={breakdownAlertFilter}
-                          onChange={(event) => setBreakdownAlertFilter(event.target.value)}
-                          className="dashboard-input h-10 rounded-xl px-3"
-                        >
-                          <option value="all">All Alerts</option>
-                          <option value="Critical">Critical</option>
-                          <option value="Warning">Warning</option>
-                          <option value="Healthy">Healthy</option>
-                        </select>
-                        <Button
-                          variant="secondary"
-                          className="!h-10 !w-auto px-4"
-                          disabled={filteredBreakdownRows.length === 0}
-                          onClick={handleExportBreakdownCsv}
-                        >
-                          Export CSV
-                        </Button>
+                <Card className="dashboard-panel p-6">
+                  <h2 className="panel-title">Item Breakdown</h2>
+                  <div className="mt-6">
+                    {breakdownLoading ? (
+                      <div className="space-y-2">
+                        <Skeleton className="h-9 w-full" />
+                        <Skeleton className="h-9 w-full" />
+                        <Skeleton className="h-9 w-full" />
                       </div>
-                      <div className="overflow-hidden rounded-xl border border-white/10">
-                      <table className="w-full text-left text-sm text-zinc-400">
-                        <thead className="bg-white/5">
-                          <tr>
-                            <th className="px-4 py-3 text-zinc-400">Title</th>
-                            <th className="px-4 py-3 text-zinc-400">Quantity</th>
-                            <th className="px-4 py-3 text-zinc-400">Alert</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredBreakdownRows.length === 0 ? (
-                            <tr>
-                              <td className="px-4 py-3 text-[#a4b0d4]" colSpan={3}>
-                                Run a forecast to see item breakdown.
-                              </td>
-                            </tr>
-                          ) : (
-                            filteredBreakdownRows.map((row, index) => {
-                              const alert = getLifetimeAlert(row);
-                              const alertClass =
-                                alert === "Critical"
-                                  ? "text-[#f87171]"
-                                  : alert === "Warning"
-                                    ? "text-[#facc15]"
-                                    : "text-[#4ade80]";
-                              return (
-                              <tr key={`breakdown-${index}`} className="border-t border-white/10 text-zinc-400">
-                                <td className="px-4 py-3 text-zinc-400">{row?.title || row?.name || row?.item || "-"}</td>
-                                <td className="px-4 py-3 text-zinc-400">{row?.quantity ?? row?.qty ?? row?.count ?? "-"}</td>
-                                <td className={`px-4 py-3 ${alertClass}`}>{alert}</td>
-                              </tr>
-                              );
-                            })
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                    </>
-                  ) : null}
-                </div>
-              ) : activeTab === "Restock Suggestions" ? (
-                <div className="mt-6">
-                  {restockLoading ? (
-                    <div className="space-y-2">
-                      <Skeleton className="h-9 w-full" />
-                      <Skeleton className="h-9 w-full" />
-                      <Skeleton className="h-9 w-full" />
-                    </div>
-                  ) : null}
+                    ) : null}
 
-                  {!restockLoading && restockError ? (
-                    <p className="panel-message">{restockError}</p>
-                  ) : null}
+                    {!breakdownLoading && breakdownError ? (
+                      <p className="panel-message">{breakdownError}</p>
+                    ) : null}
 
-                  {!restockLoading && !restockError ? (
-                    restockSuggestions.length > 0 ? (
-                      <div className="max-h-[420px] overflow-auto rounded-xl border border-white/10">
-                        <table className="w-full text-left text-sm text-zinc-400">
-                          <thead className="bg-white/5">
-                            <tr>
-                              <th className="px-4 py-3 text-zinc-400">Title</th>
-                              <th className="px-4 py-3 text-zinc-400">Amount To Restock</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {restockSuggestions.map((item, index) => (
-                              <tr key={`restock-${index}`} className="border-t border-white/10 text-zinc-400">
-                                <td className="px-4 py-3 text-zinc-400">{item?.title || "-"}</td>
-                                <td className="px-4 py-3 text-zinc-400">{item?.amount_to_restock ?? "-"}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    ) : (
-                      <p className="panel-text">Run a forecast to see restock suggestions.</p>
-                    )
-                  ) : null}
-                </div>
-              ) : activeTab === "Raw Table" ? (
-                <div className="mt-6">
-                  {forecastGenerating ? (
-                    <div className="space-y-2">
-                      <Skeleton className="h-9 w-full" />
-                      <Skeleton className="h-9 w-full" />
-                      <Skeleton className="h-9 w-full" />
-                    </div>
-                  ) : null}
-
-                  {!forecastGenerating ? (
-                    <>
-                      <div className="mb-3 flex flex-wrap items-center gap-2">
-                        <input
-                          type="text"
-                          value={rawTableSearch}
-                          onChange={(event) => setRawTableSearch(event.target.value)}
-                          placeholder="Search title or SKU..."
-                          className="dashboard-input h-10 min-w-[220px] rounded-xl px-3"
-                        />
-                        <select
-                          value={rawTableStatusFilter}
-                          onChange={(event) => setRawTableStatusFilter(event.target.value)}
-                          className="dashboard-input h-10 rounded-xl px-3"
-                        >
-                          <option value="all">All Status</option>
-                          <option value="fastmoving">fast moving</option>
-                          <option value="moderate">moderate</option>
-                          <option value="slowmoving">slow moving</option>
-                          <option value="neversold">never sold</option>
-                          <option value="stockout">stock out</option>
-                        </select>
-                        <Button
-                          variant="secondary"
-                          className="!h-10 !w-auto px-4"
-                          disabled={filteredRawTableRows.length === 0}
-                          onClick={handleExportRawTableCsv}
-                        >
-                          Export CSV
-                        </Button>
-                      </div>
-                      <div className="max-h-[420px] overflow-y-auto overflow-x-auto rounded-xl border border-white/10">
-                        <table className="w-full min-w-[980px] text-left text-sm text-zinc-400">
-                          <thead className="bg-white/5">
-                            <tr>
-                              <th className="px-4 py-3 text-zinc-400">Title</th>
-                              <th className="px-4 py-3 text-zinc-400">Size</th>
-                              <th className="px-4 py-3 text-zinc-400">SKU</th>
-                              <th className="px-4 py-3 text-zinc-400">Inventory</th>
-                              <th className="px-4 py-3 text-zinc-400">Lifetime</th>
-                              <th className="px-4 py-3 text-zinc-400">Sales Per Day</th>
-                              <th className="px-4 py-3 text-zinc-400">
-                                <div className="relative inline-flex items-center gap-1">
-                                  <span>Status</span>
-                                  <button
-                                    type="button"
-                                    aria-label="Status explanation"
-                                    onMouseEnter={() => setShowStatusHelp(true)}
-                                    onMouseLeave={() => setShowStatusHelp(false)}
-                                    onFocus={() => setShowStatusHelp(true)}
-                                    onBlur={() => setShowStatusHelp(false)}
-                                    className="inline-flex h-4 min-w-4 items-center justify-center rounded-full border border-white/15 text-[10px] leading-none text-zinc-400 transition-colors hover:border-white/30 hover:text-white"
-                                  >
-                                    i
-                                  </button>
-                                  {showStatusHelp ? (
-                                    <div
-                                      className="absolute right-0 top-[calc(100%+8px)] z-30 w-[360px] max-w-[calc(100vw-3rem)] rounded-xl border border-white/15 bg-[#0f1528] p-3 text-left shadow-[0_10px_30px_rgba(0,0,0,0.35)]"
-                                      onMouseEnter={() => setShowStatusHelp(true)}
-                                      onMouseLeave={() => setShowStatusHelp(false)}
-                                    >
-                                      <p className="text-xs text-white">
-                                        Status is based on sales velocity percentile (sales per day) across the catalog.
-                                      </p>
-                                      <ul className="mt-2 space-y-1 text-[11px] leading-5 text-zinc-300">
-                                        <li><span className="text-white">Fast Moving (Top 20%)</span>: Sales velocity in the top 20% of items.</li>
-                                        <li><span className="text-white">Moderate (50%-80%)</span>: Sales velocity between the 50th and 80th percentile.</li>
-                                        <li><span className="text-white">Slow Moving (Bottom 50%)</span>: Sales velocity in the bottom 50% of items.</li>
-                                        <li><span className="text-white">Never Sold</span>: Zero sales in the selected period.</li>
-                                        <li><span className="text-white">Stock Out</span>: Previously sold, but current inventory is zero.</li>
-                                      </ul>
-                                    </div>
-                                  ) : null}
-                                </div>
-                              </th>
-                              <th className="px-4 py-3 text-zinc-400">Restock Amount</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {filteredRawTableRows.length === 0 ? (
+                    {!breakdownLoading && !breakdownError ? (
+                      <>
+                        <div className="mb-3 flex flex-wrap items-center gap-2">
+                          <input
+                            type="text"
+                            value={breakdownSearch}
+                            onChange={(event) => setBreakdownSearch(event.target.value)}
+                            placeholder="Search items..."
+                            className="dashboard-input h-10 min-w-[220px] rounded-xl px-3"
+                          />
+                          <select
+                            value={breakdownAlertFilter}
+                            onChange={(event) => setBreakdownAlertFilter(event.target.value)}
+                            className="dashboard-input h-10 rounded-xl px-3"
+                          >
+                            <option value="all">All Alerts</option>
+                            <option value="Critical">Critical</option>
+                            <option value="Warning">Warning</option>
+                            <option value="Healthy">Healthy</option>
+                          </select>
+                          <Button
+                            variant="secondary"
+                            className="!h-10 !w-auto px-4"
+                            disabled={filteredBreakdownRows.length === 0}
+                            onClick={handleExportBreakdownCsv}
+                          >
+                            Export CSV
+                          </Button>
+                        </div>
+                        <div className="overflow-hidden rounded-xl border border-white/10">
+                          <table className="w-full text-left text-sm text-zinc-400">
+                            <thead className="bg-white/5">
                               <tr>
-                                <td className="px-4 py-3 text-zinc-400" colSpan={8}>
-                                  No forecast generated yet.
-                                </td>
+                                <th className="px-4 py-3 text-zinc-400">Title</th>
+                                <th className="px-4 py-3 text-zinc-400">Quantity</th>
+                                <th className="px-4 py-3 text-zinc-400">Alert</th>
                               </tr>
-                            ) : (
-                              filteredRawTableRows.map((row, index) => (
-                                <tr key={`raw-${index}`} className="border-t border-white/10 text-zinc-400">
-                                  <td className="px-4 py-3 text-zinc-400">{row?.title || "-"}</td>
-                                  <td className="px-4 py-3 text-zinc-400">{row?.size || "-"}</td>
-                                  <td className="px-4 py-3 text-zinc-400">{row?.sku || "-"}</td>
-                                  <td className="px-4 py-3 text-zinc-400">{row?.inventory ?? "-"}</td>
-                                  <td className="px-4 py-3 text-zinc-400">{row?.lifetime ?? "-"}</td>
-                                  <td className="px-4 py-3 text-zinc-400">{row?.sales_per_day ?? "-"}</td>
-                                  <td className="px-4 py-3">
-                                    <span className={`inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] leading-none ${getRawStatusClasses(row?.status)}`}>
-                                      {row?.status || "-"}
-                                    </span>
+                            </thead>
+                            <tbody>
+                              {filteredBreakdownRows.length === 0 ? (
+                                <tr>
+                                  <td className="px-4 py-3 text-[#a4b0d4]" colSpan={3}>
+                                    Run a forecast to see item breakdown.
                                   </td>
-                                  <td className="px-4 py-3 text-zinc-400">{row?.restock_amount ?? "-"}</td>
                                 </tr>
-                              ))
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                    </>
-                  ) : null}
-                </div>
-              ) : (
-                <p className="panel-text mt-6">
-                  Run a forecast to see restock suggestions.
-                </p>
-              )}
-            </Card>
+                              ) : (
+                                filteredBreakdownRows.map((row, index) => {
+                                  const alert = getLifetimeAlert(row);
+                                  const alertClass =
+                                    alert === "Critical"
+                                      ? "text-[#f87171]"
+                                      : alert === "Warning"
+                                        ? "text-[#facc15]"
+                                        : "text-[#4ade80]";
+                                  return (
+                                    <tr key={`breakdown-${index}`} className="border-t border-white/10 text-zinc-400">
+                                      <td className="px-4 py-3 text-zinc-400">{row?.title || row?.name || row?.item || "-"}</td>
+                                      <td className="px-4 py-3 text-zinc-400">{row?.quantity ?? row?.qty ?? row?.count ?? "-"}</td>
+                                      <td className={`px-4 py-3 ${alertClass}`}>{alert}</td>
+                                    </tr>
+                                  );
+                                })
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
+                    ) : null}
+                  </div>
+                </Card>
+              </>
+            )}
           </div>
         </div>
       </main>
