@@ -6,7 +6,6 @@ import Sidebar from "../components/Sidebar";
 import KPICards from "../components/KPICards";
 import RawTable from "../components/RawTable";
 import WorkflowPanel from "../components/WorkflowPanel";
-import ItemBreakdown from "../components/ItemBreakdown";
 import { syncInventory, syncSales } from "../services/requestsApi";
 import { apiClient, getApiBase } from "../lib/apiClient";
 import { fetchWithToken } from "../lib/authFetch";
@@ -796,22 +795,11 @@ const Dashboard = ({ page = "overview" }) => {
                     setRawTableSearch={setRawTableSearch}
                     rawTableStatusFilter={rawTableStatusFilter}
                     setRawTableStatusFilter={setRawTableStatusFilter}
-                    filteredRawTableRows={filteredRawTableRows}
-                    handleExportRawTableCsv={handleExportRawTableCsv}
-                    getRawStatusClasses={getRawStatusClasses}
-                  />
-                </Card>
-                <ItemBreakdown
-                  breakdownLoading={breakdownLoading}
-                  breakdownError={breakdownError}
-                  breakdownSearch={breakdownSearch}
-                  setBreakdownSearch={setBreakdownSearch}
-                  breakdownAlertFilter={breakdownAlertFilter}
-                  setBreakdownAlertFilter={setBreakdownAlertFilter}
-                  filteredBreakdownRows={filteredBreakdownRows}
-                  handleExportBreakdownCsv={handleExportBreakdownCsv}
-                  getLifetimeAlert={getLifetimeAlert}
+                  filteredRawTableRows={filteredRawTableRows}
+                  handleExportRawTableCsv={handleExportRawTableCsv}
+                  getRawStatusClasses={getRawStatusClasses}
                 />
+              </Card>
               </>
             )}
           </div>
