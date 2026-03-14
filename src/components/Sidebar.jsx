@@ -12,12 +12,12 @@ const Sidebar = () => {
   );
 
   return (
-    <aside className="dashboard-panel h-fit p-6">
-      <div className="mb-8 flex items-center">
+    <aside className="dashboard-panel sticky top-4 flex min-h-[calc(100vh-3rem)] flex-col p-5">
+      <div className="mb-10 flex items-center">
         <img
           src={logo}
           alt="Merchy"
-          className="h-32 w-auto object-contain"
+          className="h-12 w-auto object-contain"
         />
       </div>
 
@@ -29,6 +29,11 @@ const Sidebar = () => {
           Raw Data
         </NavLink>
       </nav>
+
+      <div className="mt-auto border-t border-white/10 pt-5">
+        <div className="text-sm font-medium text-white">Store Admin</div>
+        <div className="mt-1 text-xs text-zinc-400">Shopify Plus</div>
+      </div>
     </aside>
   );
 };

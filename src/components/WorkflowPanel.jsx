@@ -54,7 +54,7 @@ const WorkflowPanel = ({
   forecastMessage,
 }) => {
   return (
-    <div className="mx-auto w-full max-w-[360px] space-y-5">
+    <div className="mx-auto w-full max-w-[920px] space-y-6">
       <Card className="dashboard-panel p-6">
         <h2 className="panel-title">Inventory Sync</h2>
         <p className="panel-text mt-2">

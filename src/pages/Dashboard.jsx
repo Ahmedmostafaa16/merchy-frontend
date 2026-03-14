@@ -31,7 +31,6 @@ const Dashboard = ({ page = "overview" }) => {
   const [forecastDays, setForecastDays] = useState("");
   const [forecastDaysError, setForecastDaysError] = useState("");
   const [minimumValue, setMinimumValue] = useState("");
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
   const [inventorySynced, setInventorySynced] = useState(false);
   const [salesSynced, setSalesSynced] = useState(false);
   const [inventoryStatus, setInventoryStatus] = useState("not_synced");
@@ -48,17 +47,11 @@ const Dashboard = ({ page = "overview" }) => {
   const [itemSearchResults, setItemSearchResults] = useState([]);
   const [itemSearchFocused, setItemSearchFocused] = useState(false);
   const [selectedItems, setSelectedItems] = useState([]);
-  const [breakdownLoading, setBreakdownLoading] = useState(false);
-  const [breakdownError, setBreakdownError] = useState("");
-  const [breakdownRows, setBreakdownRows] = useState([]);
-  const [breakdownSearch, setBreakdownSearch] = useState("");
-  const [breakdownAlertFilter, setBreakdownAlertFilter] = useState("all");
   const [forecastData, setForecastData] = useState([]);
   const [rawTableSearch, setRawTableSearch] = useState("");
   const [rawTableStatusFilter, setRawTableStatusFilter] = useState("all");
   const [showDaysHelp, setShowDaysHelp] = useState(false);
   const itemSearchBoxRef = useRef(null);
-  const breakdownRequestRef = useRef(0);
   const daysHelpRef = useRef(null);
   const canShowKpis = inventorySynced && salesSynced;
 
@@ -105,12 +98,6 @@ const Dashboard = ({ page = "overview" }) => {
       end: toIsoDate(today),
     };
   }, [toIsoDate]);
-
-  const getValidForecastDays = useCallback(() => {
-    const parsed = Number(forecastDays);
-    if (!Number.isFinite(parsed) || parsed <= 0) return null;
-    return Math.floor(parsed);
-  }, [forecastDays]);
 
   const normalizeApiBase = useCallback(() => {
     const base = getApiBase() || "";
@@ -160,77 +147,6 @@ const Dashboard = ({ page = "overview" }) => {
     anchor.remove();
     window.URL.revokeObjectURL(objectUrl);
   }, []);
-
-  const getLifetimeAlert = useCallback((row) => {
-    const rawLifetime = Number(
-      row?.lifetime ?? row?.life_time ?? row?.coverage_days ?? row?.coverage ?? row?.days ?? row?.lifetime_days
-    );
-    if (!Number.isFinite(rawLifetime)) return "Healthy";
-    if (rawLifetime < 15) return "Critical";
-    if (rawLifetime < 20) return "Warning";
-    return "Healthy";
-  }, []);
-
-  const fetchBreakdown = useCallback(async () => {
-    const validDays = getValidForecastDays();
-    if (!isAuthenticated || !inventorySynced || !salesSynced || !validDays || validDays < 1) {
-      setBreakdownRows([]);
-      setBreakdownError("");
-      setBreakdownLoading(false);
-      return;
-    }
-
-    if (!shop) {
-      setBreakdownError("Missing shop domain");
-      setBreakdownRows([]);
-      return;
-    }
-
-    const base = normalizeApiBase();
-    if (!base) {
-      setBreakdownError("Missing API base URL.");
-      setBreakdownRows([]);
-      return;
-    }
-
-    setBreakdownLoading(true);
-    setBreakdownError("");
-
-    const queryWithShop = new URLSearchParams({
-      shop_domain: shop,
-      number_of_days: String(validDays),
-    }).toString();
-    const url = `${base}/requests/breakdown?${queryWithShop}`;
-    const requestId = breakdownRequestRef.current + 1;
-    breakdownRequestRef.current = requestId;
-
-    try {
-      const response = await fetchWithToken(url, {
-        headers: { "ngrok-skip-browser-warning": "true" },
-      });
-
-      if (!response.ok) {
-        const maybeJson = await parseJsonSafe(response);
-        const text = maybeJson?.detail || maybeJson?.error || `Request failed (${response.status})`;
-        throw new Error(text);
-      }
-
-      const successData = await response.json();
-      const rows = Array.isArray(successData) ? successData : [];
-      if (breakdownRequestRef.current === requestId) {
-        setBreakdownRows(rows);
-      }
-    } catch (error) {
-      if (breakdownRequestRef.current === requestId) {
-        setBreakdownError(error?.message || "Failed to load item breakdown.");
-        setBreakdownRows([]);
-      }
-    } finally {
-      if (breakdownRequestRef.current === requestId) {
-        setBreakdownLoading(false);
-      }
-    }
-  }, [shop, normalizeApiBase, parseJsonSafe, isAuthenticated, inventorySynced, salesSynced, getValidForecastDays]);
 
   const handleApiError = useCallback((error, fallbackMessage, onRetry) => {
     if (error?.status === 401) {
@@ -295,12 +211,8 @@ const Dashboard = ({ page = "overview" }) => {
       setAvgSalesPerDay(extractMetricValue(avgSalesData));
       setInventoryValue(extractMetricValue(inventoryValueData));
       setUnitsInStock(extractMetricValue(unitsInStockData));
-      setIsAuthenticated(true);
       clearGlobalError();
     } catch (error) {
-      if (error?.status === 401) {
-        setIsAuthenticated(false);
-      }
       setKpiError(error?.message || "Unable to load metrics.");
       handleApiError(error, "Unable to load metrics.", () => fetchDashboardMetrics(shopDomain));
     } finally {
@@ -325,12 +237,6 @@ const Dashboard = ({ page = "overview" }) => {
     }
     fetchDashboardMetrics(shop);
   }, [shop, canShowKpis, fetchDashboardMetrics]);
-
-  useEffect(() => {
-    if (page === "raw-data" && getValidForecastDays() >= 1) {
-      fetchBreakdown();
-    }
-  }, [page, forecastDays, fetchBreakdown, getValidForecastDays]);
 
   useEffect(() => {
     const handlePointerDown = (event) => {
@@ -615,7 +521,6 @@ const Dashboard = ({ page = "overview" }) => {
       setForecastMessage("Forecast generated successfully.");
       clearGlobalError();
       await fetchDashboardMetrics(shop);
-      await fetchBreakdown();
     } catch (error) {
       setForecastMessage(error?.message || "Forecast generation failed.");
       setForecastData([]);
@@ -670,30 +575,6 @@ const Dashboard = ({ page = "overview" }) => {
     triggerCsvDownload(new Blob([csv], { type: "text/csv;charset=utf-8;" }), "forecast_raw_table.csv");
   };
 
-  const filteredBreakdownRows = useMemo(() => {
-    const search = breakdownSearch.trim().toLowerCase();
-    return breakdownRows.filter((row) => {
-      const title = String(row?.title || row?.name || row?.item || "").toLowerCase();
-      const alert = getLifetimeAlert(row);
-      const matchesSearch = !search || title.includes(search);
-      const matchesAlert = breakdownAlertFilter === "all" || alert === breakdownAlertFilter;
-      return matchesSearch && matchesAlert;
-    });
-  }, [breakdownRows, breakdownSearch, breakdownAlertFilter, getLifetimeAlert]);
-
-  const handleExportBreakdownCsv = () => {
-    if (filteredBreakdownRows.length === 0) return;
-    const header = ["Title", "Quantity", "Alert"];
-    const lines = filteredBreakdownRows.map((row) => {
-      const title = String(row?.title || row?.name || row?.item || "-").replace(/"/g, '""');
-      const quantity = String(row?.quantity ?? row?.qty ?? row?.count ?? "-").replace(/"/g, '""');
-      const alert = getLifetimeAlert(row).replace(/"/g, '""');
-      return `"${title}","${quantity}","${alert}"`;
-    });
-    const csv = `${header.join(",")}\n${lines.join("\n")}`;
-    triggerCsvDownload(new Blob([csv], { type: "text/csv;charset=utf-8;" }), "item_breakdown.csv");
-  };
-
   const renderKpiValue = (value, formatNumber = false) => {
     if (loadingKpis) return <Skeleton className="mt-3 h-7 w-24" />;
     if (kpiError) return <p className="kpi-fallback mt-3">Unavailable</p>;
@@ -726,59 +607,73 @@ const Dashboard = ({ page = "overview" }) => {
 
           <div className="space-y-5">
             {page === "overview" ? (
-              <WorkflowPanel
-                salesPeriods={salesPeriods}
-                inventoryStatus={inventoryStatus}
-                inventorySyncing={inventorySyncing}
-                inventoryMessage={inventoryMessage}
-                handleSyncInventory={handleSyncInventory}
-                activePeriod={activePeriod}
-                handlePresetPeriodClick={handlePresetPeriodClick}
-                startDate={startDate}
-                endDate={endDate}
-                setActivePeriod={setActivePeriod}
-                setStartDate={setStartDate}
-                setEndDate={setEndDate}
-                salesMessage={salesMessage}
-                setSalesMessage={setSalesMessage}
-                salesStatus={salesStatus}
-                salesSyncing={salesSyncing}
-                inventorySynced={inventorySynced}
-                handleSyncSales={handleSyncSales}
-                forecastScope={forecastScope}
-                setForecastScope={setForecastScope}
-                itemSearchBoxRef={itemSearchBoxRef}
-                itemSearchQuery={itemSearchQuery}
-                setItemSearchQuery={setItemSearchQuery}
-                setItemSearchFocused={setItemSearchFocused}
-                itemSearchError={itemSearchError}
-                itemSearchFocused={itemSearchFocused}
-                itemSearchLoading={itemSearchLoading}
-                itemSearchResults={itemSearchResults}
-                resolveItemId={resolveItemId}
-                resolveItemLabel={resolveItemLabel}
-                selectedItems={selectedItems}
-                toggleSelectedItem={toggleSelectedItem}
-                removeSelectedItem={removeSelectedItem}
-                daysHelpRef={daysHelpRef}
-                showDaysHelp={showDaysHelp}
-                setShowDaysHelp={setShowDaysHelp}
-                forecastDays={forecastDays}
-                blockInvalidNumberKeys={blockInvalidNumberKeys}
-                handlePositiveIntegerInput={handlePositiveIntegerInput}
-                setForecastDays={setForecastDays}
-                setForecastDaysError={setForecastDaysError}
-                forecastDaysError={forecastDaysError}
-                minimumValue={minimumValue}
-                setMinimumValue={setMinimumValue}
-                forecastGenerating={forecastGenerating}
-                shop={shop}
-                salesSynced={salesSynced}
-                handleGenerateForecast={handleGenerateForecast}
-                forecastMessage={forecastMessage}
-              />
+              <>
+                <div className="mx-auto w-full max-w-[920px] pt-4">
+                  <h1 className="text-4xl font-semibold tracking-tight text-white">Workflow Overview</h1>
+                  <p className="mt-2 text-lg text-zinc-400">
+                    Configure your sync settings and generate new forecasts.
+                  </p>
+                </div>
+                <WorkflowPanel
+                  salesPeriods={salesPeriods}
+                  inventoryStatus={inventoryStatus}
+                  inventorySyncing={inventorySyncing}
+                  inventoryMessage={inventoryMessage}
+                  handleSyncInventory={handleSyncInventory}
+                  activePeriod={activePeriod}
+                  handlePresetPeriodClick={handlePresetPeriodClick}
+                  startDate={startDate}
+                  endDate={endDate}
+                  setActivePeriod={setActivePeriod}
+                  setStartDate={setStartDate}
+                  setEndDate={setEndDate}
+                  salesMessage={salesMessage}
+                  setSalesMessage={setSalesMessage}
+                  salesStatus={salesStatus}
+                  salesSyncing={salesSyncing}
+                  inventorySynced={inventorySynced}
+                  handleSyncSales={handleSyncSales}
+                  forecastScope={forecastScope}
+                  setForecastScope={setForecastScope}
+                  itemSearchBoxRef={itemSearchBoxRef}
+                  itemSearchQuery={itemSearchQuery}
+                  setItemSearchQuery={setItemSearchQuery}
+                  setItemSearchFocused={setItemSearchFocused}
+                  itemSearchError={itemSearchError}
+                  itemSearchFocused={itemSearchFocused}
+                  itemSearchLoading={itemSearchLoading}
+                  itemSearchResults={itemSearchResults}
+                  resolveItemId={resolveItemId}
+                  resolveItemLabel={resolveItemLabel}
+                  selectedItems={selectedItems}
+                  toggleSelectedItem={toggleSelectedItem}
+                  removeSelectedItem={removeSelectedItem}
+                  daysHelpRef={daysHelpRef}
+                  showDaysHelp={showDaysHelp}
+                  setShowDaysHelp={setShowDaysHelp}
+                  forecastDays={forecastDays}
+                  blockInvalidNumberKeys={blockInvalidNumberKeys}
+                  handlePositiveIntegerInput={handlePositiveIntegerInput}
+                  setForecastDays={setForecastDays}
+                  setForecastDaysError={setForecastDaysError}
+                  forecastDaysError={forecastDaysError}
+                  minimumValue={minimumValue}
+                  setMinimumValue={setMinimumValue}
+                  forecastGenerating={forecastGenerating}
+                  shop={shop}
+                  salesSynced={salesSynced}
+                  handleGenerateForecast={handleGenerateForecast}
+                  forecastMessage={forecastMessage}
+                />
+              </>
             ) : (
               <>
+                <div className="pt-4">
+                  <h1 className="text-3xl font-semibold tracking-tight text-white">Raw Data</h1>
+                  <p className="mt-2 text-base text-zinc-400">
+                    Review KPI metrics and generated forecast rows at SKU level.
+                  </p>
+                </div>
                 <KPICards
                   canShowKpis={canShowKpis}
                   loadingKpis={loadingKpis}
