@@ -465,8 +465,8 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
   }, []);
 
   return (
-    <div className="dashboard-page min-h-screen">
-      <main className="mx-auto max-w-[1320px] px-4 py-6 sm:px-6">
+    <div className={page === "overview" ? "min-h-screen bg-[#F7F8FA]" : "dashboard-page min-h-screen"}>
+      <main className={`mx-auto max-w-[1320px] px-4 py-6 sm:px-6 ${page === "overview" ? "font-sans" : ""}`}>
         {globalError ? (
           <div className="mb-4 flex items-center justify-between rounded-xl border border-white/15 bg-[#2f1638]/60 px-4 py-3 text-sm text-[#f3d9ff]">
             <span>{globalError}</span>
@@ -478,17 +478,13 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
           </div>
         ) : null}
 
-        <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
-          <Sidebar />
+        <div className={`grid gap-6 ${page === "overview" ? "lg:grid-cols-[240px_minmax(0,1fr)]" : "lg:grid-cols-[220px_minmax(0,1fr)]"}`}>
+          <Sidebar page={page} />
 
           <div className="space-y-5">
             {page === "overview" ? (
               <>
-                <div className="mx-auto w-full max-w-[920px] pt-4">
-                  <h1 className="text-4xl font-semibold tracking-tight text-white">Workflow Overview</h1>
-                  <p className="mt-2 text-lg text-zinc-400">
-                    Configure your sync settings and generate new forecasts.
-                  </p>
+                <div className="w-full pt-2">
                   <Header lastSyncLabel={getLastSyncLabel()} />
                 </div>
                 <WorkflowPanel
