@@ -454,7 +454,7 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
   }, []);
 
   return (
-    <div className={page === "overview" ? "min-h-screen bg-[#F7F8FA]" : "dashboard-page min-h-screen"}>
+    <div className={page === "overview" ? "dashboard-page min-h-screen" : "dashboard-page min-h-screen"}>
       <main className={`mx-auto max-w-[1320px] ${page === "overview" ? "px-8 py-8 font-sans" : "px-4 py-6 sm:px-6"}`}>
         {globalError ? (
           <div className="mb-4 flex items-center justify-between rounded-xl border border-white/15 bg-[#2f1638]/60 px-4 py-3 text-sm text-[#f3d9ff]">

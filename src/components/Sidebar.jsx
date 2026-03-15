@@ -8,13 +8,8 @@ const Sidebar = ({ page = "overview" }) => {
 
   const isConfigurationsPage = page === "overview";
 
-  const lightNavItemClass =
-    "flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium text-[#334155] transition-colors hover:bg-[#F8FAFC] hover:text-[#111827]";
-  const activeLightNavItemClass =
-    "flex items-center gap-2 rounded-2xl bg-[#DCEAFE] px-4 py-3 text-sm font-semibold text-[#2F6FED]";
-
   const darkLinkClassName = ({ isActive }) => (
-    `flex items-center rounded-xl px-4 py-3 text-sm transition-colors ${
+    `flex items-center gap-2 rounded-xl px-4 py-3 text-sm transition-colors ${
       isActive ? "bg-white/10 text-white" : "text-zinc-300 hover:bg-white/5 hover:text-white"
     }`
   );
@@ -23,7 +18,7 @@ const Sidebar = ({ page = "overview" }) => {
     <aside
       className={`sticky top-4 flex min-h-[calc(100vh-3rem)] flex-col p-5 ${
         isConfigurationsPage
-          ? "rounded-2xl border border-[#E6EAF0] bg-white shadow-sm"
+          ? "dashboard-panel"
           : "dashboard-panel"
       }`}
     >
@@ -37,23 +32,23 @@ const Sidebar = ({ page = "overview" }) => {
 
       {isConfigurationsPage ? (
         <nav className="space-y-2">
-          <button type="button" className={lightNavItemClass}>
+          <button type="button" className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-zinc-300 transition-colors hover:bg-white/5 hover:text-white">
             <LayoutDashboard size={18} />
-            <span className="ml-2">Dashboard</span>
+            <span>Dashboard</span>
           </button>
-          <button type="button" className={lightNavItemClass}>
+          <button type="button" className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-zinc-300 transition-colors hover:bg-white/5 hover:text-white">
             <Package size={18} />
-            <span className="ml-2">Inventory</span>
+            <span>Inventory</span>
           </button>
-          <button type="button" className={lightNavItemClass}>
+          <button type="button" className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-zinc-300 transition-colors hover:bg-white/5 hover:text-white">
             <Boxes size={18} />
             <span>Forecast</span>
           </button>
-          <NavLink to={`/raw-data${search}`} className={lightNavItemClass}>
+          <NavLink to={`/raw-data${search}`} className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-zinc-300 transition-colors hover:bg-white/5 hover:text-white">
             <Database size={18} />
             <span>Raw Data</span>
           </NavLink>
-          <NavLink to={`/overview${search}`} className={activeLightNavItemClass}>
+          <NavLink to={`/overview${search}`} className="flex items-center gap-2 rounded-xl bg-white/10 px-4 py-3 text-sm font-semibold text-white">
             <Settings2 size={18} />
             <span>Configurations</span>
           </NavLink>
@@ -71,9 +66,9 @@ const Sidebar = ({ page = "overview" }) => {
         </nav>
       )}
 
-      <div className={`mt-auto pt-5 ${isConfigurationsPage ? "border-t border-[#E2E8F0]" : "border-t border-white/10"}`}>
-        <div className={`text-sm font-medium ${isConfigurationsPage ? "text-[#0F172A]" : "text-white"}`}>Store Admin</div>
-        <div className={`mt-1 text-xs ${isConfigurationsPage ? "text-[#64748B]" : "text-zinc-400"}`}>Shopify Plus</div>
+      <div className="mt-auto border-t border-white/10 pt-5">
+        <div className="text-sm font-medium text-white">Store Admin</div>
+        <div className="mt-1 text-xs text-zinc-400">Shopify Plus</div>
       </div>
     </aside>
   );
