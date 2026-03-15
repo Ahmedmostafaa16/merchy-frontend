@@ -1,15 +1,11 @@
 import { useState } from "react";
+import { Sparkles } from "lucide-react";
 import Button from "./ui/Button";
 import Card from "./ui/Card";
-import PillChip from "./ui/PillChip";
 
 const WorkflowPanel = ({
-  salesPeriods,
-  activePeriod,
-  handlePresetPeriodClick,
   startDate,
   endDate,
-  setActivePeriod,
   setStartDate,
   setEndDate,
   salesMessage,
@@ -55,7 +51,6 @@ const WorkflowPanel = ({
               type="date"
               value={startDate}
               onChange={(event) => {
-                setActivePeriod("");
                 setStartDate(event.target.value);
                 setSalesMessage("");
               }}
@@ -68,7 +63,6 @@ const WorkflowPanel = ({
               type="date"
               value={endDate}
               onChange={(event) => {
-                setActivePeriod("");
                 setEndDate(event.target.value);
                 setSalesMessage("");
               }}
@@ -85,18 +79,6 @@ const WorkflowPanel = ({
               {salesSyncing ? "Confirming..." : "Confirm Dates"}
             </Button>
           </div>
-        </div>
-
-        <div className="mt-6 flex flex-wrap gap-2">
-          {salesPeriods.map((period) => (
-            <PillChip
-              key={period}
-              active={activePeriod === period}
-              onClick={() => handlePresetPeriodClick(period)}
-            >
-              {period}
-            </PillChip>
-          ))}
         </div>
 
         <div className="mt-8 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_220px]">
@@ -176,6 +158,7 @@ const WorkflowPanel = ({
                   : handleGenerateForecast
               }
             >
+              {!forecastGenerating ? <Sparkles size={16} className="mr-2" /> : null}
               {forecastGenerating ? "Generating..." : "Generate Forecast"}
             </Button>
           </div>
@@ -237,7 +220,7 @@ const WorkflowPanel = ({
                 }`}
               />
             </button>
-          />
+          </div>
         </div>
       </Card>
     </div>

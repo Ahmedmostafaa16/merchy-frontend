@@ -11,8 +11,6 @@ import { syncInventory, syncSales } from "../services/requestsApi";
 import { apiClient, getApiBase } from "../lib/apiClient";
 import "../styles/dashboard.css";
 
-const salesPeriods = ["Yesterday", "Last 7 days", "Last 30 days", "Last 90 days", "Last 365 days"];
-
 const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading = false }) => {
   const [shop, setShop] = useState("");
   const [loadingKpis, setLoadingKpis] = useState(true);
@@ -21,7 +19,6 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
   const [avgSalesPerDay, setAvgSalesPerDay] = useState(null);
   const [inventoryValue, setInventoryValue] = useState(null);
   const [unitsInStock, setUnitsInStock] = useState(null);
-  const [activePeriod, setActivePeriod] = useState("Yesterday");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [, setInventorySyncing] = useState(false);
@@ -280,14 +277,6 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
     };
   }, [page, shop, handleApiError]);
 
-  const handlePresetPeriodClick = (period) => {
-    setActivePeriod(period);
-    const range = getRangeFromPeriod(period);
-    setStartDate(range.start);
-    setEndDate(range.end);
-    setSalesMessage("");
-  };
-
   const handlePositiveIntegerInput = (value, setter) => {
     if (value === "") {
       setter("");
@@ -488,12 +477,8 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
                   <Header lastSyncLabel={getLastSyncLabel()} />
                 </div>
                 <WorkflowPanel
-                  salesPeriods={salesPeriods}
-                  activePeriod={activePeriod}
-                  handlePresetPeriodClick={handlePresetPeriodClick}
                   startDate={startDate}
                   endDate={endDate}
-                  setActivePeriod={setActivePeriod}
                   setStartDate={setStartDate}
                   setEndDate={setEndDate}
                   salesMessage={salesMessage}
