@@ -159,9 +159,25 @@ const WorkflowPanel = ({
             <div className="mt-4 justify-self-start lg:mt-0 lg:border-t-0 lg:pt-0">
               <Button
                 className="!m-0 !flex !h-11 !w-[180px] !items-center !justify-center px-5 !rounded-lg !border-0 !bg-[#2F6FED] !text-white !shadow-none hover:!bg-[#1F5AE0]"
-                disabled={forecastGenerating || !shop || !inventorySynced || !salesSynced}
+                disabled={
+                  forecastGenerating ||
+                  !shop ||
+                  !inventorySynced ||
+                  !salesSynced ||
+                  !startDate ||
+                  !endDate ||
+                  !forecastDays ||
+                  !minimumValue
+                }
                 onClick={
-                  forecastGenerating || !shop || !inventorySynced || !salesSynced
+                  forecastGenerating ||
+                  !shop ||
+                  !inventorySynced ||
+                  !salesSynced ||
+                  !startDate ||
+                  !endDate ||
+                  !forecastDays ||
+                  !minimumValue
                     ? undefined
                     : handleGenerateForecast
                 }

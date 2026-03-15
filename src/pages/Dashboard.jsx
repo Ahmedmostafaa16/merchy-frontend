@@ -11,6 +11,9 @@ import { syncInventory, syncSales } from "../services/requestsApi";
 import { apiClient, getApiBase } from "../lib/apiClient";
 import "../styles/dashboard.css";
 
+const INVENTORY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const KPI_CACHE_KEY = "kpi_cache";
+
 const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading = false }) => {
   const [shop, setShop] = useState("");
   const [loadingKpis, setLoadingKpis] = useState(true);
@@ -54,6 +57,20 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
   const [showDaysHelp, setShowDaysHelp] = useState(false);
   const daysHelpRef = useRef(null);
   const canShowKpis = inventorySynced && salesSynced;
+
+  const readKpiCache = useCallback((shopDomain) => {
+    try {
+      const cachedValue = window.localStorage.getItem(KPI_CACHE_KEY);
+      if (!cachedValue) return null;
+      const parsed = JSON.parse(cachedValue);
+      if (!parsed || parsed.shop !== shopDomain || typeof parsed.metrics !== "object") {
+        return null;
+      }
+      return parsed.metrics;
+    } catch (_error) {
+      return null;
+    }
+  }, []);
 
   const extractMetricValue = useCallback((payload) => {
     if (payload === null || payload === undefined) return null;
@@ -173,6 +190,15 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
       setAvgSalesPerDay(extractMetricValue(avgSalesData));
       setInventoryValue(extractMetricValue(inventoryValueData));
       setUnitsInStock(extractMetricValue(unitsInStockData));
+      window.localStorage.setItem(KPI_CACHE_KEY, JSON.stringify({
+        shop: shopDomain,
+        metrics: {
+          totalSkus: extractMetricValue(totalSkusData),
+          avgSalesPerDay: extractMetricValue(avgSalesData),
+          inventoryValue: extractMetricValue(inventoryValueData),
+          unitsInStock: extractMetricValue(unitsInStockData),
+        },
+      }));
       clearGlobalError();
     } catch (error) {
       setKpiError(error?.message || "Unable to load metrics.");
@@ -203,8 +229,20 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
       setLoadingKpis(false);
       return;
     }
+
+    const cachedMetrics = readKpiCache(shop);
+    if (cachedMetrics) {
+      setTotalSkus(cachedMetrics.totalSkus ?? null);
+      setAvgSalesPerDay(cachedMetrics.avgSalesPerDay ?? null);
+      setInventoryValue(cachedMetrics.inventoryValue ?? null);
+      setUnitsInStock(cachedMetrics.unitsInStock ?? null);
+      setLoadingKpis(false);
+      setKpiError("");
+      return;
+    }
+
     fetchDashboardMetrics(shop);
-  }, [shop, canShowKpis, fetchDashboardMetrics]);
+  }, [shop, canShowKpis, fetchDashboardMetrics, readKpiCache]);
 
   useEffect(() => {
     const handleOutsideClick = (event) => {
@@ -230,8 +268,14 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
 
     const cachedInventory = window.localStorage.getItem("inventory_cache");
     const cachedLastSync = window.localStorage.getItem("inventory_last_sync");
+    const parsedLastSync = Number(cachedLastSync);
+    const hasFreshInventoryCache = (
+      Boolean(cachedInventory) &&
+      Number.isFinite(parsedLastSync) &&
+      (Date.now() - parsedLastSync) < INVENTORY_CACHE_TTL_MS
+    );
 
-    if (cachedInventory && cachedLastSync) {
+    if (hasFreshInventoryCache) {
       setInventorySynced(true);
       setInventoryStatus("synced");
       window.sessionStorage.setItem("merchy_inventory_synced", "true");
@@ -365,6 +409,7 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
       setForecastData(rows);
       window.localStorage.setItem("forecast_cache", JSON.stringify(rows));
       window.localStorage.setItem("forecast_last_generated", String(Date.now()));
+      window.localStorage.removeItem(KPI_CACHE_KEY);
 
       setForecastMessage("Forecast generated successfully.");
       clearGlobalError();
