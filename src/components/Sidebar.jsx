@@ -9,9 +9,9 @@ const Sidebar = ({ page = "overview" }) => {
   const isConfigurationsPage = page === "overview";
 
   const lightNavItemClass =
-    "flex items-center rounded-xl px-4 py-3 text-sm font-medium text-[#475569] transition-colors hover:bg-[#F8FAFC] hover:text-[#0F172A]";
+    "flex items-center rounded-2xl px-4 py-3 text-sm font-medium text-[#334155] transition-colors hover:bg-[#F8FAFC] hover:text-[#0F172A]";
   const activeLightNavItemClass =
-    "flex items-center rounded-xl bg-[#E8F1FD] px-4 py-3 text-sm font-semibold text-[#197FE6]";
+    "flex items-center rounded-2xl bg-[#DCEAFE] px-4 py-3 text-sm font-semibold text-[#197FE6]";
 
   const darkLinkClassName = ({ isActive }) => (
     `flex items-center rounded-xl px-4 py-3 text-sm transition-colors ${
