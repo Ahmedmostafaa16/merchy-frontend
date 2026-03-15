@@ -3,12 +3,12 @@ import Button from "../components/ui/Button";
 import Card from "../components/ui/Card";
 import Skeleton from "../components/ui/Skeleton";
 import Sidebar from "../components/Sidebar";
+import Header from "../components/Header";
 import KPICards from "../components/KPICards";
 import RawTable from "../components/RawTable";
 import WorkflowPanel from "../components/WorkflowPanel";
 import { syncInventory, syncSales } from "../services/requestsApi";
 import { apiClient, getApiBase } from "../lib/apiClient";
-import { fetchWithToken } from "../lib/authFetch";
 import "../styles/dashboard.css";
 
 const salesPeriods = ["Yesterday", "Last 7 days", "Last 30 days", "Last 90 days", "Last 365 days"];
@@ -24,8 +24,7 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
   const [activePeriod, setActivePeriod] = useState("Yesterday");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [forecastScope, setForecastScope] = useState("all");
-  const [inventorySyncing, setInventorySyncing] = useState(false);
+  const [, setInventorySyncing] = useState(false);
   const [salesSyncing, setSalesSyncing] = useState(false);
   const [forecastGenerating, setForecastGenerating] = useState(false);
   const [forecastDays, setForecastDays] = useState("");
@@ -33,37 +32,31 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
   const [minimumValue, setMinimumValue] = useState("");
   const [inventorySynced, setInventorySynced] = useState(() => window.sessionStorage.getItem("merchy_inventory_synced") === "true");
   const [salesSynced, setSalesSynced] = useState(() => window.sessionStorage.getItem("merchy_sales_synced") === "true");
-  const [inventoryStatus, setInventoryStatus] = useState(() => (
+  const [, setInventoryStatus] = useState(() => (
     window.sessionStorage.getItem("merchy_inventory_synced") === "true" ? "synced" : "not_synced"
   ));
   const [salesStatus, setSalesStatus] = useState(() => (
     window.sessionStorage.getItem("merchy_sales_synced") === "true" ? "synced" : "not_synced"
   ));
-  const [inventoryMessage, setInventoryMessage] = useState("");
+  const [, setInventoryMessage] = useState("");
   const [salesMessage, setSalesMessage] = useState("");
   const [forecastMessage, setForecastMessage] = useState("");
   const [globalError, setGlobalError] = useState("");
   const [showRetry, setShowRetry] = useState(false);
   const [retryAction, setRetryAction] = useState(null);
-  const [itemSearchQuery, setItemSearchQuery] = useState("");
-  const [itemSearchLoading, setItemSearchLoading] = useState(false);
-  const [itemSearchError, setItemSearchError] = useState("");
-  const [itemSearchResults, setItemSearchResults] = useState([]);
-  const [itemSearchFocused, setItemSearchFocused] = useState(false);
-  const [selectedItems, setSelectedItems] = useState([]);
-  const [forecastData, setForecastData] = useState([]);
+  const [forecastData, setForecastData] = useState(() => {
+    try {
+      const cachedForecast = window.localStorage.getItem("forecast_cache");
+      return cachedForecast ? JSON.parse(cachedForecast) : [];
+    } catch (_error) {
+      return [];
+    }
+  });
   const [rawTableSearch, setRawTableSearch] = useState("");
   const [rawTableStatusFilter, setRawTableStatusFilter] = useState("all");
   const [showDaysHelp, setShowDaysHelp] = useState(false);
-  const itemSearchBoxRef = useRef(null);
   const daysHelpRef = useRef(null);
   const canShowKpis = inventorySynced && salesSynced;
-
-  useEffect(() => {
-    if (page === "raw-data") {
-      setForecastData(Array.isArray(initialForecastData) ? initialForecastData : []);
-    }
-  }, [page, initialForecastData]);
 
   const extractMetricValue = useCallback((payload) => {
     if (payload === null || payload === undefined) return null;
@@ -108,44 +101,6 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
       end: toIsoDate(today),
     };
   }, [toIsoDate]);
-
-  const normalizeApiBase = useCallback(() => {
-    const base = getApiBase() || "";
-    return base.replace(/\/+$/, "");
-  }, []);
-
-  const parseJsonSafe = useCallback(async (response) => {
-    const contentType = response.headers.get("content-type") || "";
-    if (!contentType.includes("application/json")) return null;
-    try {
-      return await response.json();
-    } catch (_error) {
-      return null;
-    }
-  }, []);
-
-  const resolveItemId = useCallback((item) => {
-    return String(
-      item?.id ??
-      item?.title ??
-      item?.name ??
-      item?.sku ??
-      item?.product_id ??
-      item?.variant_id ??
-      item?.inventory_item_id ??
-      ""
-    );
-  }, []);
-
-  const resolveItemLabel = useCallback((item) => {
-    return (
-      item?.title ||
-      item?.name ||
-      item?.product_title ||
-      item?.sku ||
-      resolveItemId(item)
-    );
-  }, [resolveItemId]);
 
   const triggerCsvDownload = useCallback((blob, fallbackFilename) => {
     const objectUrl = window.URL.createObjectURL(blob);
@@ -241,28 +196,18 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
   }, [getRangeFromPeriod]);
 
   useEffect(() => {
+    if (page === "raw-data" && Array.isArray(initialForecastData)) {
+      setForecastData(initialForecastData);
+    }
+  }, [page, initialForecastData]);
+
+  useEffect(() => {
     if (!shop || !canShowKpis) {
       setLoadingKpis(false);
       return;
     }
     fetchDashboardMetrics(shop);
   }, [shop, canShowKpis, fetchDashboardMetrics]);
-
-  useEffect(() => {
-    const handlePointerDown = (event) => {
-      if (!itemSearchBoxRef.current) return;
-      if (!itemSearchBoxRef.current.contains(event.target)) {
-        setItemSearchFocused(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handlePointerDown);
-    document.addEventListener("touchstart", handlePointerDown);
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
-      document.removeEventListener("touchstart", handlePointerDown);
-    };
-  }, []);
 
   useEffect(() => {
     const handleOutsideClick = (event) => {
@@ -284,75 +229,56 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
   }, [showDaysHelp]);
 
   useEffect(() => {
-    if (!shop) {
-      setItemSearchResults([]);
-      return undefined;
+    if (page !== "overview" || !shop || !getApiBase()) return;
+
+    const cachedInventory = window.localStorage.getItem("inventory_cache");
+    const cachedLastSync = window.localStorage.getItem("inventory_last_sync");
+
+    if (cachedInventory && cachedLastSync) {
+      setInventorySynced(true);
+      setInventoryStatus("synced");
+      window.sessionStorage.setItem("merchy_inventory_synced", "true");
+      return;
     }
 
-    const queryText = itemSearchQuery.trim();
-    if (forecastScope !== "custom" || queryText.length < 2) {
-      setItemSearchResults([]);
-      setItemSearchError("");
-      return undefined;
-    }
+    let cancelled = false;
 
-    const timeoutId = setTimeout(async () => {
-      const base = normalizeApiBase();
-      if (!base) {
-        setItemSearchError("Missing API base URL.");
-        return;
-      }
-
-      setItemSearchLoading(true);
-      setItemSearchError("");
-
-      const query = new URLSearchParams({
-        shop_domain: shop,
-        search_query: queryText,
-      }).toString();
-
-      const candidateUrls = [
-        `${base}/inventory/search?${query}`,
-        `${base}/requests/inventory/search?${query}`,
-      ];
+    const loadInventory = async () => {
+      setInventorySyncing(true);
+      setInventoryMessage("");
 
       try {
-        let successData = null;
+        const data = await syncInventory(shop);
+        if (cancelled) return;
 
-        for (const url of candidateUrls) {
-          const response = await fetchWithToken(url, {
-            headers: { "ngrok-skip-browser-warning": "true" },
-          });
+        window.localStorage.setItem("inventory_cache", JSON.stringify(data));
+        window.localStorage.setItem("inventory_last_sync", String(Date.now()));
+        window.sessionStorage.setItem("merchy_inventory_synced", "true");
+        setInventorySynced(true);
+        setInventoryStatus("synced");
 
-          if (response.status === 404) {
-            continue;
-          }
-
-          if (!response.ok) {
-            const maybeJson = await parseJsonSafe(response);
-            const text = maybeJson?.detail || maybeJson?.error || `Request failed (${response.status})`;
-            throw new Error(text);
-          }
-
-          successData = await response.json();
-          break;
+        if (data?.status === "success") {
+          setInventoryMessage(data.message || "Inventory synced.");
+        } else if (data?.status === "skipped") {
+          const lastUpdated = data.last_updated_at ? ` Last updated at: ${data.last_updated_at}` : "";
+          setInventoryMessage(`${data.reason || "Inventory sync skipped."}${lastUpdated}`);
         }
-
-        if (!successData) {
-          throw new Error("Inventory search endpoint not found.");
-        }
-
-        setItemSearchResults(Array.isArray(successData) ? successData : []);
       } catch (error) {
-        setItemSearchError(error?.message || "Failed to search items.");
-        setItemSearchResults([]);
+        if (cancelled) return;
+        handleApiError(error, "Inventory sync failed.");
       } finally {
-        setItemSearchLoading(false);
+        if (!cancelled) {
+          setInventorySyncing(false);
+        }
       }
-    }, 300);
+    };
 
-    return () => clearTimeout(timeoutId);
-  }, [itemSearchQuery, shop, forecastScope, normalizeApiBase, parseJsonSafe]);
+    loadInventory();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [page, shop, handleApiError]);
 
   const handlePresetPeriodClick = (period) => {
     setActivePeriod(period);
@@ -360,24 +286,6 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
     setStartDate(range.start);
     setEndDate(range.end);
     setSalesMessage("");
-  };
-
-  const toggleSelectedItem = (item) => {
-    const id = resolveItemId(item);
-    if (!id) return;
-
-    setForecastMessage("");
-    setSelectedItems((prev) => {
-      const exists = prev.some((entry) => entry.id === id);
-      if (exists) {
-        return prev.filter((entry) => entry.id !== id);
-      }
-      return [...prev, { id, label: resolveItemLabel(item), raw: item }];
-    });
-  };
-
-  const removeSelectedItem = (id) => {
-    setSelectedItems((prev) => prev.filter((entry) => entry.id !== id));
   };
 
   const handlePositiveIntegerInput = (value, setter) => {
@@ -396,40 +304,6 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
   const blockInvalidNumberKeys = (event) => {
     if (["e", "E", "+", "-", "."].includes(event.key)) {
       event.preventDefault();
-    }
-  };
-
-  const handleSyncInventory = async () => {
-    if (!shop || !getApiBase()) return;
-    setInventorySyncing(true);
-    setInventoryMessage("");
-
-    try {
-      const data = await syncInventory(shop);
-      if (data?.status === "success") {
-        setInventoryMessage(data.message || "Inventory synced.");
-        setInventorySynced(true);
-        setInventoryStatus("synced");
-        window.sessionStorage.setItem("merchy_inventory_synced", "true");
-      } else if (data?.status === "skipped") {
-        const lastUpdated = data.last_updated_at ? ` Last updated at: ${data.last_updated_at}` : "";
-        setInventoryMessage(`${data.reason || "Inventory sync skipped."}${lastUpdated}`);
-        setInventorySynced(true);
-        setInventoryStatus("synced");
-        window.sessionStorage.setItem("merchy_inventory_synced", "true");
-      } else {
-        setInventoryMessage("Inventory sync completed.");
-      }
-      clearGlobalError();
-    } catch (error) {
-      if (error?.status === 404) {
-        setInventoryMessage("Shop not found.");
-      } else {
-        setInventoryMessage(error?.message || "Inventory sync failed.");
-      }
-      handleApiError(error, "Inventory sync failed.", handleSyncInventory);
-    } finally {
-      setInventorySyncing(false);
     }
   };
 
@@ -479,11 +353,6 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
     setForecastMessage("");
 
     try {
-      const base = normalizeApiBase();
-      if (!base) {
-        throw new Error("Missing API base URL.");
-      }
-
       const rawDays = Number(forecastDays);
       if (!Number.isFinite(rawDays) || rawDays <= 0) {
         setForecastDaysError("Number of days must be greater than 0");
@@ -496,49 +365,17 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
         setForecastMessage("Minimum Restock Value must be 0 or greater");
         return;
       }
-      let payload = [];
-      if (forecastScope === "all") {
-        payload = await apiClient.post("/requests/report", {
-          query: {
-            shop_domain: shop,
-            number_of_days: numberOfDays,
-            minimum_value: Math.floor(parsedMinimumValue),
-          },
-        });
-      } else {
-        if (selectedItems.length === 0) {
-          setForecastMessage("Select at least 1 item");
-          return;
-        }
-
-        const params = new URLSearchParams({
+      const payload = await apiClient.post("/requests/report", {
+        query: {
           shop_domain: shop,
-          number_of_days: String(numberOfDays),
-          minimum_value: String(Math.floor(parsedMinimumValue)),
-        });
-        selectedItems.forEach((item) => params.append("items", item.id));
-
-        const response = await fetchWithToken(`${base}/requests/customized/report?${params.toString()}`, {
-          method: "POST",
-          headers: { "ngrok-skip-browser-warning": "true" },
-        });
-        if (!response.ok) {
-          const maybeJson = await parseJsonSafe(response);
-          const message = maybeJson?.detail || maybeJson?.error || `Request failed (${response.status})`;
-          throw new Error(message);
-        }
-        payload = await response.json();
-      }
+          number_of_days: numberOfDays,
+          minimum_value: Math.floor(parsedMinimumValue),
+        },
+      });
       const rows = Array.isArray(payload) ? payload : [];
       setForecastData(rows);
-      window.sessionStorage.setItem("merchy_forecast_rows", JSON.stringify(rows));
-      window.sessionStorage.setItem("merchy_forecast_request", JSON.stringify({
-        scope: forecastScope,
-        shop_domain: shop,
-        number_of_days: numberOfDays,
-        minimum_value: Math.floor(parsedMinimumValue),
-        items: forecastScope === "custom" ? selectedItems.map((item) => item.id) : [],
-      }));
+      window.localStorage.setItem("forecast_cache", JSON.stringify(rows));
+      window.localStorage.setItem("forecast_last_generated", String(Date.now()));
 
       setForecastMessage("Forecast generated successfully.");
       clearGlobalError();
@@ -610,6 +447,23 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
     return <p className="kpi-value mt-3">{displayValue}</p>;
   };
 
+  const getLastSyncLabel = useCallback(() => {
+    const timestamp = window.localStorage.getItem("inventory_last_sync");
+    if (!timestamp) return "never";
+
+    const parsedTimestamp = Number(timestamp);
+    if (!Number.isFinite(parsedTimestamp) || parsedTimestamp <= 0) return "never";
+
+    const diffMs = Date.now() - parsedTimestamp;
+    if (diffMs < 60 * 1000) return "just now";
+
+    const diffMinutes = Math.floor(diffMs / (60 * 1000));
+    if (diffMinutes < 60) return `${diffMinutes} min ago`;
+
+    const diffHours = Math.floor(diffMinutes / 60);
+    return `${diffHours}h ago`;
+  }, []);
+
   return (
     <div className="dashboard-page min-h-screen">
       <main className="mx-auto max-w-[1320px] px-4 py-6 sm:px-6">
@@ -635,13 +489,10 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
                   <p className="mt-2 text-lg text-zinc-400">
                     Configure your sync settings and generate new forecasts.
                   </p>
+                  <Header lastSyncLabel={getLastSyncLabel()} />
                 </div>
                 <WorkflowPanel
                   salesPeriods={salesPeriods}
-                  inventoryStatus={inventoryStatus}
-                  inventorySyncing={inventorySyncing}
-                  inventoryMessage={inventoryMessage}
-                  handleSyncInventory={handleSyncInventory}
                   activePeriod={activePeriod}
                   handlePresetPeriodClick={handlePresetPeriodClick}
                   startDate={startDate}
@@ -655,21 +506,6 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
                   salesSyncing={salesSyncing}
                   inventorySynced={inventorySynced}
                   handleSyncSales={handleSyncSales}
-                  forecastScope={forecastScope}
-                  setForecastScope={setForecastScope}
-                  itemSearchBoxRef={itemSearchBoxRef}
-                  itemSearchQuery={itemSearchQuery}
-                  setItemSearchQuery={setItemSearchQuery}
-                  setItemSearchFocused={setItemSearchFocused}
-                  itemSearchError={itemSearchError}
-                  itemSearchFocused={itemSearchFocused}
-                  itemSearchLoading={itemSearchLoading}
-                  itemSearchResults={itemSearchResults}
-                  resolveItemId={resolveItemId}
-                  resolveItemLabel={resolveItemLabel}
-                  selectedItems={selectedItems}
-                  toggleSelectedItem={toggleSelectedItem}
-                  removeSelectedItem={removeSelectedItem}
                   daysHelpRef={daysHelpRef}
                   showDaysHelp={showDaysHelp}
                   setShowDaysHelp={setShowDaysHelp}
@@ -712,11 +548,11 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
                     setRawTableSearch={setRawTableSearch}
                     rawTableStatusFilter={rawTableStatusFilter}
                     setRawTableStatusFilter={setRawTableStatusFilter}
-                  filteredRawTableRows={filteredRawTableRows}
-                  handleExportRawTableCsv={handleExportRawTableCsv}
-                  getRawStatusClasses={getRawStatusClasses}
-                />
-              </Card>
+                    filteredRawTableRows={filteredRawTableRows}
+                    handleExportRawTableCsv={handleExportRawTableCsv}
+                    getRawStatusClasses={getRawStatusClasses}
+                  />
+                </Card>
               </>
             )}
           </div>

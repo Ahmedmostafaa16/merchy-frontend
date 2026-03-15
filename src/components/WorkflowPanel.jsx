@@ -4,10 +4,6 @@ import PillChip from "./ui/PillChip";
 
 const WorkflowPanel = ({
   salesPeriods,
-  inventoryStatus,
-  inventorySyncing,
-  inventoryMessage,
-  handleSyncInventory,
   activePeriod,
   handlePresetPeriodClick,
   startDate,
@@ -21,21 +17,6 @@ const WorkflowPanel = ({
   salesSyncing,
   inventorySynced,
   handleSyncSales,
-  forecastScope,
-  setForecastScope,
-  itemSearchBoxRef,
-  itemSearchQuery,
-  setItemSearchQuery,
-  setItemSearchFocused,
-  itemSearchError,
-  itemSearchFocused,
-  itemSearchLoading,
-  itemSearchResults,
-  resolveItemId,
-  resolveItemLabel,
-  selectedItems,
-  toggleSelectedItem,
-  removeSelectedItem,
   daysHelpRef,
   showDaysHelp,
   setShowDaysHelp,
@@ -55,21 +36,6 @@ const WorkflowPanel = ({
 }) => {
   return (
     <div className="mx-auto w-full max-w-[920px] space-y-6">
-      <Card className="dashboard-panel p-6">
-        <h2 className="panel-title">Inventory Sync</h2>
-        <p className="panel-text mt-2">
-          Status: <span className="panel-text-strong">{inventoryStatus === "synced" ? "Synced" : "Not Synced"}</span>
-        </p>
-        <Button
-          className="mt-7"
-          disabled={inventorySyncing || !shop}
-          onClick={inventorySyncing || !shop ? undefined : handleSyncInventory}
-        >
-          {inventorySyncing ? "Syncing..." : "Sync Inventory"}
-        </Button>
-        {inventoryMessage ? <p className="panel-message mt-3">{inventoryMessage}</p> : null}
-      </Card>
-
       <Card className="dashboard-panel p-6">
         <div className="flex items-start justify-between gap-3">
           <h2 className="panel-title">Sales Period</h2>
@@ -139,109 +105,6 @@ const WorkflowPanel = ({
           {salesSyncing ? "Syncing..." : "Sync Sales"}
         </Button>
         {salesMessage ? <p className="panel-message mt-3">{salesMessage}</p> : null}
-      </Card>
-
-      <Card className="dashboard-panel p-6">
-        <div className="flex items-start justify-between gap-3">
-          <h2 className="panel-title">Forecast Scope</h2>
-          <p className="panel-note">Sync inventory to proceed</p>
-        </div>
-
-        <div className="mt-7 space-y-4">
-          <label className="scope-option flex items-center gap-3">
-            <input
-              type="radio"
-              name="scope"
-              className="scope-radio h-5 w-5 accent-[#22c55e]"
-              checked={forecastScope === "all"}
-              onChange={() => setForecastScope("all")}
-            />
-            Forecast all items
-          </label>
-          <label className="scope-option flex items-center gap-3">
-            <input
-              type="radio"
-              name="scope"
-              className="scope-radio h-5 w-5 accent-[#22c55e]"
-              checked={forecastScope === "custom"}
-              onChange={() => setForecastScope("custom")}
-            />
-            Select specific items
-          </label>
-        </div>
-
-        {forecastScope === "custom" ? (
-          <div ref={itemSearchBoxRef} className="mt-6 space-y-3">
-            <input
-              type="text"
-              value={itemSearchQuery}
-              onChange={(event) => setItemSearchQuery(event.target.value)}
-              onFocus={() => setItemSearchFocused(true)}
-              placeholder="Search inventory items..."
-              className="dashboard-input h-11 w-full rounded-xl px-3"
-            />
-
-            {itemSearchError ? <p className="panel-message">{itemSearchError}</p> : null}
-
-            <div
-              className={`max-h-40 space-y-2 overflow-auto rounded-xl border border-white/10 p-2 transition-opacity duration-200 ${
-                itemSearchFocused ? "opacity-100" : "opacity-55"
-              }`}
-            >
-              {itemSearchLoading ? (
-                <>
-                  <div className="h-8 w-full rounded-lg bg-white/5" />
-                  <div className="h-8 w-full rounded-lg bg-white/5" />
-                </>
-              ) : null}
-              {!itemSearchLoading && itemSearchResults.length === 0 && itemSearchQuery.trim().length >= 2 ? (
-                <p className="panel-note px-2 py-1">No matching items</p>
-              ) : null}
-              {!itemSearchLoading && itemSearchResults.map((item, index) => {
-                const id = resolveItemId(item);
-                const label = resolveItemLabel(item);
-                const checked = selectedItems.some((entry) => entry.id === id);
-
-                return (
-                  <label
-                    key={`${id}-${index}`}
-                    className={`flex items-center gap-2 rounded-lg px-2 py-1 transition-colors ${
-                      checked ? "bg-[#22c55e]/12" : "hover:bg-white/5"
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => toggleSelectedItem(item)}
-                      className="h-4 w-4 accent-[#22c55e]"
-                    />
-                    <span className={`panel-text ${checked ? "text-[#8CF5A6]" : ""}`}>{label}</span>
-                  </label>
-                );
-              })}
-            </div>
-
-            {selectedItems.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {selectedItems.map((item) => (
-                  <span
-                    key={item.id}
-                    className="inline-flex items-center gap-2 rounded-full border border-[#22c55e]/40 bg-[#22c55e]/12 px-3 py-1 text-xs text-[#8CF5A6]"
-                  >
-                    {item.label}
-                    <button
-                      type="button"
-                      className="text-[#8CF5A6] hover:text-white"
-                      onClick={() => removeSelectedItem(item.id)}
-                    >
-                      x
-                    </button>
-                  </span>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
       </Card>
 
       <Card className="dashboard-panel p-6">
