@@ -1,5 +1,3 @@
-import { User } from "lucide-react";
-
 const Header = ({ lastSyncLabel = "never" }) => {
   return (
     <div className="flex flex-col gap-6">
@@ -16,9 +14,6 @@ const Header = ({ lastSyncLabel = "never" }) => {
             <span className="h-2.5 w-2.5 rounded-full bg-[#10B981]" />
             <span>Last synced: {lastSyncLabel}</span>
           </div>
-          <button type="button" className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#F3C7A7] text-white shadow-sm">
-            <User size={20} />
-          </button>
         </div>
       </div>
     </div>

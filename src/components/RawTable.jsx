@@ -66,7 +66,7 @@ const RawTable = ({
                   <th className="px-4 py-3 text-zinc-400">Lifetime</th>
                   <th className="px-4 py-3 text-zinc-400">Sales Per Day</th>
                   <th className="px-4 py-3 text-zinc-400">
-                    <div className="relative inline-flex items-center gap-1">
+                    <div className="relative inline-flex items-center gap-1.5">
                       <span>Status</span>
                       <button
                         type="button"
@@ -75,9 +75,9 @@ const RawTable = ({
                         onMouseLeave={() => setShowStatusHelp(false)}
                         onFocus={() => setShowStatusHelp(true)}
                         onBlur={() => setShowStatusHelp(false)}
-                        className="text-[11px] leading-none text-zinc-400 transition-colors hover:text-white"
+                        className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-white/15 text-[10px] leading-none text-zinc-400 transition-colors hover:border-white/30 hover:text-white"
                       >
-                        About
+                        i
                       </button>
                       {showStatusHelp ? (
                         <div
