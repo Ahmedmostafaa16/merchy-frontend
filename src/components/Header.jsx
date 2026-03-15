@@ -12,14 +12,14 @@ const Header = ({ lastSyncLabel = "never" }) => {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#E2E8F0] bg-white px-4 py-2 text-sm font-medium text-[#334155] shadow-sm">
+          <div className="inline-flex items-center gap-2 rounded-full bg-[#F3F4F6] px-[10px] py-[6px] text-[13px] font-medium text-[#6B7280]">
             <span className="h-2.5 w-2.5 rounded-full bg-[#10B981]" />
             <span>Last synced: {lastSyncLabel}</span>
           </div>
-          <button type="button" className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-[#E2E8F0] bg-[#F8FAFC] text-[#334155] shadow-sm">
+          <button type="button" className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-[#E6EAF0] bg-[#F3F4F6] text-[#374151] shadow-sm">
             <Settings size={20} />
           </button>
-          <button type="button" className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-[#E2E8F0] bg-[#F8FAFC] text-[#334155] shadow-sm">
+          <button type="button" className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-[#E6EAF0] bg-[#F3F4F6] text-[#374151] shadow-sm">
             <Bell size={20} />
           </button>
           <button type="button" className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#F3C7A7] text-white shadow-sm">
@@ -28,7 +28,7 @@ const Header = ({ lastSyncLabel = "never" }) => {
         </div>
       </div>
 
-      <div className="flex items-center gap-8 border-b border-[#E2E8F0]">
+      <div className="flex items-center gap-8 border-b border-[#E6EAF0]">
         <button type="button" className="border-b-2 border-transparent pb-3 text-sm font-semibold text-[#64748B]">
           General
         </button>

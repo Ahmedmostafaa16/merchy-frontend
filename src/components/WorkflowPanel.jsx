@@ -35,8 +35,8 @@ const WorkflowPanel = ({
   const [dailySummaryReport, setDailySummaryReport] = useState(false);
 
   return (
-    <div className="w-full space-y-6">
-      <Card className="!rounded-[28px] !border-[#D9E3F0] !bg-white p-6 !shadow-[0_1px_3px_rgba(15,23,42,0.08)]">
+    <div className="w-full space-y-8">
+      <Card className="!rounded-[14px] !border-[#E6EAF0] !bg-white p-7 !shadow-sm">
         <div className="flex items-center gap-3">
           <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[#197FE6] text-white">
             <ChartNoAxesColumn size={18} />
@@ -44,12 +44,12 @@ const WorkflowPanel = ({
           <h2 className="text-lg font-semibold text-[#0F172A]">Forecast Settings</h2>
         </div>
 
-        <div className="mt-6 rounded-[24px] border border-[#EDF2F7] bg-[#F8FAFC] p-8">
-          <p className="text-sm leading-6 text-[#64748B]">
+        <div className="mt-6 rounded-[14px] border border-[#E6EAF0] bg-[#F7F9FC] p-7">
+          <p className="text-sm leading-6 text-[#6B7280]">
             Set the parameters for the inventory forecast generator. These values determine the historical data used and the logic for restock recommendations.
           </p>
 
-          <div className="mt-8 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_180px]">
+          <div className="mt-8 grid items-center gap-4 lg:grid-cols-[1fr_1fr_auto]">
             <div>
               <label className="mb-2 block text-sm font-semibold uppercase tracking-[0.08em] text-[#64748B]">
                 Historical Data Start Date
@@ -61,7 +61,7 @@ const WorkflowPanel = ({
                   setStartDate(event.target.value);
                   setSalesMessage("");
                 }}
-                className="h-12 w-full rounded-full border border-[#D7DFEA] bg-white px-5 text-sm text-[#0F172A] outline-none transition focus:border-[#197FE6] focus:ring-2 focus:ring-[#BFDBFE]"
+                className="h-11 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 text-sm text-[#111827] outline-none transition focus:border-[#2F6FED] focus:ring-2 focus:ring-[#DBEAFE]"
               />
             </div>
             <div>
@@ -75,13 +75,13 @@ const WorkflowPanel = ({
                   setEndDate(event.target.value);
                   setSalesMessage("");
                 }}
-                className="h-12 w-full rounded-full border border-[#D7DFEA] bg-white px-5 text-sm text-[#0F172A] outline-none transition focus:border-[#197FE6] focus:ring-2 focus:ring-[#BFDBFE]"
+                className="h-11 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 text-sm text-[#111827] outline-none transition focus:border-[#2F6FED] focus:ring-2 focus:ring-[#DBEAFE]"
               />
             </div>
             <div className="flex items-end">
               <Button
                 variant="secondary"
-                className="!h-12 !w-full !rounded-full !border-[#E2E8F0] !bg-[#EEF2F7] !text-[#1E293B] !shadow-none hover:!bg-[#E2E8F0]"
+                className="!h-11 !w-auto min-w-[156px] px-4 !rounded-lg !border-[#E5E7EB] !bg-[#F3F4F6] !text-[#111827] !shadow-none hover:!bg-[#E5E7EB]"
                 disabled={salesSyncing || !shop || !startDate || !endDate || !inventorySynced}
                 onClick={salesSyncing || !shop || !startDate || !endDate || !inventorySynced ? undefined : handleSyncSales}
               >
@@ -90,7 +90,7 @@ const WorkflowPanel = ({
             </div>
           </div>
 
-          <div className="mt-8 border-t border-[#E2E8F0] pt-8 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_220px] lg:gap-4">
+          <div className="mt-8 border-t border-[#F1F3F6] pt-8 lg:grid lg:grid-cols-[1fr_1fr_auto] lg:items-center lg:gap-4">
             <div>
               <div className="relative" ref={daysHelpRef}>
                 <div className="mb-2 flex items-center gap-2">
@@ -101,13 +101,13 @@ const WorkflowPanel = ({
                     type="button"
                     aria-label="How number of days works"
                     onClick={() => setShowDaysHelp((prev) => !prev)}
-                    className="text-[11px] font-medium text-[#197FE6] transition-colors hover:text-[#1568BD]"
+                    className="text-[11px] font-medium text-[#2F6FED] transition-colors hover:text-[#1F5AE0]"
                   >
                     How it works
                   </button>
                 </div>
                 {showDaysHelp ? (
-                  <div className="absolute left-0 top-[calc(100%+8px)] z-30 w-[320px] max-w-[calc(100vw-3rem)] rounded-xl border border-[#D7DFEA] bg-white p-3 shadow-[0_12px_32px_rgba(15,23,42,0.12)]">
+                  <div className="absolute left-0 top-[calc(100%+8px)] z-30 w-[320px] max-w-[calc(100vw-3rem)] rounded-xl border border-[#E6EAF0] bg-white p-3 shadow-[0_12px_32px_rgba(15,23,42,0.12)]">
                     <div className="mb-1 flex items-start justify-between gap-3">
                       <p className="text-sm font-semibold text-[#0F172A]">How long should this stock last?</p>
                       <button
@@ -141,7 +141,7 @@ const WorkflowPanel = ({
                   handlePositiveIntegerInput(value, setForecastDays);
                   setForecastDaysError("");
                 }}
-                className="h-12 w-full rounded-full border border-[#D7DFEA] bg-white px-5 text-sm text-[#0F172A] outline-none transition focus:border-[#197FE6] focus:ring-2 focus:ring-[#BFDBFE]"
+                className="h-11 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 text-sm text-[#111827] outline-none transition focus:border-[#2F6FED] focus:ring-2 focus:ring-[#DBEAFE]"
               />
               {forecastDaysError ? <p className="mt-2 text-xs text-[#DC2626]">{forecastDaysError}</p> : null}
             </div>
@@ -159,13 +159,13 @@ const WorkflowPanel = ({
                 value={minimumValue}
                 onKeyDown={blockInvalidNumberKeys}
                 onChange={(event) => handlePositiveIntegerInput(event.target.value, setMinimumValue)}
-                className="h-12 w-full rounded-full border border-[#D7DFEA] bg-white px-5 text-sm text-[#0F172A] outline-none transition focus:border-[#197FE6] focus:ring-2 focus:ring-[#BFDBFE]"
+                className="h-11 w-full rounded-lg border border-[#E5E7EB] bg-white px-3 text-sm text-[#111827] outline-none transition focus:border-[#2F6FED] focus:ring-2 focus:ring-[#DBEAFE]"
               />
             </div>
 
             <div className="mt-4 flex items-end lg:mt-0">
               <Button
-                className="!h-14 !w-full !rounded-full !border-[#197FE6] !bg-[#197FE6] !text-white !shadow-none hover:!bg-[#1568BD]"
+                className="!h-11 !w-auto min-w-[196px] px-5 !rounded-lg !border-0 !bg-[#2F6FED] !text-white !shadow-none hover:!bg-[#1F5AE0]"
                 disabled={forecastGenerating || !shop || !inventorySynced || !salesSynced}
                 onClick={
                   forecastGenerating || !shop || !inventorySynced || !salesSynced
@@ -189,7 +189,7 @@ const WorkflowPanel = ({
         {forecastMessage ? <p className="mt-3 text-xs text-[#64748B]">{forecastMessage}</p> : null}
       </Card>
 
-      <Card className="!rounded-[28px] !border-[#D9E3F0] !bg-white p-6 !shadow-[0_1px_3px_rgba(15,23,42,0.08)]">
+      <Card className="!rounded-[14px] !border-[#E6EAF0] !bg-white p-7 !shadow-sm">
         <div className="flex items-center gap-3">
           <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[#E8F1FD] text-[#197FE6]">
             <Bell size={18} />
@@ -200,11 +200,11 @@ const WorkflowPanel = ({
           <p className="text-sm text-[#64748B]">Control how Merchy notifies your team about forecast changes and stock updates.</p>
         </div>
 
-        <div className="mt-6 space-y-5">
-          <div className="flex items-center justify-between gap-4">
+        <div className="mt-6">
+          <div className="flex items-center justify-between gap-4 border-b border-[#F1F3F6] py-3">
             <div>
-              <p className="text-sm font-medium text-[#0F172A]">Low stock alerts</p>
-              <p className="mt-1 text-sm text-[#64748B]">Notify when stock is below threshold</p>
+              <p className="text-sm font-medium text-[#111827]">Low stock alerts</p>
+              <p className="mt-1 text-sm text-[#6B7280]">Notify when stock is below threshold</p>
             </div>
             <button
               type="button"
@@ -222,10 +222,10 @@ const WorkflowPanel = ({
             </button>
           </div>
 
-          <div className="flex items-center justify-between gap-4 border-t border-[#E2E8F0] pt-5">
+          <div className="flex items-center justify-between gap-4 border-b border-[#F1F3F6] py-3">
             <div>
-              <p className="text-sm font-medium text-[#0F172A]">Daily summary report</p>
-              <p className="mt-1 text-sm text-[#64748B]">Email digest of inventory status</p>
+              <p className="text-sm font-medium text-[#111827]">Daily summary report</p>
+              <p className="mt-1 text-sm text-[#6B7280]">Email digest of inventory status</p>
             </div>
             <button
               type="button"

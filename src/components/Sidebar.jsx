@@ -1,4 +1,4 @@
-import { Boxes, LayoutDashboard, Package, Settings2 } from "lucide-react";
+import { Boxes, Database, LayoutDashboard, Package, Settings2 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import logo from "../assets/logo.png";
 
@@ -9,9 +9,9 @@ const Sidebar = ({ page = "overview" }) => {
   const isConfigurationsPage = page === "overview";
 
   const lightNavItemClass =
-    "flex items-center rounded-2xl px-4 py-3 text-sm font-medium text-[#334155] transition-colors hover:bg-[#F8FAFC] hover:text-[#0F172A]";
+    "flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium text-[#334155] transition-colors hover:bg-[#F8FAFC] hover:text-[#111827]";
   const activeLightNavItemClass =
-    "flex items-center rounded-2xl bg-[#DCEAFE] px-4 py-3 text-sm font-semibold text-[#197FE6]";
+    "flex items-center gap-2 rounded-2xl bg-[#DCEAFE] px-4 py-3 text-sm font-semibold text-[#2F6FED]";
 
   const darkLinkClassName = ({ isActive }) => (
     `flex items-center rounded-xl px-4 py-3 text-sm transition-colors ${
@@ -23,7 +23,7 @@ const Sidebar = ({ page = "overview" }) => {
     <aside
       className={`sticky top-4 flex min-h-[calc(100vh-3rem)] flex-col p-5 ${
         isConfigurationsPage
-          ? "rounded-2xl border border-[#E2E8F0] bg-white shadow-sm"
+          ? "rounded-2xl border border-[#E6EAF0] bg-white shadow-sm"
           : "dashboard-panel"
       }`}
     >
@@ -47,11 +47,15 @@ const Sidebar = ({ page = "overview" }) => {
           </button>
           <button type="button" className={lightNavItemClass}>
             <Boxes size={18} />
-            <span className="ml-2">Forecast</span>
+            <span>Forecast</span>
           </button>
+          <NavLink to={`/raw-data${search}`} className={lightNavItemClass}>
+            <Database size={18} />
+            <span>Raw Data</span>
+          </NavLink>
           <NavLink to={`/overview${search}`} className={activeLightNavItemClass}>
             <Settings2 size={18} />
-            <span className="ml-2">Configurations</span>
+            <span>Configurations</span>
           </NavLink>
         </nav>
       ) : (

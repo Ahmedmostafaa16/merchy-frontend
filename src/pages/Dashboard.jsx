@@ -455,7 +455,7 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
 
   return (
     <div className={page === "overview" ? "min-h-screen bg-[#F7F8FA]" : "dashboard-page min-h-screen"}>
-      <main className={`mx-auto max-w-[1320px] px-4 py-6 sm:px-6 ${page === "overview" ? "font-sans" : ""}`}>
+      <main className={`mx-auto max-w-[1320px] ${page === "overview" ? "px-8 py-8 font-sans" : "px-4 py-6 sm:px-6"}`}>
         {globalError ? (
           <div className="mb-4 flex items-center justify-between rounded-xl border border-white/15 bg-[#2f1638]/60 px-4 py-3 text-sm text-[#f3d9ff]">
             <span>{globalError}</span>
@@ -467,10 +467,10 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
           </div>
         ) : null}
 
-        <div className={`grid gap-6 ${page === "overview" ? "lg:grid-cols-[240px_minmax(0,1fr)]" : "lg:grid-cols-[220px_minmax(0,1fr)]"}`}>
+        <div className={`grid ${page === "overview" ? "gap-8 lg:grid-cols-[240px_minmax(0,1fr)]" : "gap-6 lg:grid-cols-[220px_minmax(0,1fr)]"}`}>
           <Sidebar page={page} />
 
-          <div className="space-y-5">
+          <div className={page === "overview" ? "space-y-8" : "space-y-5"}>
             {page === "overview" ? (
               <>
                 <div className="w-full pt-2">
