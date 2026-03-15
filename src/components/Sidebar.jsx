@@ -7,14 +7,14 @@ const Sidebar = () => {
   const search = location.search || "";
 
   const linkClassName = ({ isActive }) => (
-    `flex items-center gap-2 rounded-xl px-4 py-3 text-sm transition-colors ${
-      isActive ? "bg-white/10 text-white" : "text-zinc-300 hover:bg-white/5 hover:text-white"
+    `flex items-center gap-[10px] rounded-[10px] px-[14px] py-[10px] text-sm transition-colors ${
+      isActive ? "bg-[rgba(47,111,237,0.25)] text-white" : "text-zinc-300 hover:bg-[rgba(47,111,237,0.18)] hover:text-white"
     }`
   );
 
   return (
-    <aside className="dashboard-panel sticky top-4 flex min-h-[calc(100vh-3rem)] flex-col p-5">
-      <div className="mb-10 flex items-center">
+    <aside className="dashboard-panel sticky top-4 flex w-[240px] min-h-[calc(100vh-3rem)] flex-col px-5 pb-5 pt-0">
+      <div className="flex items-center">
         <img
           src={logo}
           alt="Merchy"
@@ -22,7 +22,7 @@ const Sidebar = () => {
         />
       </div>
 
-      <nav className="space-y-2">
+      <nav className="mt-10 space-y-2">
         <NavLink to={`/overview${search}`} className={linkClassName}>
           <LayoutDashboard size={18} />
           <span>Overview</span>

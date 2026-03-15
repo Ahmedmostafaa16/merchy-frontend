@@ -467,7 +467,7 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
           </div>
         ) : null}
 
-        <div className={`grid ${page === "overview" ? "gap-8 lg:grid-cols-[240px_minmax(0,1fr)]" : "gap-6 lg:grid-cols-[220px_minmax(0,1fr)]"}`}>
+        <div className={`grid ${page === "overview" ? "gap-0 lg:grid-cols-[240px_minmax(0,1fr)]" : "gap-6 lg:grid-cols-[220px_minmax(0,1fr)]"}`}>
           <Sidebar page={page} />
 
           <div className={page === "overview" ? "space-y-8" : "space-y-5"}>

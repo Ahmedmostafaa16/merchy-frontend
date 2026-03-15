@@ -1,4 +1,4 @@
-import { Bell, Settings, User } from "lucide-react";
+import { User } from "lucide-react";
 
 const Header = ({ lastSyncLabel = "never" }) => {
   return (
@@ -16,31 +16,10 @@ const Header = ({ lastSyncLabel = "never" }) => {
             <span className="h-2.5 w-2.5 rounded-full bg-[#10B981]" />
             <span>Last synced: {lastSyncLabel}</span>
           </div>
-          <button type="button" className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/5 text-zinc-200 shadow-sm">
-            <Settings size={20} />
-          </button>
-          <button type="button" className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/5 text-zinc-200 shadow-sm">
-            <Bell size={20} />
-          </button>
           <button type="button" className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-[#F3C7A7] text-white shadow-sm">
             <User size={20} />
           </button>
         </div>
-      </div>
-
-      <div className="flex items-center gap-8 border-b border-white/10">
-        <button type="button" className="border-b-2 border-transparent pb-3 text-sm font-semibold text-zinc-400">
-          General
-        </button>
-        <button
-          type="button"
-          className="border-b-2 border-[#197FE6] pb-3 text-sm font-semibold text-[#4EA1FF]"
-        >
-          Configurations
-        </button>
-        <button type="button" className="border-b-2 border-transparent pb-3 text-sm font-semibold text-zinc-400">
-          Team
-        </button>
       </div>
     </div>
   );

@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { Bell, ChartNoAxesColumn, Sparkles } from "lucide-react";
+import { ChartNoAxesColumn, Sparkles } from "lucide-react";
 import Button from "./ui/Button";
 import Card from "./ui/Card";
 
@@ -10,7 +9,6 @@ const WorkflowPanel = ({
   setEndDate,
   salesMessage,
   setSalesMessage,
-  salesStatus,
   salesSyncing,
   inventorySynced,
   handleSyncSales,
@@ -31,9 +29,6 @@ const WorkflowPanel = ({
   handleGenerateForecast,
   forecastMessage,
 }) => {
-  const [lowStockAlerts, setLowStockAlerts] = useState(true);
-  const [dailySummaryReport, setDailySummaryReport] = useState(false);
-
   return (
     <div className="w-full space-y-8">
       <Card className="dashboard-panel p-7">
@@ -49,10 +44,10 @@ const WorkflowPanel = ({
             Set the parameters for the inventory forecast generator. These values determine the historical data used and the logic for restock recommendations.
           </p>
 
-          <div className="mt-8 grid items-center gap-4 lg:grid-cols-[1fr_1fr_auto]">
-            <div>
-              <label className="mb-2 block text-sm font-semibold uppercase tracking-[0.08em] text-zinc-400">
-                Historical Data Start Date
+          <div className="mt-8 grid gap-5 lg:grid-cols-[1fr_1fr_180px] lg:items-end">
+            <div className="flex flex-col gap-1.5">
+              <label className="mb-2 block text-[13px] font-medium text-[#9CA3AF]">
+                Historical data start date
               </label>
               <input
                 type="date"
@@ -64,9 +59,9 @@ const WorkflowPanel = ({
                 className="dashboard-input h-11 w-full rounded-lg px-3 text-sm"
               />
             </div>
-            <div>
-              <label className="mb-2 block text-sm font-semibold uppercase tracking-[0.08em] text-zinc-400">
-                Historical Data End Date
+            <div className="flex flex-col gap-1.5">
+              <label className="mb-2 block text-[13px] font-medium text-[#9CA3AF]">
+                Historical data end date
               </label>
               <input
                 type="date"
@@ -78,24 +73,22 @@ const WorkflowPanel = ({
                 className="dashboard-input h-11 w-full rounded-lg px-3 text-sm"
               />
             </div>
-            <div className="flex items-end">
+            <div className="justify-self-start">
               <Button
                 variant="secondary"
-                className="!h-11 !w-auto min-w-[156px] px-4 !rounded-lg"
+                className="!m-0 !flex !h-11 !w-[180px] !items-center !justify-center px-4 !rounded-lg"
                 disabled={salesSyncing || !shop || !startDate || !endDate || !inventorySynced}
                 onClick={salesSyncing || !shop || !startDate || !endDate || !inventorySynced ? undefined : handleSyncSales}
               >
                 {salesSyncing ? "Confirming..." : "Confirm Dates"}
               </Button>
             </div>
-          </div>
 
-          <div className="mt-8 border-t border-white/10 pt-8 lg:grid lg:grid-cols-[1fr_1fr_auto] lg:items-center lg:gap-4">
-            <div>
+            <div className="flex flex-col gap-1.5 border-t border-white/10 pt-8 lg:border-t-0 lg:pt-0">
               <div className="relative" ref={daysHelpRef}>
                 <div className="mb-2 flex items-center gap-2">
-                  <label className="text-sm font-semibold uppercase tracking-[0.08em] text-zinc-400">
-                    Forecast Horizon (Days)
+                  <label className="text-[13px] font-medium text-[#9CA3AF]">
+                    Forecast horizon (days)
                   </label>
                   <button
                     type="button"
@@ -146,9 +139,9 @@ const WorkflowPanel = ({
               {forecastDaysError ? <p className="mt-2 text-xs text-[#DC2626]">{forecastDaysError}</p> : null}
             </div>
 
-            <div className="mt-4 lg:mt-0">
-              <label className="mb-2 block text-sm font-semibold uppercase tracking-[0.08em] text-zinc-400">
-                Minimum Safety Stock Per SKU
+            <div className="mt-4 flex flex-col gap-1.5 lg:mt-0 lg:border-t-0 lg:pt-0">
+              <label className="mb-2 block text-[13px] font-medium text-[#9CA3AF]">
+                Minimum safety stock per SKU
               </label>
               <input
                 type="number"
@@ -163,9 +156,9 @@ const WorkflowPanel = ({
               />
             </div>
 
-            <div className="mt-4 flex items-end lg:mt-0">
+            <div className="mt-4 justify-self-start lg:mt-0 lg:border-t-0 lg:pt-0">
               <Button
-                className="!h-11 !w-auto min-w-[196px] px-5 !rounded-lg !border-0 !bg-[#2F6FED] !text-white !shadow-none hover:!bg-[#1F5AE0]"
+                className="!m-0 !flex !h-11 !w-[180px] !items-center !justify-center px-5 !rounded-lg !border-0 !bg-[#2F6FED] !text-white !shadow-none hover:!bg-[#1F5AE0]"
                 disabled={forecastGenerating || !shop || !inventorySynced || !salesSynced}
                 onClick={
                   forecastGenerating || !shop || !inventorySynced || !salesSynced
@@ -180,69 +173,8 @@ const WorkflowPanel = ({
           </div>
         </div>
 
-        <div className="mt-5 flex items-center justify-between">
-          <div className="text-sm text-zinc-400">
-            Sales sync status: <span className="font-medium text-white">{salesStatus === "synced" ? "Confirmed" : "Pending"}</span>
-          </div>
-          {salesMessage ? <p className="text-xs text-zinc-400">{salesMessage}</p> : null}
-        </div>
+        {salesMessage ? <p className="mt-5 text-xs text-zinc-400">{salesMessage}</p> : null}
         {forecastMessage ? <p className="mt-3 text-xs text-zinc-400">{forecastMessage}</p> : null}
-      </Card>
-
-      <Card className="dashboard-panel p-7">
-        <div className="flex items-center gap-3">
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[#197FE6]/15 text-[#4EA1FF]">
-            <Bell size={18} />
-          </span>
-          <h2 className="text-lg font-semibold text-white">Notification Preferences</h2>
-        </div>
-        <div className="mt-6 flex flex-col gap-1">
-          <p className="text-sm text-zinc-400">Control how Merchy notifies your team about forecast changes and stock updates.</p>
-        </div>
-
-        <div className="mt-6">
-          <div className="flex items-center justify-between gap-4 border-b border-white/10 py-3">
-            <div>
-              <p className="text-sm font-medium text-white">Low stock alerts</p>
-              <p className="mt-1 text-sm text-zinc-400">Notify when stock is below threshold</p>
-            </div>
-            <button
-              type="button"
-              aria-pressed={lowStockAlerts}
-              onClick={() => setLowStockAlerts((prev) => !prev)}
-              className={`relative h-7 w-14 rounded-full transition-colors ${
-                lowStockAlerts ? "bg-[#197FE6]" : "bg-[#DCE5F1]"
-              }`}
-            >
-              <span
-                className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
-                  lowStockAlerts ? "translate-x-8" : "translate-x-1"
-                }`}
-              />
-            </button>
-          </div>
-
-          <div className="flex items-center justify-between gap-4 border-b border-white/10 py-3">
-            <div>
-              <p className="text-sm font-medium text-white">Daily summary report</p>
-              <p className="mt-1 text-sm text-zinc-400">Email digest of inventory status</p>
-            </div>
-            <button
-              type="button"
-              aria-pressed={dailySummaryReport}
-              onClick={() => setDailySummaryReport((prev) => !prev)}
-              className={`relative h-7 w-14 rounded-full transition-colors ${
-                dailySummaryReport ? "bg-[#197FE6]" : "bg-[#DCE5F1]"
-              }`}
-            >
-              <span
-                className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
-                  dailySummaryReport ? "translate-x-8" : "translate-x-1"
-                }`}
-              />
-            </button>
-          </div>
-        </div>
       </Card>
     </div>
   );
