@@ -1,4 +1,4 @@
-import { Boxes, LayoutDashboard } from "lucide-react";
+import { Boxes, LayoutDashboard, Mail } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import logo from "../assets/logo.png";
 
@@ -32,6 +32,10 @@ const Sidebar = () => {
         <NavLink to={`/raw-data${search}`} className={linkClassName}>
           <Boxes size={18} />
           <span>Raw Data</span>
+        </NavLink>
+        <NavLink to={`/mail-notifications${search}`} className={linkClassName}>
+          <Mail size={18} />
+          <span>Mail Notifications</span>
         </NavLink>
       </nav>
 

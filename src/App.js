@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import InstallSuccess from "./pages/InstallSuccess";
+import MailNotifications from "./pages/MailNotifications";
 import Overview from "./pages/Overview";
 import RawData from "./pages/RawData";
 import { API_BASE } from "./config/api";
@@ -18,7 +19,7 @@ function App() {
     const host = params.get("host");
     const shop = params.get("shop");
     const path = window.location.pathname;
-    const dashboardRoute = ["/", "/dashboard", "/overview", "/raw-data"].includes(path);
+    const dashboardRoute = ["/", "/dashboard", "/overview", "/raw-data", "/mail-notifications"].includes(path);
 
     if (dashboardRoute && !host && shop) {
       window.location.href = `${API_BASE}/auth/install?shop=${encodeURIComponent(shop)}`;
@@ -37,6 +38,7 @@ function App() {
         <Route path="/dashboard" element={<RedirectWithSearch to="/overview" />} />
         <Route path="/overview" element={<Overview />} />
         <Route path="/raw-data" element={<RawData />} />
+        <Route path="/mail-notifications" element={<MailNotifications />} />
         <Route path="/install/success" element={<InstallSuccess />} />
       </Routes>
     </BrowserRouter>
