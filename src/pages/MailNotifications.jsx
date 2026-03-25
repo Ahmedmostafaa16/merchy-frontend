@@ -1,16 +1,14 @@
 import { useMemo, useState } from "react";
-import { getSessionToken } from "@shopify/app-bridge-utils";
-import { useAppBridge } from "@shopify/app-bridge-react";
 import { Mail } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
+import { getFreshSessionToken } from "../shopify/getToken";
 import "../styles/dashboard.css";
 
 const API_BASE = "https://merchyapp-backend.up.railway.app";
 
 const MailNotifications = () => {
-  const app = useAppBridge();
   const [reportEmail, setReportEmail] = useState("");
   const [coverageThreshold, setCoverageThreshold] = useState("");
 
@@ -32,16 +30,18 @@ const MailNotifications = () => {
   }, []);
 
   const handleSave = async () => {
+    console.log("BUTTON CLICKED");
     console.log("CLICKED");
 
     if (!reportEmail || Number(coverageThreshold) <= 0) {
-      console.error("Invalid notification settings");
+      console.error("Invalid input");
       return;
     }
 
     try {
-      const token = await getSessionToken(app);
+      const token = await getFreshSessionToken();
       console.log("TOKEN:", token);
+      console.log("TOKEN RECEIVED");
       console.log("SENDING REQUEST...");
 
       const response = await fetch(`${API_BASE}/notifications`, {
@@ -56,6 +56,7 @@ const MailNotifications = () => {
         }),
       });
       console.log("STATUS:", response.status);
+      console.log("RESPONSE STATUS:", response.status);
 
       if (!response.ok) {
         throw new Error(`Request failed with status ${response.status}`);

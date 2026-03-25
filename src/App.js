@@ -5,6 +5,7 @@ import MailNotifications from "./pages/MailNotifications";
 import Overview from "./pages/Overview";
 import RawData from "./pages/RawData";
 import { API_BASE } from "./config/api";
+import { getAppBridge } from "./shopify/appBridge";
 
 function RedirectWithSearch({ to }) {
   const location = useLocation();
@@ -24,6 +25,10 @@ function App() {
     if (dashboardRoute && !host && shop) {
       window.location.href = `${API_BASE}/auth/install?shop=${encodeURIComponent(shop)}`;
       return;
+    }
+
+    if (host) {
+      getAppBridge();
     }
 
     setReady(true);
