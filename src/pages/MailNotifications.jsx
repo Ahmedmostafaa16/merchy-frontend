@@ -1,11 +1,15 @@
 import { useMemo, useState } from "react";
+import { getSessionToken } from "@shopify/app-bridge-utils";
+import { useAppBridge } from "@shopify/app-bridge-react";
 import { Mail } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
+import { API_BASE } from "../config/api";
 import "../styles/dashboard.css";
 
 const MailNotifications = () => {
+  const app = useAppBridge();
   const [reportEmail, setReportEmail] = useState("");
   const [coverageThreshold, setCoverageThreshold] = useState("");
 
@@ -25,6 +29,37 @@ const MailNotifications = () => {
     const diffHours = Math.floor(diffMinutes / 60);
     return `${diffHours}h ago`;
   }, []);
+
+  const handleSaveNotification = async () => {
+    if (!reportEmail || Number(coverageThreshold) <= 0) {
+      console.error("Invalid notification settings");
+      return;
+    }
+
+    try {
+      const token = await getSessionToken(app);
+
+      const response = await fetch(`${API_BASE}/notifications`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          email: reportEmail,
+          threshold_days: Number(coverageThreshold),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`);
+      }
+
+      console.log("Notification saved");
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   return (
     <div className="dashboard-page min-h-screen">
@@ -94,12 +129,7 @@ const MailNotifications = () => {
                   <div className="pt-2">
                     <Button
                       className="!m-0 !flex !h-11 !w-full max-w-[280px] !items-center !justify-center px-5 !rounded-lg !border-0 !bg-[#2F6FED] !text-white !shadow-none hover:!bg-[#1F5AE0]"
-                      onClick={() => {
-                        console.log({
-                          reportEmail,
-                          coverageThreshold,
-                        });
-                      }}
+                      onClick={handleSaveNotification}
                     >
                       Save Notification Settings
                     </Button>
