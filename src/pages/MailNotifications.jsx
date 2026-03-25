@@ -5,8 +5,9 @@ import { Mail } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
-import { API_BASE } from "../config/api";
 import "../styles/dashboard.css";
+
+const API_BASE = "https://merchyapp-backend.up.railway.app";
 
 const MailNotifications = () => {
   const app = useAppBridge();
@@ -30,7 +31,9 @@ const MailNotifications = () => {
     return `${diffHours}h ago`;
   }, []);
 
-  const handleSaveNotification = async () => {
+  const handleSave = async () => {
+    console.log("CLICKED");
+
     if (!reportEmail || Number(coverageThreshold) <= 0) {
       console.error("Invalid notification settings");
       return;
@@ -38,6 +41,8 @@ const MailNotifications = () => {
 
     try {
       const token = await getSessionToken(app);
+      console.log("TOKEN:", token);
+      console.log("SENDING REQUEST...");
 
       const response = await fetch(`${API_BASE}/notifications`, {
         method: "POST",
@@ -50,6 +55,7 @@ const MailNotifications = () => {
           threshold_days: Number(coverageThreshold),
         }),
       });
+      console.log("STATUS:", response.status);
 
       if (!response.ok) {
         throw new Error(`Request failed with status ${response.status}`);
@@ -129,7 +135,7 @@ const MailNotifications = () => {
                   <div className="pt-2">
                     <Button
                       className="!m-0 !flex !h-11 !w-full max-w-[280px] !items-center !justify-center px-5 !rounded-lg !border-0 !bg-[#2F6FED] !text-white !shadow-none hover:!bg-[#1F5AE0]"
-                      onClick={handleSaveNotification}
+                      onClick={handleSave}
                     >
                       Save Notification Settings
                     </Button>
