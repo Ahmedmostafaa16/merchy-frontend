@@ -4,6 +4,7 @@ import InstallSuccess from "./pages/InstallSuccess";
 import MailNotifications from "./pages/MailNotifications";
 import Overview from "./pages/Overview";
 import POBuilder from "./pages/POBuilder";
+import PurchaseOrders from "./pages/PurchaseOrders";
 import RawData from "./pages/RawData";
 import { API_BASE } from "./config/api";
 import { getAppBridge } from "./shopify/appBridge";
@@ -21,7 +22,8 @@ function App() {
     const host = params.get("host");
     const shop = params.get("shop");
     const path = window.location.pathname;
-    const dashboardRoute = ["/", "/dashboard", "/overview", "/raw-data", "/mail-notifications", "/po/create"].includes(path);
+    const dashboardRoute = ["/", "/dashboard", "/overview", "/raw-data", "/mail-notifications", "/po", "/po/create"].includes(path)
+      || path.startsWith("/po/");
 
     if (dashboardRoute && !host && shop) {
       window.location.href = `${API_BASE}/auth/install?shop=${encodeURIComponent(shop)}`;
@@ -45,6 +47,7 @@ function App() {
         <Route path="/overview" element={<Overview />} />
         <Route path="/raw-data" element={<RawData />} />
         <Route path="/mail-notifications" element={<MailNotifications />} />
+        <Route path="/po" element={<PurchaseOrders />} />
         <Route path="/po/create" element={<POBuilder />} />
         <Route path="/install/success" element={<InstallSuccess />} />
       </Routes>
