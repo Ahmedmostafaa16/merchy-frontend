@@ -11,6 +11,13 @@ const RawTable = ({
   filteredRawTableRows,
   handleExportRawTableCsv,
   getRawStatusClasses,
+  selectedRawItemCount,
+  selectedRawItemKeys,
+  areAllRawRowsSelected,
+  canSelectAllRawRows,
+  handleToggleRawRow,
+  handleToggleAllRawRows,
+  handleCreatePo,
 }) => {
   const [showStatusHelp, setShowStatusHelp] = useState(false);
 
@@ -54,11 +61,29 @@ const RawTable = ({
             >
               Export CSV
             </Button>
+            <div className="ml-auto">
+              <Button
+                className="!h-10 !w-auto px-4"
+                disabled={selectedRawItemCount === 0}
+                onClick={handleCreatePo}
+              >
+                Create PO
+              </Button>
+            </div>
           </div>
           <div className="max-h-[420px] overflow-y-auto overflow-x-auto rounded-xl border border-white/10">
-            <table className="w-full min-w-[980px] text-left text-sm text-zinc-400">
+            <table className="w-full min-w-[1030px] text-left text-sm text-zinc-400">
               <thead className="bg-white/5">
                 <tr>
+                  <th className="px-4 py-3 text-zinc-400">
+                    <input
+                      type="checkbox"
+                      checked={areAllRawRowsSelected}
+                      disabled={!canSelectAllRawRows}
+                      onChange={handleToggleAllRawRows}
+                      className="h-4 w-4 rounded border border-white/20 bg-transparent accent-[#2F6FED]"
+                    />
+                  </th>
                   <th className="px-4 py-3 text-zinc-400">Title</th>
                   <th className="px-4 py-3 text-zinc-400">Size</th>
                   <th className="px-4 py-3 text-zinc-400">SKU</th>
@@ -105,13 +130,21 @@ const RawTable = ({
               <tbody>
                 {filteredRawTableRows.length === 0 ? (
                   <tr>
-                    <td className="px-4 py-3 text-zinc-400" colSpan={8}>
+                    <td className="px-4 py-3 text-zinc-400" colSpan={9}>
                       No forecast generated yet.
                     </td>
                   </tr>
                 ) : (
                   filteredRawTableRows.map((row, index) => (
                     <tr key={`raw-${index}`} className="border-t border-white/10 text-zinc-400">
+                      <td className="px-4 py-3 text-zinc-400">
+                        <input
+                          type="checkbox"
+                          checked={selectedRawItemKeys.has(`${row?.sku || ""}::${row?.title || ""}::${row?.size || ""}`)}
+                          onChange={() => handleToggleRawRow(row)}
+                          className="h-4 w-4 rounded border border-white/20 bg-transparent accent-[#2F6FED]"
+                        />
+                      </td>
                       <td className="px-4 py-3 text-zinc-400">{row?.title || "-"}</td>
                       <td className="px-4 py-3 text-zinc-400">{row?.size || "-"}</td>
                       <td className="px-4 py-3 text-zinc-400">{row?.sku || "-"}</td>

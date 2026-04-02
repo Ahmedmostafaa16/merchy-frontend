@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-route
 import InstallSuccess from "./pages/InstallSuccess";
 import MailNotifications from "./pages/MailNotifications";
 import Overview from "./pages/Overview";
+import POBuilder from "./pages/POBuilder";
 import RawData from "./pages/RawData";
 import { API_BASE } from "./config/api";
 import { getAppBridge } from "./shopify/appBridge";
@@ -20,7 +21,7 @@ function App() {
     const host = params.get("host");
     const shop = params.get("shop");
     const path = window.location.pathname;
-    const dashboardRoute = ["/", "/dashboard", "/overview", "/raw-data", "/mail-notifications"].includes(path);
+    const dashboardRoute = ["/", "/dashboard", "/overview", "/raw-data", "/mail-notifications", "/po/create"].includes(path);
 
     if (dashboardRoute && !host && shop) {
       window.location.href = `${API_BASE}/auth/install?shop=${encodeURIComponent(shop)}`;
@@ -44,6 +45,7 @@ function App() {
         <Route path="/overview" element={<Overview />} />
         <Route path="/raw-data" element={<RawData />} />
         <Route path="/mail-notifications" element={<MailNotifications />} />
+        <Route path="/po/create" element={<POBuilder />} />
         <Route path="/install/success" element={<InstallSuccess />} />
       </Routes>
     </BrowserRouter>

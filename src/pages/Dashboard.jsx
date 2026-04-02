@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import Button from "../components/ui/Button";
 import Card from "../components/ui/Card";
 import Skeleton from "../components/ui/Skeleton";
@@ -13,8 +14,12 @@ import "../styles/dashboard.css";
 
 const INVENTORY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const KPI_CACHE_KEY = "kpi_cache";
+const PO_SELECTION_STORAGE_KEY = "po_builder_selected_items";
+const buildPoSelectionKey = (item) => `${item?.sku || ""}::${item?.title || ""}::${item?.size || ""}`;
 
 const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading = false }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [shop, setShop] = useState("");
   const [loadingKpis, setLoadingKpis] = useState(true);
   const [kpiError, setKpiError] = useState("");
@@ -55,6 +60,7 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
   const [rawTableSearch, setRawTableSearch] = useState("");
   const [rawTableStatusFilter, setRawTableStatusFilter] = useState("all");
   const [showDaysHelp, setShowDaysHelp] = useState(false);
+  const [selectedForecastItems, setSelectedForecastItems] = useState([]);
   const daysHelpRef = useRef(null);
   const canShowKpis = inventorySynced && salesSynced;
 
@@ -223,6 +229,10 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
       setForecastData(initialForecastData);
     }
   }, [page, initialForecastData]);
+
+  useEffect(() => {
+    setSelectedForecastItems([]);
+  }, [forecastData]);
 
   useEffect(() => {
     if (!shop || !canShowKpis) {
@@ -468,6 +478,66 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
     triggerCsvDownload(new Blob([csv], { type: "text/csv;charset=utf-8;" }), "forecast_raw_table.csv");
   };
 
+  const mapForecastRowToPoItem = useCallback((row) => ({
+    sku: String(row?.sku || ""),
+    title: String(row?.title || ""),
+    size: String(row?.size || ""),
+    quantity: Number(row?.restock_amount) > 0 ? Number(row?.restock_amount) : 0,
+  }), []);
+
+  const selectedRawItemKeys = useMemo(() => (
+    new Set(selectedForecastItems.map((item) => buildPoSelectionKey(item)))
+  ), [selectedForecastItems]);
+
+  const canSelectAllRawRows = filteredRawTableRows.length > 0;
+  const areAllRawRowsSelected = (
+    canSelectAllRawRows &&
+    filteredRawTableRows.every((row) => selectedRawItemKeys.has(buildPoSelectionKey(row)))
+  );
+
+  const handleToggleRawRow = useCallback((row) => {
+    const nextItem = mapForecastRowToPoItem(row);
+    const nextKey = buildPoSelectionKey(nextItem);
+
+    setSelectedForecastItems((currentItems) => {
+      const exists = currentItems.some((item) => buildPoSelectionKey(item) === nextKey);
+      if (exists) {
+        return currentItems.filter((item) => buildPoSelectionKey(item) !== nextKey);
+      }
+      return [...currentItems, nextItem];
+    });
+  }, [mapForecastRowToPoItem]);
+
+  const handleToggleAllRawRows = useCallback(() => {
+    if (!canSelectAllRawRows) return;
+
+    setSelectedForecastItems((currentItems) => {
+      const filteredItems = filteredRawTableRows.map(mapForecastRowToPoItem);
+      const filteredKeys = new Set(filteredItems.map((item) => buildPoSelectionKey(item)));
+      const allSelected = filteredItems.every((item) => (
+        currentItems.some((currentItem) => buildPoSelectionKey(currentItem) === buildPoSelectionKey(item))
+      ));
+
+      if (allSelected) {
+        return currentItems.filter((item) => !filteredKeys.has(buildPoSelectionKey(item)));
+      }
+
+      const retainedItems = currentItems.filter((item) => !filteredKeys.has(buildPoSelectionKey(item)));
+      return [...retainedItems, ...filteredItems];
+    });
+  }, [canSelectAllRawRows, filteredRawTableRows, mapForecastRowToPoItem]);
+
+  const handleCreatePo = useCallback(() => {
+    if (selectedForecastItems.length === 0) return;
+
+    window.localStorage.setItem(PO_SELECTION_STORAGE_KEY, JSON.stringify(selectedForecastItems));
+    navigate(`/po/create${location.search}`, {
+      state: {
+        selectedItems: selectedForecastItems,
+      },
+    });
+  }, [location.search, navigate, selectedForecastItems]);
+
   const renderKpiValue = (value, formatNumber = false) => {
     if (loadingKpis) return <Skeleton className="mt-3 h-7 w-24" />;
     if (kpiError) return <p className="kpi-fallback mt-3">Unavailable</p>;
@@ -577,6 +647,13 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
                     filteredRawTableRows={filteredRawTableRows}
                     handleExportRawTableCsv={handleExportRawTableCsv}
                     getRawStatusClasses={getRawStatusClasses}
+                    selectedRawItemCount={selectedForecastItems.length}
+                    selectedRawItemKeys={selectedRawItemKeys}
+                    areAllRawRowsSelected={areAllRawRowsSelected}
+                    canSelectAllRawRows={canSelectAllRawRows}
+                    handleToggleRawRow={handleToggleRawRow}
+                    handleToggleAllRawRows={handleToggleAllRawRows}
+                    handleCreatePo={handleCreatePo}
                   />
                 </Card>
               </>
