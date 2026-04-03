@@ -1,8 +1,8 @@
-import { Boxes, ClipboardList, LayoutDashboard, Mail } from "lucide-react";
+import { Boxes, ClipboardList, LayoutDashboard, Settings } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import logo from "../assets/logo.png";
 
-const Sidebar = () => {
+const Sidebar = ({ settingsEmail = "" }) => {
   const location = useLocation();
   const search = location.search || "";
 
@@ -31,11 +31,7 @@ const Sidebar = () => {
         </NavLink>
         <NavLink to={`/raw-data${search}`} className={linkClassName}>
           <Boxes size={18} />
-          <span>Raw Data</span>
-        </NavLink>
-        <NavLink to={`/mail-notifications${search}`} className={linkClassName}>
-          <Mail size={18} />
-          <span>Mail Notifications</span>
+          <span>Replenish</span>
         </NavLink>
         <NavLink to={`/po${search}`} className={linkClassName}>
           <ClipboardList size={18} />
@@ -44,8 +40,15 @@ const Sidebar = () => {
       </nav>
 
       <div className="mt-auto border-t border-white/10 pt-5">
-        <div className="text-sm font-medium text-white">Store Admin</div>
-        <div className="mt-1 text-xs text-zinc-400">Shopify Plus</div>
+        <NavLink to={`/settings${search}`} className={linkClassName}>
+          <Settings size={18} />
+          <div className="min-w-0">
+            <div className="text-sm font-medium">Settings</div>
+            {settingsEmail ? (
+              <div className="mt-1 truncate text-xs text-zinc-400">{settingsEmail}</div>
+            ) : null}
+          </div>
+        </NavLink>
       </div>
     </aside>
   );

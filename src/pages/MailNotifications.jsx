@@ -1,16 +1,30 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Mail } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
-import { getFreshSessionToken } from "../shopify/getToken";
+import { apiClient } from "../lib/apiClient";
 import "../styles/dashboard.css";
 
-const API_BASE = "https://merchyapp-backend.up.railway.app";
-
-const MailNotifications = () => {
+const MailNotifications = ({ notifications, onNotificationSaved }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isOnboarding = notifications?.exists === false;
   const [reportEmail, setReportEmail] = useState("");
   const [coverageThreshold, setCoverageThreshold] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+
+  useEffect(() => {
+    setReportEmail(notifications?.email || "");
+    setCoverageThreshold(
+      notifications?.threshold_days !== null && notifications?.threshold_days !== undefined
+        ? String(notifications.threshold_days)
+        : ""
+    );
+  }, [notifications]);
 
   const lastSyncLabel = useMemo(() => {
     const timestamp = window.localStorage.getItem("inventory_last_sync");
@@ -30,56 +44,59 @@ const MailNotifications = () => {
   }, []);
 
   const handleSave = async () => {
-    console.log("BUTTON CLICKED");
-    console.log("CLICKED");
+    setError("");
+    setSuccessMessage("");
 
-    if (!reportEmail || Number(coverageThreshold) <= 0) {
-      console.error("Invalid input");
+    const trimmedEmail = reportEmail.trim();
+    const threshold = Number(coverageThreshold);
+
+    if (!trimmedEmail || !Number.isFinite(threshold) || threshold <= 0) {
+      setError("Enter a valid email and coverage threshold.");
       return;
     }
 
+    setSaving(true);
+
     try {
-      const token = await getFreshSessionToken();
-      console.log("TOKEN:", token);
-      console.log("TOKEN RECEIVED");
-      console.log("SENDING REQUEST...");
-
-      const response = await fetch(`${API_BASE}/notifications`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      await apiClient.post("/notifications", {
+        body: {
+          email: trimmedEmail,
+          threshold_days: threshold,
         },
-        body: JSON.stringify({
-          email: reportEmail,
-          threshold_days: Number(coverageThreshold),
-        }),
       });
-      console.log("STATUS:", response.status);
-      console.log("RESPONSE STATUS:", response.status);
 
-      if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
+      onNotificationSaved?.({
+        email: trimmedEmail,
+        threshold_days: threshold,
+      });
+
+      if (isOnboarding) {
+        navigate(`/overview${location.search}`);
+        return;
       }
 
-      console.log("Notification saved");
-    } catch (error) {
-      console.error(error);
+      setSuccessMessage("Notification settings saved successfully.");
+    } catch (requestError) {
+      setError(requestError?.message || "Unable to save notification settings.");
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
     <div className="dashboard-page min-h-screen">
-      <main className="mx-auto max-w-[1320px] px-8 py-8 font-sans">
-        <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
-          <Sidebar />
+      <main className={`mx-auto max-w-[1320px] px-8 py-8 font-sans ${isOnboarding ? "flex min-h-screen items-center justify-center" : ""}`}>
+        <div className={`grid w-full ${isOnboarding ? "" : "gap-6 lg:grid-cols-[240px_minmax(0,1fr)]"}`}>
+          {!isOnboarding ? <Sidebar settingsEmail={notifications?.email || ""} /> : null}
 
-          <div className="space-y-8">
+          <div className={isOnboarding ? "mx-auto w-full max-w-[720px]" : "space-y-8"}>
             <div className="w-full pt-2">
               <div className="flex flex-col gap-6">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h1 className="text-[30px] font-bold leading-tight text-white">Mail Notifications</h1>
+                    <h1 className="text-[30px] font-bold leading-tight text-white">
+                      {isOnboarding ? "Set Up Notifications" : "Settings"}
+                    </h1>
                     <p className="mt-2 text-sm text-zinc-400">
                       Configure email alerts for inventory coverage thresholds.
                     </p>
@@ -92,6 +109,18 @@ const MailNotifications = () => {
                 </div>
               </div>
             </div>
+
+            {error ? (
+              <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                {error}
+              </div>
+            ) : null}
+
+            {successMessage ? (
+              <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+                {successMessage}
+              </div>
+            ) : null}
 
             <Card className="dashboard-panel p-7">
               <div className="flex items-center gap-3">
@@ -136,9 +165,10 @@ const MailNotifications = () => {
                   <div className="pt-2">
                     <Button
                       className="!m-0 !flex !h-11 !w-full max-w-[280px] !items-center !justify-center px-5 !rounded-lg !border-0 !bg-[#2F6FED] !text-white !shadow-none hover:!bg-[#1F5AE0]"
+                      disabled={saving}
                       onClick={handleSave}
                     >
-                      Save Notification Settings
+                      {saving ? "Saving..." : isOnboarding ? "Continue" : "Save"}
                     </Button>
                   </div>
                 </div>

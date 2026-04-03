@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import Dashboard from "./Dashboard";
 
-const RawData = () => {
+const RawData = ({ settingsEmail = "" }) => {
   const [rows, setRows] = useState(() => {
     try {
       const savedRows = window.localStorage.getItem("forecast_cache");
@@ -25,7 +25,7 @@ const RawData = () => {
     }
   }, []);
 
-  return <Dashboard page="raw-data" initialForecastData={rows} rawDataLoading={loading} />;
+  return <Dashboard page="raw-data" initialForecastData={rows} rawDataLoading={loading} settingsEmail={settingsEmail} />;
 };
 
 export default RawData;

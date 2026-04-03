@@ -33,7 +33,7 @@ const readStoredPoItems = () => {
   }
 };
 
-const POBuilder = () => {
+const POBuilder = ({ settingsEmail = "" }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const selectedItemsFromState = location.state?.selectedItems;
@@ -195,7 +195,7 @@ const POBuilder = () => {
     <div className="dashboard-page min-h-screen">
       <main className="mx-auto max-w-[1320px] px-8 py-8 font-sans">
         <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
-          <Sidebar />
+          <Sidebar settingsEmail={settingsEmail} />
 
           <div className="space-y-6">
             <div className="flex flex-col gap-6 pt-2">

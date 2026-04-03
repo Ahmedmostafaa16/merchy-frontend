@@ -17,7 +17,7 @@ const KPI_CACHE_KEY = "kpi_cache";
 const PO_SELECTION_STORAGE_KEY = "po_builder_selected_items";
 const buildPoSelectionKey = (item) => `${item?.sku || ""}::${item?.title || ""}::${item?.size || ""}`;
 
-const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading = false }) => {
+const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading = false, settingsEmail = "" }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [shop, setShop] = useState("");
@@ -583,7 +583,7 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
         ) : null}
 
         <div className={`grid ${page === "overview" ? "gap-6 lg:grid-cols-[240px_minmax(0,1fr)]" : "gap-6 lg:grid-cols-[220px_minmax(0,1fr)]"}`}>
-          <Sidebar page={page} />
+          <Sidebar page={page} settingsEmail={settingsEmail} />
 
           <div className={page === "overview" ? "space-y-8" : "space-y-5"}>
             {page === "overview" ? (
