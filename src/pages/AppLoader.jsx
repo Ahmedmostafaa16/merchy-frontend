@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE } from "../config/api";
-import { fetchWithToken } from "../lib/authFetch";
 
 const AppLoader = () => {
   const navigate = useNavigate();
@@ -15,6 +14,7 @@ const AppLoader = () => {
     const run = async () => {
       const params = new URLSearchParams(window.location.search);
       const shop = params.get("shop");
+      const host = params.get("host");
 
       if (!shop) {
         setMessage("Missing shop parameter");
@@ -22,16 +22,17 @@ const AppLoader = () => {
       }
 
       try {
-        const response = await fetchWithToken(
-          `${API_BASE}/auth/shops/${encodeURIComponent(shop)}`,
-          {
-            headers: { "ngrok-skip-browser-warning": "true" },
-          }
-        );
+        const response = await fetch(`${API_BASE}/auth/shops/${encodeURIComponent(shop)}`, {
+          headers: { "ngrok-skip-browser-warning": "true" },
+        });
 
         if (!response.ok) {
           if (response.status === 404) {
-            window.top.location.href = `${API_BASE}/auth/install?shop=${encodeURIComponent(shop)}`;
+            const installParams = new URLSearchParams({ shop });
+            if (host) {
+              installParams.set("host", host);
+            }
+            window.top.location.href = `${API_BASE}/auth/install?${installParams.toString()}`;
             return;
           }
           setMessage("Unable to verify installation");

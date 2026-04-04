@@ -6,6 +6,7 @@ class ApiClientError extends Error {
     this.name = "ApiClientError";
     this.status = options.status;
     this.data = options.data;
+    this.isEmpty = Boolean(options.isEmpty);
     this.isNetwork = Boolean(options.isNetwork);
     this.isConfig = Boolean(options.isConfig);
   }
@@ -101,6 +102,7 @@ const request = async (method, path, options = {}) => {
       throw new ApiClientError(detail || `Request failed with status ${response.status}`, {
         status: response.status,
         data,
+        isEmpty: [400, 404].includes(response.status),
       });
     }
 

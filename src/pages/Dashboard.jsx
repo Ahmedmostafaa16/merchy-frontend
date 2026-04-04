@@ -46,6 +46,8 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
   const [, setInventoryMessage] = useState("");
   const [salesMessage, setSalesMessage] = useState("");
   const [forecastMessage, setForecastMessage] = useState("");
+  const [forecastError, setForecastError] = useState("");
+  const [forecastEmpty, setForecastEmpty] = useState(() => initialForecastData.length === 0);
   const [globalError, setGlobalError] = useState("");
   const [showRetry, setShowRetry] = useState(false);
   const [retryAction, setRetryAction] = useState(null);
@@ -149,9 +151,16 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
     }
 
     if (error?.isNetwork) {
-      setGlobalError("Network failure. Please retry.");
+      setGlobalError("Something went wrong. Please try again.");
       setShowRetry(Boolean(onRetry));
       setRetryAction(() => onRetry || null);
+      return;
+    }
+
+    if (error?.isEmpty) {
+      setGlobalError("");
+      setShowRetry(false);
+      setRetryAction(null);
       return;
     }
 
@@ -227,6 +236,7 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
   useEffect(() => {
     if (page === "raw-data" && Array.isArray(initialForecastData)) {
       setForecastData(initialForecastData);
+      setForecastEmpty(initialForecastData.length === 0);
     }
   }, [page, initialForecastData]);
 
@@ -394,6 +404,8 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
 
     setForecastGenerating(true);
     setForecastMessage("");
+    setForecastError("");
+    setForecastEmpty(false);
 
     try {
       const rawDays = Number(forecastDays);
@@ -417,17 +429,27 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
       });
       const rows = Array.isArray(payload) ? payload : [];
       setForecastData(rows);
+      setForecastEmpty(rows.length === 0);
       window.localStorage.setItem("forecast_cache", JSON.stringify(rows));
       window.localStorage.setItem("forecast_last_generated", String(Date.now()));
       window.localStorage.removeItem(KPI_CACHE_KEY);
 
-      setForecastMessage("Forecast generated successfully.");
+      setForecastMessage(rows.length === 0 ? "" : "Forecast generated successfully.");
       clearGlobalError();
       await fetchDashboardMetrics(shop);
     } catch (error) {
-      setForecastMessage(error?.message || "Forecast generation failed.");
       setForecastData([]);
-      handleApiError(error, "Forecast generation failed.", handleGenerateForecast);
+      if (error?.isEmpty) {
+        setForecastEmpty(true);
+        setForecastError("");
+        setForecastMessage("");
+        clearGlobalError();
+      } else {
+        setForecastEmpty(false);
+        setForecastError(error?.message || "Something went wrong. Please try again.");
+        setForecastMessage("");
+        handleApiError(error, "Forecast generation failed.", handleGenerateForecast);
+      }
     } finally {
       setForecastGenerating(false);
     }
@@ -640,6 +662,8 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
                 <Card className="dashboard-panel p-6">
                   <RawTable
                     forecastGenerating={forecastGenerating || rawDataLoading}
+                    forecastError={forecastError}
+                    forecastEmpty={forecastEmpty}
                     rawTableSearch={rawTableSearch}
                     setRawTableSearch={setRawTableSearch}
                     rawTableStatusFilter={rawTableStatusFilter}

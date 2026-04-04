@@ -1,13 +1,15 @@
-import { useEffect, useState } from "react";
-import { ClipboardList, Eye, Trash2 } from "lucide-react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { ClipboardList, Trash2 } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
+import EmptyState from "../components/ui/EmptyState";
 import { apiClient } from "../lib/apiClient";
 import "../styles/dashboard.css";
 
 const statusOptions = ["draft", "confirmed", "ordered", "delivered"];
+const PO_CACHE_TTL_MS = 5 * 60 * 1000;
 
 const statusBadgeClasses = {
   draft: "bg-zinc-500/20 text-zinc-300 border border-zinc-500/40",
@@ -38,21 +40,73 @@ const formatDate = (value) => {
   });
 };
 
+const buildPoCacheKey = (shopDomain, statusFilter) => `po_cache::${shopDomain || "unknown"}::${statusFilter || "all"}`;
+
+const readPoCache = (cacheKey) => {
+  try {
+    const rawValue = window.localStorage.getItem(cacheKey);
+    if (!rawValue) return null;
+
+    const parsed = JSON.parse(rawValue);
+    if (!parsed || !Array.isArray(parsed.data) || !Number.isFinite(Number(parsed.timestamp))) {
+      return null;
+    }
+
+    const timestamp = Number(parsed.timestamp);
+    if ((Date.now() - timestamp) >= PO_CACHE_TTL_MS) {
+      return null;
+    }
+
+    return parsed.data;
+  } catch (_error) {
+    return null;
+  }
+};
+
+const writePoCache = (cacheKey, data) => {
+  window.localStorage.setItem(cacheKey, JSON.stringify({
+    timestamp: Date.now(),
+    data,
+  }));
+};
+
 const PurchaseOrders = ({ settingsEmail = "" }) => {
-  const navigate = useNavigate();
   const location = useLocation();
+  const fetchGuardRef = useRef("");
   const [pos, setPos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedStatusFilter, setSelectedStatusFilter] = useState("all");
   const [error, setError] = useState("");
+  const [empty, setEmpty] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState(null);
   const [deletingId, setDeletingId] = useState("");
   const [updatingStatusId, setUpdatingStatusId] = useState("");
+  const shopDomain = new URLSearchParams(location.search).get("shop") || "";
 
   useEffect(() => {
     let ignore = false;
+    const cacheKey = buildPoCacheKey(shopDomain, selectedStatusFilter);
+    const requestKey = `${shopDomain}::${selectedStatusFilter}`;
+
+    if (fetchGuardRef.current === requestKey) {
+      return () => {
+        ignore = true;
+      };
+    }
+
+    const cachedPos = readPoCache(cacheKey);
+    if (cachedPos) {
+      setPos(cachedPos);
+      setEmpty(cachedPos.length === 0);
+      setLoading(false);
+      setError("");
+      return () => {
+        ignore = true;
+      };
+    }
 
     const loadPos = async () => {
+      fetchGuardRef.current = requestKey;
       setLoading(true);
       setError("");
 
@@ -60,12 +114,22 @@ const PurchaseOrders = ({ settingsEmail = "" }) => {
         const query = selectedStatusFilter === "all" ? undefined : { status: selectedStatusFilter };
         const payload = await apiClient.get("/po", { query });
         if (ignore) return;
-        setPos(Array.isArray(payload) ? payload : []);
+        const rows = Array.isArray(payload) ? payload : [];
+        setPos(rows);
+        setEmpty(rows.length === 0);
+        writePoCache(cacheKey, rows);
       } catch (requestError) {
         if (ignore) return;
-        setError(requestError?.message || "Unable to load purchase orders.");
         setPos([]);
+        if (requestError?.isEmpty || [400, 404].includes(requestError?.status)) {
+          setEmpty(true);
+          setError("");
+        } else {
+          setEmpty(false);
+          setError("Something went wrong. Please try again.");
+        }
       } finally {
+        fetchGuardRef.current = "";
         if (!ignore) {
           setLoading(false);
         }
@@ -77,30 +141,31 @@ const PurchaseOrders = ({ settingsEmail = "" }) => {
     return () => {
       ignore = true;
     };
-  }, [selectedStatusFilter]);
-
-  const handleView = (id) => {
-    navigate(`/po/${id}${location.search}`);
-  };
+  }, [selectedStatusFilter, shopDomain]);
 
   const handleStatusChange = async (poId, nextStatus) => {
     const currentPo = pos.find((po) => po?.id === poId);
     const previousStatus = currentPo?.status;
+    const previousPos = pos;
+    const nextPos = pos.map((po) => (
+      po?.id === poId ? { ...po, status: nextStatus } : po
+    ));
 
     setError("");
     setUpdatingStatusId(poId);
-    setPos((currentPos) => currentPos.map((po) => (
-      po?.id === poId ? { ...po, status: nextStatus } : po
-    )));
+    setPos(nextPos);
+    writePoCache(buildPoCacheKey(shopDomain, selectedStatusFilter), nextPos);
 
     try {
       await apiClient.patch(`/po/${encodeURIComponent(poId)}/status`, {
         body: { status: nextStatus },
       });
     } catch (requestError) {
-      setPos((currentPos) => currentPos.map((po) => (
+      const revertedPos = previousPos.map((po) => (
         po?.id === poId ? { ...po, status: previousStatus } : po
-      )));
+      ));
+      setPos(revertedPos);
+      writePoCache(buildPoCacheKey(shopDomain, selectedStatusFilter), revertedPos);
       setError(requestError?.message || "Unable to update purchase order status.");
     } finally {
       setUpdatingStatusId("");
@@ -111,12 +176,14 @@ const PurchaseOrders = ({ settingsEmail = "" }) => {
     if (!pendingDeleteId) return;
 
     const poId = pendingDeleteId;
+    const nextPos = pos.filter((po) => po?.id !== poId);
     setDeletingId(poId);
     setError("");
 
     try {
       await apiClient.delete(`/po/${encodeURIComponent(poId)}`);
-      setPos((currentPos) => currentPos.filter((po) => po?.id !== poId));
+      setPos(nextPos);
+      writePoCache(buildPoCacheKey(shopDomain, selectedStatusFilter), nextPos);
       setPendingDeleteId(null);
     } catch (requestError) {
       setError(requestError?.message || "Unable to delete purchase order.");
@@ -173,6 +240,25 @@ const PurchaseOrders = ({ settingsEmail = "" }) => {
                 <h2 className="text-lg font-semibold text-white">PO Dashboard</h2>
               </div>
 
+              {loading ? (
+                <div className="mt-6 rounded-xl border border-white/10 px-4 py-6 text-zinc-300">
+                  Loading purchase orders...
+                </div>
+              ) : null}
+
+              {!loading && error ? (
+                <div className="mt-6 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                  {error}
+                </div>
+              ) : null}
+
+              {!loading && !error && empty ? (
+                <div className="mt-6">
+                  <EmptyState />
+                </div>
+              ) : null}
+
+              {!loading && !error && !empty ? (
               <div className="mt-6 max-h-[620px] overflow-y-auto overflow-x-auto rounded-xl border border-white/10">
                 <table className="w-full min-w-[1080px] text-left text-sm text-zinc-400">
                   <thead className="bg-white/5">
@@ -187,23 +273,7 @@ const PurchaseOrders = ({ settingsEmail = "" }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {loading ? (
-                      <tr>
-                        <td className="px-4 py-6 text-zinc-300" colSpan={7}>
-                          Loading purchase orders...
-                        </td>
-                      </tr>
-                    ) : null}
-
-                    {!loading && pos.length === 0 ? (
-                      <tr>
-                        <td className="px-4 py-6 text-zinc-400" colSpan={7}>
-                          No purchase orders yet
-                        </td>
-                      </tr>
-                    ) : null}
-
-                    {!loading && pos.map((po) => {
+                    {pos.map((po) => {
                       const poId = String(po?.id || "");
                       const currentStatus = String(po?.status || "draft");
                       return (
@@ -222,15 +292,6 @@ const PurchaseOrders = ({ settingsEmail = "" }) => {
                           <td className="px-4 py-4">{formatDate(po?.created_at || po?.createdAt)}</td>
                           <td className="px-4 py-4">
                             <div className="flex flex-wrap items-center gap-3">
-                              <Button
-                                variant="secondary"
-                                className="!h-9 !w-auto px-3 text-xs"
-                                onClick={() => handleView(poId)}
-                              >
-                                <Eye size={14} className="mr-2" />
-                                View
-                              </Button>
-
                               <select
                                 value={currentStatus}
                                 onChange={(event) => handleStatusChange(poId, event.target.value)}
@@ -259,6 +320,7 @@ const PurchaseOrders = ({ settingsEmail = "" }) => {
                   </tbody>
                 </table>
               </div>
+              ) : null}
             </Card>
           </div>
         </div>

@@ -1,9 +1,12 @@
 import { useState } from "react";
 import Button from "./ui/Button";
+import EmptyState from "./ui/EmptyState";
 import Skeleton from "./ui/Skeleton";
 
 const RawTable = ({
   forecastGenerating,
+  forecastError,
+  forecastEmpty,
   rawTableSearch,
   setRawTableSearch,
   rawTableStatusFilter,
@@ -21,18 +24,33 @@ const RawTable = ({
 }) => {
   const [showStatusHelp, setShowStatusHelp] = useState(false);
 
+  if (forecastGenerating) {
+    return (
+      <div className="mt-0 space-y-2">
+        <Skeleton className="h-9 w-full" />
+        <Skeleton className="h-9 w-full" />
+        <Skeleton className="h-9 w-full" />
+      </div>
+    );
+  }
+
+  if (forecastError) {
+    return (
+      <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+        {forecastError}
+      </div>
+    );
+  }
+
+  if (forecastEmpty || filteredRawTableRows.length === 0) {
+    return (
+      <EmptyState />
+    );
+  }
+
   return (
     <div className="mt-0">
-      {forecastGenerating ? (
-        <div className="space-y-2">
-          <Skeleton className="h-9 w-full" />
-          <Skeleton className="h-9 w-full" />
-          <Skeleton className="h-9 w-full" />
-        </div>
-      ) : null}
-
-      {!forecastGenerating ? (
-        <>
+      <>
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <input
               type="text"
@@ -128,43 +146,34 @@ const RawTable = ({
                 </tr>
               </thead>
               <tbody>
-                {filteredRawTableRows.length === 0 ? (
-                  <tr>
-                    <td className="px-4 py-3 text-zinc-400" colSpan={9}>
-                      No forecast generated yet.
+                {filteredRawTableRows.map((row, index) => (
+                  <tr key={`raw-${index}`} className="border-t border-white/10 text-zinc-400">
+                    <td className="px-4 py-3 text-zinc-400">
+                      <input
+                        type="checkbox"
+                        checked={selectedRawItemKeys.has(`${row?.sku || ""}::${row?.title || ""}::${row?.size || ""}`)}
+                        onChange={() => handleToggleRawRow(row)}
+                        className="h-4 w-4 rounded border border-white/20 bg-transparent accent-[#2F6FED]"
+                      />
                     </td>
+                    <td className="px-4 py-3 text-zinc-400">{row?.title || "-"}</td>
+                    <td className="px-4 py-3 text-zinc-400">{row?.size || "-"}</td>
+                    <td className="px-4 py-3 text-zinc-400">{row?.sku || "-"}</td>
+                    <td className="px-4 py-3 text-zinc-400">{row?.inventory ?? "-"}</td>
+                    <td className="px-4 py-3 text-zinc-400">{row?.lifetime ?? "-"}</td>
+                    <td className="px-4 py-3 text-zinc-400">{row?.sales_per_day ?? "-"}</td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] leading-none ${getRawStatusClasses(row?.status)}`}>
+                        {row?.status || "-"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-zinc-400">{row?.restock_amount ?? "-"}</td>
                   </tr>
-                ) : (
-                  filteredRawTableRows.map((row, index) => (
-                    <tr key={`raw-${index}`} className="border-t border-white/10 text-zinc-400">
-                      <td className="px-4 py-3 text-zinc-400">
-                        <input
-                          type="checkbox"
-                          checked={selectedRawItemKeys.has(`${row?.sku || ""}::${row?.title || ""}::${row?.size || ""}`)}
-                          onChange={() => handleToggleRawRow(row)}
-                          className="h-4 w-4 rounded border border-white/20 bg-transparent accent-[#2F6FED]"
-                        />
-                      </td>
-                      <td className="px-4 py-3 text-zinc-400">{row?.title || "-"}</td>
-                      <td className="px-4 py-3 text-zinc-400">{row?.size || "-"}</td>
-                      <td className="px-4 py-3 text-zinc-400">{row?.sku || "-"}</td>
-                      <td className="px-4 py-3 text-zinc-400">{row?.inventory ?? "-"}</td>
-                      <td className="px-4 py-3 text-zinc-400">{row?.lifetime ?? "-"}</td>
-                      <td className="px-4 py-3 text-zinc-400">{row?.sales_per_day ?? "-"}</td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] leading-none ${getRawStatusClasses(row?.status)}`}>
-                          {row?.status || "-"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-zinc-400">{row?.restock_amount ?? "-"}</td>
-                    </tr>
-                  ))
-                )}
+                ))}
               </tbody>
             </table>
           </div>
-        </>
-      ) : null}
+      </>
     </div>
   );
 };
