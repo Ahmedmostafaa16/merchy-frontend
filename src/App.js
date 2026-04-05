@@ -29,6 +29,7 @@ function ProtectedRoute({ notifications, children }) {
 function App() {
   const [ready, setReady] = useState(false);
   const [notificationsLoading, setNotificationsLoading] = useState(true);
+  const [notificationsError, setNotificationsError] = useState("");
   const [notificationsState, setNotificationsState] = useState({
     exists: null,
     email: null,
@@ -62,6 +63,7 @@ function App() {
 
     const loadNotifications = async () => {
       setNotificationsLoading(true);
+      setNotificationsError("");
 
       try {
         const payload = await apiClient.get("/notifications");
@@ -71,13 +73,16 @@ function App() {
           email: payload?.email || null,
           threshold_days: payload?.threshold_days ?? null,
         });
-      } catch (_error) {
+      } catch (error) {
         if (ignore) return;
         setNotificationsState({
           exists: false,
           email: null,
           threshold_days: null,
         });
+        if (error?.status >= 500) {
+          setNotificationsError("Something went wrong. Please try again.");
+        }
       } finally {
         if (!ignore) {
           setNotificationsLoading(false);
@@ -128,6 +133,7 @@ function App() {
           element={(
             <MailNotifications
               notifications={notificationsState}
+              notificationsError={notificationsError}
               onNotificationSaved={handleNotificationsSaved}
             />
           )}

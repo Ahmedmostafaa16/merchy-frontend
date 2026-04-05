@@ -7,15 +7,16 @@ import Button from "../components/ui/Button";
 import { apiClient } from "../lib/apiClient";
 import "../styles/dashboard.css";
 
-const MailNotifications = ({ notifications, onNotificationSaved }) => {
+const MailNotifications = ({ notifications, notificationsError = "", onNotificationSaved }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const isOnboarding = notifications?.exists === false;
   const [reportEmail, setReportEmail] = useState("");
   const [coverageThreshold, setCoverageThreshold] = useState("");
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const [formError, setFormError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const showEmptyMessage = !notificationsError && notifications?.exists === false;
 
   useEffect(() => {
     setReportEmail(notifications?.email || "");
@@ -44,14 +45,14 @@ const MailNotifications = ({ notifications, onNotificationSaved }) => {
   }, []);
 
   const handleSave = async () => {
-    setError("");
+    setFormError("");
     setSuccessMessage("");
 
     const trimmedEmail = reportEmail.trim();
     const threshold = Number(coverageThreshold);
 
     if (!trimmedEmail || !Number.isFinite(threshold) || threshold <= 0) {
-      setError("Enter a valid email and coverage threshold.");
+      setFormError("Enter a valid email and coverage threshold.");
       return;
     }
 
@@ -77,7 +78,11 @@ const MailNotifications = ({ notifications, onNotificationSaved }) => {
 
       setSuccessMessage("Notification settings saved successfully.");
     } catch (requestError) {
-      setError(requestError?.message || "Unable to save notification settings.");
+      setFormError(
+        requestError?.status >= 500
+          ? "Something went wrong. Please try again."
+          : (requestError?.message || "Unable to save notification settings.")
+      );
     } finally {
       setSaving(false);
     }
@@ -110,9 +115,21 @@ const MailNotifications = ({ notifications, onNotificationSaved }) => {
               </div>
             </div>
 
-            {error ? (
+            {notificationsError ? (
               <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-                {error}
+                {notificationsError}
+              </div>
+            ) : null}
+
+            {showEmptyMessage ? (
+              <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-zinc-300">
+                No notifications set yet. Configure your email to start receiving alerts.
+              </div>
+            ) : null}
+
+            {formError ? (
+              <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                {formError}
               </div>
             ) : null}
 
