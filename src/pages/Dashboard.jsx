@@ -65,6 +65,7 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
   const [selectedForecastItems, setSelectedForecastItems] = useState([]);
   const daysHelpRef = useRef(null);
   const canShowKpis = inventorySynced && salesSynced;
+  const noSalesDataAvailable = salesSynced && !loadingKpis && Number(avgSalesPerDay) === 0;
 
   const readKpiCache = useCallback((shopDomain) => {
     try {
@@ -364,6 +365,8 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
     if (!shop || !getApiBase() || !startDate || !endDate) return;
     setSalesSyncing(true);
     setSalesMessage("");
+    setForecastMessage("");
+    setForecastError("");
 
     try {
       const data = await syncSales(shop, startDate, endDate);
@@ -427,6 +430,16 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
           minimum_value: Math.floor(parsedMinimumValue),
         },
       });
+      if (payload?.error === "NO_SALES_DATA") {
+        setForecastData([]);
+        setForecastEmpty(false);
+        setForecastError("");
+        setForecastMessage("No sales data found. Try syncing orders or selecting another period.");
+        window.localStorage.removeItem("forecast_cache");
+        window.localStorage.removeItem("forecast_last_generated");
+        clearGlobalError();
+        return;
+      }
       const rows = Array.isArray(payload) ? payload : [];
       setForecastData(rows);
       setForecastEmpty(rows.length === 0);
@@ -638,6 +651,7 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
                   forecastGenerating={forecastGenerating}
                   shop={shop}
                   salesSynced={salesSynced}
+                  noSalesDataAvailable={noSalesDataAvailable}
                   handleGenerateForecast={handleGenerateForecast}
                   forecastMessage={forecastMessage}
                 />

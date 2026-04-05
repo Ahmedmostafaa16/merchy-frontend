@@ -26,6 +26,7 @@ const WorkflowPanel = ({
   forecastGenerating,
   shop,
   salesSynced,
+  noSalesDataAvailable,
   handleGenerateForecast,
   forecastMessage,
 }) => {
@@ -164,6 +165,7 @@ const WorkflowPanel = ({
                   !shop ||
                   !inventorySynced ||
                   !salesSynced ||
+                  noSalesDataAvailable ||
                   !startDate ||
                   !endDate ||
                   !forecastDays ||
@@ -174,6 +176,7 @@ const WorkflowPanel = ({
                   !shop ||
                   !inventorySynced ||
                   !salesSynced ||
+                  noSalesDataAvailable ||
                   !startDate ||
                   !endDate ||
                   !forecastDays ||
@@ -190,6 +193,11 @@ const WorkflowPanel = ({
         </div>
 
         {salesMessage ? <p className="mt-5 text-xs text-zinc-400">{salesMessage}</p> : null}
+        {noSalesDataAvailable && !forecastMessage ? (
+          <p className="mt-3 text-xs text-zinc-400">
+            No sales data found. Try syncing orders or selecting another period.
+          </p>
+        ) : null}
         {forecastMessage ? <p className="mt-3 text-xs text-zinc-400">{forecastMessage}</p> : null}
       </Card>
     </div>
