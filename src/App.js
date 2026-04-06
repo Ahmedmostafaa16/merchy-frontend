@@ -50,7 +50,10 @@ function App() {
     }
 
     if (host) {
-      getAppBridge();
+      const app = getAppBridge();
+      if (!app) {
+        return;
+      }
     }
 
     setReady(true);

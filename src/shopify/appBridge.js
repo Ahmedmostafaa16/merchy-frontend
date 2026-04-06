@@ -2,16 +2,15 @@ import createApp from "@shopify/app-bridge";
 
 let appInstance = null;
 let initErrorMessage = "";
+const readSearchParams = () => new URLSearchParams(window.location.search);
 
-const params = new URLSearchParams(window.location.search);
-const shopParam = params.get("shop") || "";
-const hostParam = params.get("host") || "";
-
-export const getShopParam = () => shopParam;
-export const getHostParam = () => hostParam;
+export const getShopParam = () => readSearchParams().get("shop") || "";
+export const getHostParam = () => readSearchParams().get("host") || "";
 export const getAppBridgeErrorMessage = () => initErrorMessage;
 
 export const getAppBridge = () => {
+  const hostParam = getHostParam();
+
   if (!hostParam) {
     initErrorMessage = "This app must be opened from Shopify Admin";
     return null;
