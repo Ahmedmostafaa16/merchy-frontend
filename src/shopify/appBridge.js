@@ -25,7 +25,6 @@ export const getAppBridge = () => {
     appInstance = createApp({
       apiKey: process.env.REACT_APP_SHOPIFY_API_KEY,
       host: hostParam,
-      forceRedirect: true,
     });
   }
 
