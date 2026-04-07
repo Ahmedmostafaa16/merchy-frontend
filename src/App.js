@@ -6,7 +6,6 @@ import Overview from "./pages/Overview";
 import POBuilder from "./pages/POBuilder";
 import PurchaseOrders from "./pages/PurchaseOrders";
 import RawData from "./pages/RawData";
-import { API_BASE } from "./config/api";
 import { apiClient } from "./lib/apiClient";
 import { getAppBridge } from "./shopify/appBridge";
 
@@ -51,11 +50,6 @@ function App() {
     console.log(window.location.href);
     console.log("Shop:", shop);
     console.log("Host:", host);
-
-    if (dashboardRoute && !host && shop) {
-      window.location.href = `${API_BASE}/auth/install?shop=${encodeURIComponent(shop)}`;
-      return;
-    }
 
     if (host) {
       const app = getAppBridge();
@@ -117,7 +111,7 @@ function App() {
   };
 
   if (dashboardRoute && (!shop || !host)) {
-    return <div>Loading Shopify app...</div>;
+    return <div>Missing Shopify host</div>;
   }
 
   if (!ready || notificationsLoading) return null;
