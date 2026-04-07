@@ -16,6 +16,11 @@ function DefaultRedirect({ notifications }) {
   return <Navigate to={`${target}${location.search}`} replace />;
 }
 
+function SettingsRedirect() {
+  const location = useLocation();
+  return <Navigate to={`/settings${location.search}`} replace />;
+}
+
 function ProtectedRoute({ notifications, children }) {
   const location = useLocation();
 
@@ -27,6 +32,12 @@ function ProtectedRoute({ notifications, children }) {
 }
 
 function App() {
+  const params = new URLSearchParams(window.location.search);
+  const shop = params.get("shop");
+  const host = params.get("host");
+  const path = window.location.pathname;
+  const dashboardRoute = ["/", "/dashboard", "/overview", "/raw-data", "/settings", "/mail-notifications", "/po", "/po/create"].includes(path)
+    || path.startsWith("/po/");
   const [ready, setReady] = useState(false);
   const [notificationsLoading, setNotificationsLoading] = useState(true);
   const [notificationsError, setNotificationsError] = useState("");
@@ -37,12 +48,9 @@ function App() {
   });
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const host = params.get("host");
-    const shop = params.get("shop");
-    const path = window.location.pathname;
-    const dashboardRoute = ["/", "/dashboard", "/overview", "/raw-data", "/settings", "/mail-notifications", "/po", "/po/create"].includes(path)
-      || path.startsWith("/po/");
+    console.log(window.location.href);
+    console.log("Shop:", shop);
+    console.log("Host:", host);
 
     if (dashboardRoute && !host && shop) {
       window.location.href = `${API_BASE}/auth/install?shop=${encodeURIComponent(shop)}`;
@@ -57,7 +65,7 @@ function App() {
     }
 
     setReady(true);
-  }, []);
+  }, [dashboardRoute, host, shop]);
 
   useEffect(() => {
     if (!ready) return;
@@ -108,6 +116,10 @@ function App() {
     });
   };
 
+  if (dashboardRoute && (!shop || !host)) {
+    return <div>Loading Shopify app...</div>;
+  }
+
   if (!ready || notificationsLoading) return null;
 
   return (
@@ -141,7 +153,7 @@ function App() {
             />
           )}
         />
-        <Route path="/mail-notifications" element={<Navigate to="/settings" replace />} />
+        <Route path="/mail-notifications" element={<SettingsRedirect />} />
         <Route
           path="/po"
           element={(
