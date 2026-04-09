@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import Paywall from "./components/Paywall";
 import UpgradeButton from "./components/UpgradeButton";
-import useBilling from "./hooks/useBilling";
 import { apiClient } from "./lib/apiClient";
 import InstallSuccess from "./pages/InstallSuccess";
 import MailNotifications from "./pages/MailNotifications";
@@ -11,6 +10,8 @@ import POBuilder from "./pages/POBuilder";
 import PurchaseOrders from "./pages/PurchaseOrders";
 import RawData from "./pages/RawData";
 import { getAppBridge } from "./shopify/appBridge";
+
+const BACKEND_URL = "https://merchyapp-backend.up.railway.app";
 
 function DefaultRedirect({ notifications }) {
   const location = useLocation();
@@ -60,7 +61,8 @@ function App() {
     threshold_days: null,
   });
   const [trialBannerDismissed, setTrialBannerDismissed] = useState(false);
-  const { billing, loading: billingLoading } = useBilling(shop);
+  const [billing, setBilling] = useState(null);
+  const [billingLoading, setBillingLoading] = useState(true);
 
   useEffect(() => {
     console.log(window.location.href);
@@ -76,6 +78,57 @@ function App() {
 
     setReady(true);
   }, [dashboardRoute, host, shop]);
+
+  useEffect(() => {
+    if (!shop) {
+      setBilling(null);
+      setBillingLoading(false);
+      return;
+    }
+
+    let ignore = false;
+
+    fetch(`${BACKEND_URL}/auth/shops/${encodeURIComponent(shop)}`, {
+      headers: {
+        "ngrok-skip-browser-warning": "true",
+      },
+    })
+      .then((response) => {
+        if (!response.ok) {
+          window.top.location.href = `${BACKEND_URL}/auth/install?shop=${encodeURIComponent(shop)}`;
+          return null;
+        }
+        return response.json();
+      })
+      .then((data) => {
+        if (!data) return null;
+
+        if (data.installed === false) {
+          window.top.location.href = `${BACKEND_URL}/auth/install?shop=${encodeURIComponent(shop)}`;
+          return null;
+        }
+
+        return fetch(`${BACKEND_URL}/billing/status?shop=${encodeURIComponent(shop)}`, {
+          headers: {
+            "ngrok-skip-browser-warning": "true",
+          },
+        })
+          .then((response) => response.json())
+          .then((billingPayload) => {
+            if (ignore) return;
+            setBilling(billingPayload);
+            setBillingLoading(false);
+          });
+      })
+      .catch(() => {
+        if (ignore) return;
+        setBillingLoading(false);
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [shop]);
 
   useEffect(() => {
     if (!ready || billingLoading || !billing?.has_access) {
