@@ -37,9 +37,15 @@ const parseResponseBody = async (response) => {
 const toQueryString = (query) => {
   if (!query) return "";
 
+  const normalizedQuery = { ...query };
+
+  if (normalizedQuery.shop_domain && !normalizedQuery.shop) {
+    normalizedQuery.shop = normalizedQuery.shop_domain;
+  }
+
   const params = new URLSearchParams();
 
-  Object.entries(query).forEach(([key, value]) => {
+  Object.entries(normalizedQuery).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== "") {
       params.append(key, String(value));
     }

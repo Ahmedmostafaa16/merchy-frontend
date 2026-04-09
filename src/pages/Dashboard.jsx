@@ -423,6 +423,7 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
         setForecastMessage("Minimum Restock Value must be 0 or greater");
         return;
       }
+
       const payload = await apiClient.post("/requests/report", {
         query: {
           shop_domain: shop,

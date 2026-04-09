@@ -1,12 +1,17 @@
 import { apiClient } from "../lib/apiClient";
 
 export const syncInventory = async (shopDomain) => {
-  return apiClient.post(`/requests/sync/inventory/${encodeURIComponent(shopDomain)}`);
+  return apiClient.post("/requests/sync/inventory", {
+    query: {
+      shop: shopDomain,
+    },
+  });
 };
 
 export const syncSales = async (shopDomain, startDate, endDate) => {
-  return apiClient.post(`/requests/sync/sales/${encodeURIComponent(shopDomain)}`, {
+  return apiClient.post("/requests/sync/sales", {
     query: {
+      shop: shopDomain,
       start_date: startDate,
       end_date: endDate,
     },
@@ -20,7 +25,7 @@ export const searchInventory = async (shopDomain, searchQuery) => {
 
   return apiClient.get("/requests/inventory/search", {
     query: {
-      shop_domain: shopDomain,
+      shop: shopDomain,
       search_query: searchQuery.trim(),
     },
   });
