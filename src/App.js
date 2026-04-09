@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import Paywall from "./components/Paywall";
-import UpgradeButton from "./components/UpgradeButton";
 import { apiClient } from "./lib/apiClient";
 import useBilling from "./hooks/useBilling";
 import InstallSuccess from "./pages/InstallSuccess";
@@ -240,7 +239,6 @@ function App() {
               {" days"}
             </div>
             <div className="flex items-center gap-3">
-              <UpgradeButton shop={shop} className="h-10 px-5 sm:w-auto" />
               <button
                 type="button"
                 onClick={() => setTrialBannerDismissed(true)}
