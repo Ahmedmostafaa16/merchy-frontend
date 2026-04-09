@@ -193,13 +193,11 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
     setKpiError("");
 
     try {
-      const query = { shop_domain: shopDomain };
-
       const [totalSkusData, avgSalesData, inventoryValueData, unitsInStockData] = await Promise.all([
-        apiClient.get("/dashboard/total-skus", { query }),
-        apiClient.get("/dashboard/average-sales-per-day", { query }),
-        apiClient.get("/dashboard/inventory-value", { query }),
-        apiClient.get("/dashboard/units-in-stock", { query }),
+        apiClient.get("/dashboard/total-skus"),
+        apiClient.get("/dashboard/average-sales-per-day"),
+        apiClient.get("/dashboard/inventory-value"),
+        apiClient.get("/dashboard/units-in-stock"),
       ]);
 
       setTotalSkus(extractMetricValue(totalSkusData));
@@ -310,7 +308,7 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
       setInventoryMessage("");
 
       try {
-        const data = await syncInventory(shop);
+        const data = await syncInventory();
         if (cancelled) return;
 
         window.localStorage.setItem("inventory_cache", JSON.stringify(data));
@@ -369,7 +367,7 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
     setForecastError("");
 
     try {
-      const data = await syncSales(shop, startDate, endDate);
+      const data = await syncSales(startDate, endDate);
       if (data?.status === "success") {
         setSalesMessage(data.message || "Sales synced.");
         setSalesSynced(true);
@@ -426,7 +424,6 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
 
       const payload = await apiClient.post("/requests/report", {
         query: {
-          shop_domain: shop,
           number_of_days: numberOfDays,
           minimum_value: Math.floor(parsedMinimumValue),
         },

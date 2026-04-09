@@ -37,15 +37,9 @@ const parseResponseBody = async (response) => {
 const toQueryString = (query) => {
   if (!query) return "";
 
-  const normalizedQuery = { ...query };
-
-  if (normalizedQuery.shop_domain && !normalizedQuery.shop) {
-    normalizedQuery.shop = normalizedQuery.shop_domain;
-  }
-
   const params = new URLSearchParams();
 
-  Object.entries(normalizedQuery).forEach(([key, value]) => {
+  Object.entries(query).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== "") {
       params.append(key, String(value));
     }
@@ -93,6 +87,18 @@ const request = async (method, path, options = {}) => {
       const detail = typeof data === "object" && data ? data.detail || data.message : null;
       if (response.status === 401) {
         throw new ApiClientError("Unauthorized request (401)", {
+          status: response.status,
+          data,
+        });
+      }
+
+      if (response.status === 402) {
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("billing:required", {
+            detail: data,
+          }));
+        }
+        throw new ApiClientError(detail || "Subscription required", {
           status: response.status,
           data,
         });

@@ -37,7 +37,6 @@ const POBuilder = ({ settingsEmail = "" }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const selectedItemsFromState = location.state?.selectedItems;
-  const shop = new URLSearchParams(location.search).get("shop") || "";
 
   const [items, setItems] = useState(() => (
     normalizeSelectedItems(selectedItemsFromState).length > 0
@@ -168,9 +167,6 @@ const POBuilder = ({ settingsEmail = "" }) => {
 
     try {
       await apiClient.post("/po", {
-        query: {
-          shop,
-        },
         body: payload,
       });
 

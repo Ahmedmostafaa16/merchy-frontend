@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-route
 import Paywall from "./components/Paywall";
 import UpgradeButton from "./components/UpgradeButton";
 import { apiClient } from "./lib/apiClient";
+import useBilling from "./hooks/useBilling";
 import InstallSuccess from "./pages/InstallSuccess";
 import MailNotifications from "./pages/MailNotifications";
 import Overview from "./pages/Overview";
@@ -61,8 +62,12 @@ function App() {
     threshold_days: null,
   });
   const [trialBannerDismissed, setTrialBannerDismissed] = useState(false);
-  const [billing, setBilling] = useState(null);
-  const [billingLoading, setBillingLoading] = useState(true);
+  const [shopInstalled, setShopInstalled] = useState(false);
+  const [installCheckLoading, setInstallCheckLoading] = useState(true);
+  const [installCheckError, setInstallCheckError] = useState("");
+  const [billingOverride, setBillingOverride] = useState(null);
+  const { billing, loading: billingLoading } = useBilling(shopInstalled ? shop : "");
+  const effectiveBilling = billingOverride || billing;
 
   useEffect(() => {
     console.log(window.location.href);
@@ -81,12 +86,17 @@ function App() {
 
   useEffect(() => {
     if (!shop) {
-      setBilling(null);
-      setBillingLoading(false);
+      setShopInstalled(false);
+      setInstallCheckLoading(false);
+      setInstallCheckError("");
       return;
     }
 
     let ignore = false;
+    setInstallCheckLoading(true);
+    setInstallCheckError("");
+    setShopInstalled(false);
+    setBillingOverride(null);
 
     fetch(`${BACKEND_URL}/auth/shops/${encodeURIComponent(shop)}`, {
       headers: {
@@ -107,22 +117,15 @@ function App() {
           window.top.location.href = `${BACKEND_URL}/auth/install?shop=${encodeURIComponent(shop)}`;
           return null;
         }
-
-        return fetch(`${BACKEND_URL}/billing/status?shop=${encodeURIComponent(shop)}`, {
-          headers: {
-            "ngrok-skip-browser-warning": "true",
-          },
-        })
-          .then((response) => response.json())
-          .then((billingPayload) => {
-            if (ignore) return;
-            setBilling(billingPayload);
-            setBillingLoading(false);
-          });
+        if (ignore) return null;
+        setShopInstalled(true);
+        setInstallCheckLoading(false);
+        return null;
       })
       .catch(() => {
         if (ignore) return;
-        setBillingLoading(false);
+        setInstallCheckError("We could not verify the Shopify installation.");
+        setInstallCheckLoading(false);
       });
 
     return () => {
@@ -131,7 +134,31 @@ function App() {
   }, [shop]);
 
   useEffect(() => {
-    if (!ready || billingLoading || !billing?.has_access) {
+    const handleBillingRequired = (event) => {
+      setTrialBannerDismissed(false);
+      setBillingOverride({
+        ...(billing || {}),
+        ...(event?.detail || {}),
+        status: "INACTIVE",
+        has_access: false,
+        in_trial: false,
+      });
+    };
+
+    window.addEventListener("billing:required", handleBillingRequired);
+    return () => {
+      window.removeEventListener("billing:required", handleBillingRequired);
+    };
+  }, [billing]);
+
+  useEffect(() => {
+    if (billing?.has_access) {
+      setBillingOverride(null);
+    }
+  }, [billing]);
+
+  useEffect(() => {
+    if (!ready || installCheckLoading || billingLoading || !effectiveBilling?.has_access) {
       setNotificationsLoading(false);
       return;
     }
@@ -143,11 +170,7 @@ function App() {
       setNotificationsError("");
 
       try {
-        const payload = await apiClient.get("/notifications", {
-          query: {
-            shop,
-          },
-        });
+        const payload = await apiClient.get("/notifications");
         if (ignore) return;
         setNotificationsState({
           exists: Boolean(payload?.exists),
@@ -176,11 +199,11 @@ function App() {
     return () => {
       ignore = true;
     };
-  }, [ready, billingLoading, billing?.has_access, shop]);
+  }, [ready, installCheckLoading, billingLoading, effectiveBilling?.has_access, shop]);
 
   useEffect(() => {
     setTrialBannerDismissed(false);
-  }, [shop, billing?.in_trial, billing?.trial_days_left]);
+  }, [shop, effectiveBilling?.in_trial, effectiveBilling?.trial_days_left]);
 
   const handleNotificationsSaved = ({ email, threshold_days }) => {
     setNotificationsState({
@@ -194,22 +217,26 @@ function App() {
     return <div>Missing Shopify host</div>;
   }
 
-  if (!ready || billingLoading || (billing?.has_access && notificationsLoading)) {
+  if (installCheckError) {
+    return <div>{installCheckError}</div>;
+  }
+
+  if (!ready || installCheckLoading || billingLoading || (effectiveBilling?.has_access && notificationsLoading)) {
     return <BillingLoadingScreen />;
   }
 
-  if (!billing?.has_access) {
+  if (!effectiveBilling?.has_access) {
     return <Paywall shop={shop} />;
   }
 
   return (
     <>
-      {billing?.in_trial && !trialBannerDismissed ? (
+      {effectiveBilling?.in_trial && !trialBannerDismissed ? (
         <div className="sticky top-0 z-50 border-b border-[#8f6a1f] bg-[#2c2412] px-4 py-3 text-[#f8e7b5] shadow-[0_10px_30px_rgba(0,0,0,0.25)]">
           <div className="mx-auto flex max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex-1 text-sm font-medium">
               {"\u26A0\uFE0F Trial ends in "}
-              {billing.trial_days_left}
+              {effectiveBilling.trial_days_left}
               {" days"}
             </div>
             <div className="flex items-center gap-3">

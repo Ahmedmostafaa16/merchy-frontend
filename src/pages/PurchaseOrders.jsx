@@ -111,9 +111,7 @@ const PurchaseOrders = ({ settingsEmail = "" }) => {
       setError("");
 
       try {
-        const query = selectedStatusFilter === "all"
-          ? { shop: shopDomain }
-          : { shop: shopDomain, status: selectedStatusFilter };
+        const query = selectedStatusFilter === "all" ? undefined : { status: selectedStatusFilter };
         const payload = await apiClient.get("/po", { query });
         if (ignore) return;
         const rows = Array.isArray(payload) ? payload : [];
@@ -160,9 +158,6 @@ const PurchaseOrders = ({ settingsEmail = "" }) => {
 
     try {
       await apiClient.patch(`/po/${encodeURIComponent(poId)}/status`, {
-        query: {
-          shop: shopDomain,
-        },
         body: { status: nextStatus },
       });
     } catch (requestError) {
@@ -186,11 +181,7 @@ const PurchaseOrders = ({ settingsEmail = "" }) => {
     setError("");
 
     try {
-      await apiClient.delete(`/po/${encodeURIComponent(poId)}`, {
-        query: {
-          shop: shopDomain,
-        },
-      });
+      await apiClient.delete(`/po/${encodeURIComponent(poId)}`);
       setPos(nextPos);
       writePoCache(buildPoCacheKey(shopDomain, selectedStatusFilter), nextPos);
       setPendingDeleteId(null);

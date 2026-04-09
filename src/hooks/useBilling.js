@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-
-const BILLING_BASE_URL = "https://merchyapp-backend.up.railway.app";
+import { apiClient } from "../lib/apiClient";
 
 const defaultBilling = {
+  status: "INACTIVE",
+  trial_ends_at: null,
+  plan: null,
   has_access: false,
   in_trial: false,
   trial_days_left: 0,
@@ -28,22 +30,14 @@ export const useBilling = (shop) => {
       setLoading(true);
 
       try {
-        const url = `${BILLING_BASE_URL}/billing/status?shop=${encodeURIComponent(shop)}`;
-        const response = await fetch(url, {
-          headers: {
-            "ngrok-skip-browser-warning": "true",
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`Billing status request failed with ${response.status}`);
-        }
-
-        const payload = await response.json();
+        const payload = await apiClient.get("/billing/status");
 
         if (ignore) return;
 
         setBilling({
+          status: payload?.status ?? "INACTIVE",
+          trial_ends_at: payload?.trial_ends_at ?? null,
+          plan: payload?.plan ?? null,
           has_access: Boolean(payload?.has_access),
           in_trial: Boolean(payload?.in_trial),
           trial_days_left: Number(payload?.trial_days_left || 0),

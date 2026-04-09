@@ -1,11 +1,11 @@
-import { getToken } from "../shopify/getSessionToken";
+import { getFreshSessionToken } from "../shopify/getToken";
 
 const getApiBase = () => process.env.REACT_APP_BACKEND_URL;
 
 export const fetchWithToken = async (url, options = {}) => {
-  const token = await getToken();
+  const token = await getFreshSessionToken();
   if (!token) {
-    console.error("Shopify session token missing");
+    throw new Error("Shopify session token missing");
   }
 
   return fetch(url, {

@@ -8,6 +8,8 @@ const FEATURES = [
 ];
 
 const Paywall = ({ shop }) => {
+  const billingOutcome = new URLSearchParams(window.location.search).get("billing") || "";
+
   return (
     <div className="min-h-screen bg-[#0a1228] px-6 py-10 text-[#dbe4ff]">
       <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-3xl items-center justify-center">
@@ -19,8 +21,15 @@ const Paywall = ({ shop }) => {
           <h1 className="mt-6 text-3xl font-bold text-white md:text-4xl">Your trial has ended</h1>
           <p className="mt-3 max-w-2xl text-sm leading-7 text-[#aab6d3] md:text-base">
             Upgrade to keep forecasting inventory, tracking demand, and managing replenishment
-            workflows inside your Shopify store.
+            workflows inside your Shopify store. The Basic plan starts with a 30-day trial, then
+            renews at $20 every 30 days after approval in Shopify.
           </p>
+
+          {billingOutcome === "declined" ? (
+            <div className="mt-6 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+              Billing approval was not completed. You can review the plan details and try again.
+            </div>
+          ) : null}
 
           <div className="mt-8 rounded-[24px] border border-white/10 bg-white/[0.04] p-6">
             <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#8fa2d9]">
