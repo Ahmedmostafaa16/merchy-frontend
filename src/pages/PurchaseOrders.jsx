@@ -228,7 +228,7 @@ const PurchaseOrders = ({ settingsEmail = "" }) => {
 
             {error ? (
               <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-                {error}
+                {error?.message || error?.detail || JSON.stringify(error)}
               </div>
             ) : null}
 
@@ -248,7 +248,7 @@ const PurchaseOrders = ({ settingsEmail = "" }) => {
 
               {!loading && error ? (
                 <div className="mt-6 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-                  {error}
+                  {error?.message || error?.detail || JSON.stringify(error)}
                 </div>
               ) : null}
 

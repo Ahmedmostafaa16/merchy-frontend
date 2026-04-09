@@ -114,7 +114,7 @@ const InstallSuccess = () => {
             <div className="error-state">
               <div className="error-message">
                 Could not verify store installation
-                {error ? <div style={{ marginTop: 8, fontSize: 14 }}>{error}</div> : null}
+                {error ? <div style={{ marginTop: 8, fontSize: 14 }}>{error?.message || error?.detail || JSON.stringify(error)}</div> : null}
               </div>
               <button className="submit-button" type="button" onClick={verifyShop}>
                 Retry
