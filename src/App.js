@@ -143,7 +143,11 @@ function App() {
       setNotificationsError("");
 
       try {
-        const payload = await apiClient.get("/notifications");
+        const payload = await apiClient.get("/notifications", {
+          query: {
+            shop,
+          },
+        });
         if (ignore) return;
         setNotificationsState({
           exists: Boolean(payload?.exists),
@@ -172,7 +176,7 @@ function App() {
     return () => {
       ignore = true;
     };
-  }, [ready, billingLoading, billing?.has_access]);
+  }, [ready, billingLoading, billing?.has_access, shop]);
 
   useEffect(() => {
     setTrialBannerDismissed(false);

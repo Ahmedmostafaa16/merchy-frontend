@@ -60,6 +60,9 @@ const MailNotifications = ({ notifications, notificationsError = "", onNotificat
 
     try {
       await apiClient.post("/notifications", {
+        query: {
+          shop: new URLSearchParams(location.search).get("shop") || "",
+        },
         body: {
           email: trimmedEmail,
           threshold_days: threshold,
