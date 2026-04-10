@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { apiClient } from "../lib/apiClient";
+import { authFetch } from "../lib/authFetch";
 
 const defaultBilling = {
   status: "INACTIVE",
@@ -30,18 +30,31 @@ export const useBilling = (shop) => {
       setLoading(true);
 
       try {
-        const payload = await apiClient.get("/billing/status");
+        const response = await authFetch("/billing/status");
+        const payload = await response.json();
+
+        if (!response.ok) {
+          throw new Error(payload?.error || payload?.detail || "Billing status request failed");
+        }
 
         if (ignore) return;
 
+        const trialEndsAt = payload?.trial_ends_at ?? null;
+        const trialEndTime = trialEndsAt ? new Date(trialEndsAt).getTime() : NaN;
+        const now = Date.now();
+        const inTrial = Number.isFinite(trialEndTime) && trialEndTime > now;
+        const trialDaysLeft = inTrial
+          ? Math.max(1, Math.ceil((trialEndTime - now) / (1000 * 60 * 60 * 24)))
+          : 0;
+
         setBilling({
           status: payload?.status ?? "INACTIVE",
-          trial_ends_at: payload?.trial_ends_at ?? null,
+          trial_ends_at: trialEndsAt,
           plan: payload?.plan ?? null,
           has_access: Boolean(payload?.has_access),
-          in_trial: Boolean(payload?.in_trial),
-          trial_days_left: Number(payload?.trial_days_left || 0),
-          subscription_status: payload?.subscription_status ?? null,
+          in_trial: inTrial,
+          trial_days_left: trialDaysLeft,
+          subscription_status: payload?.status === "ACTIVE" ? "ACTIVE" : null,
         });
       } catch (_error) {
         if (ignore) return;

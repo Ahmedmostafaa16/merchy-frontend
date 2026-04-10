@@ -24,23 +24,11 @@ export async function authFetch(path, options = {}) {
     throw new Error("Missing REACT_APP_BACKEND_URL");
   }
 
-  const response = await fetchWithToken(`${apiBase}${path}`, {
+  return fetchWithToken(`${apiBase}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
       ...(options.headers || {}),
     },
   });
-
-  const contentType = response.headers.get("content-type") || "";
-  const payload = contentType.includes("application/json")
-    ? await response.json()
-    : await response.text();
-
-  if (!response.ok) {
-    const detail = typeof payload === "string" ? payload : payload?.error || payload?.detail || "Request failed";
-    throw new Error(detail);
-  }
-
-  return payload;
 }

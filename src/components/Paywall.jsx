@@ -1,3 +1,4 @@
+import { useState } from "react";
 import UpgradeButton from "./UpgradeButton";
 
 const FEATURES = [
@@ -9,6 +10,7 @@ const FEATURES = [
 
 const Paywall = ({ shop }) => {
   const billingOutcome = new URLSearchParams(window.location.search).get("billing") || "";
+  const [billingError, setBillingError] = useState("");
 
   return (
     <div className="min-h-screen bg-[#0a1228] px-6 py-10 text-[#dbe4ff]">
@@ -27,7 +29,13 @@ const Paywall = ({ shop }) => {
 
           {billingOutcome === "declined" ? (
             <div className="mt-6 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
-              Billing approval was not completed. You can review the plan details and try again.
+              Subscription was not approved. You can review the plan details and try again.
+            </div>
+          ) : null}
+
+          {billingError ? (
+            <div className="mt-6 rounded-2xl border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-100">
+              {billingError}
             </div>
           ) : null}
 
@@ -48,8 +56,14 @@ const Paywall = ({ shop }) => {
           </div>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <UpgradeButton shop={shop} className="sm:w-auto sm:min-w-[180px] sm:px-8" />
-            <p className="text-sm text-[#8fa2d9]">Billing opens securely in the Shopify admin.</p>
+            <UpgradeButton
+              shop={shop}
+              className="sm:w-auto sm:min-w-[180px] sm:px-8"
+              onError={setBillingError}
+            />
+            <p className="text-sm text-[#8fa2d9]">
+              You will be redirected to Shopify to approve billing.
+            </p>
           </div>
         </div>
       </div>
