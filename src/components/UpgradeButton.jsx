@@ -1,10 +1,15 @@
 import Button from "./ui/Button";
 
+const APP_HANDLE = "merchyy";
+
 const UpgradeButton = ({ shop, className = "" }) => {
   const handleUpgrade = () => {
     if (!shop) return;
 
-    window.open(`https://${shop}/admin/apps/merchyy/pricing_plans`, "_top");
+    const storeHandle = shop.replace(".myshopify.com", "");
+    const url = `https://admin.shopify.com/store/${storeHandle}/charges/${APP_HANDLE}/pricing_plans`;
+
+    window.top.location.href = url;
   };
 
   return (
