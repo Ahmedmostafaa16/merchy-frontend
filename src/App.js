@@ -66,10 +66,8 @@ function App() {
   const [installCheckLoading, setInstallCheckLoading] = useState(true);
   const [installCheckError, setInstallCheckError] = useState("");
   const [billingOverride, setBillingOverride] = useState(null);
-  const [billingFeedbackDismissed, setBillingFeedbackDismissed] = useState(false);
   const { billing, loading: billingLoading } = useBilling(shopInstalled ? shop : "");
   const effectiveBilling = billingOverride || billing;
-  const billingResult = params.get("billing") || "";
 
   useEffect(() => {
     console.log(window.location.href);
@@ -158,10 +156,6 @@ function App() {
       setBillingOverride(null);
     }
   }, [billing]);
-
-  useEffect(() => {
-    setBillingFeedbackDismissed(false);
-  }, [billingResult]);
 
   useEffect(() => {
     if (!ready || installCheckLoading || billingLoading || !effectiveBilling?.has_access) {
@@ -255,21 +249,6 @@ function App() {
                 Dismiss
               </button>
             </div>
-          </div>
-        </div>
-      ) : null}
-
-      {!billingFeedbackDismissed && billingResult === "success" ? (
-        <div className="border-b border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-emerald-100">
-          <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
-            <p className="text-sm font-medium">Subscription activated successfully.</p>
-            <button
-              type="button"
-              onClick={() => setBillingFeedbackDismissed(true)}
-              className="text-sm font-semibold text-emerald-100 transition hover:opacity-80"
-            >
-              Dismiss
-            </button>
           </div>
         </div>
       ) : null}
