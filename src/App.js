@@ -10,7 +10,8 @@ import Overview from "./pages/Overview";
 import POBuilder from "./pages/POBuilder";
 import PurchaseOrders from "./pages/PurchaseOrders";
 import RawData from "./pages/RawData";
-import { getAppBridge } from "./shopify/appBridge";
+import { getAppBridge, getHostParam, getShopParam, redirectToRemote } from "./shopify/appBridge";
+import { authFetch } from "./lib/authFetch";
 
 const BACKEND_URL = "https://merchyapp-backend.up.railway.app";
 
@@ -47,10 +48,10 @@ function BillingLoadingScreen() {
 }
 
 function App() {
-  const params = new URLSearchParams(window.location.search);
-  const shop = params.get("shop");
-  const host = params.get("host");
+  const shop = getShopParam();
+  const host = getHostParam();
   const path = window.location.pathname;
+  const installSuccessRoute = path === "/install/success";
   const dashboardRoute = ["/", "/dashboard", "/overview", "/raw-data", "/settings", "/mail-notifications", "/po", "/po/create"].includes(path)
     || path.startsWith("/po/");
   const [ready, setReady] = useState(false);
@@ -70,10 +71,6 @@ function App() {
   const effectiveBilling = billingOverride || billing;
 
   useEffect(() => {
-    console.log(window.location.href);
-    console.log("Shop:", shop);
-    console.log("Host:", host);
-
     if (host) {
       const app = getAppBridge();
       if (!app) {
@@ -85,7 +82,14 @@ function App() {
   }, [dashboardRoute, host, shop]);
 
   useEffect(() => {
-    if (!shop) {
+    if (installSuccessRoute) {
+      setShopInstalled(false);
+      setInstallCheckLoading(false);
+      setInstallCheckError("");
+      return;
+    }
+
+    if (!shop || !host) {
       setShopInstalled(false);
       setInstallCheckLoading(false);
       setInstallCheckError("");
@@ -98,14 +102,18 @@ function App() {
     setShopInstalled(false);
     setBillingOverride(null);
 
-    fetch(`${BACKEND_URL}/auth/shops/${encodeURIComponent(shop)}`, {
+    authFetch(`/auth/shops/${encodeURIComponent(shop)}`, {
       headers: {
         "ngrok-skip-browser-warning": "true",
       },
     })
       .then((response) => {
         if (!response.ok) {
-          window.top.location.href = `${BACKEND_URL}/auth/install?shop=${encodeURIComponent(shop)}`;
+          const installParams = new URLSearchParams({ shop });
+          if (host) {
+            installParams.set("host", host);
+          }
+          redirectToRemote(`${BACKEND_URL}/auth/install?${installParams.toString()}`);
           return null;
         }
         return response.json();
@@ -114,7 +122,11 @@ function App() {
         if (!data) return null;
 
         if (data.installed === false) {
-          window.top.location.href = `${BACKEND_URL}/auth/install?shop=${encodeURIComponent(shop)}`;
+          const installParams = new URLSearchParams({ shop });
+          if (host) {
+            installParams.set("host", host);
+          }
+          redirectToRemote(`${BACKEND_URL}/auth/install?${installParams.toString()}`);
           return null;
         }
         if (ignore) return null;
@@ -131,7 +143,7 @@ function App() {
     return () => {
       ignore = true;
     };
-  }, [shop]);
+  }, [installSuccessRoute, host, shop]);
 
   useEffect(() => {
     const handleBillingRequired = (event) => {
@@ -215,6 +227,16 @@ function App() {
 
   if (dashboardRoute && (!shop || !host)) {
     return <div>Missing Shopify host</div>;
+  }
+
+  if (installSuccessRoute) {
+    return (
+      <BrowserRouter>
+        <Routes>
+          <Route path="/install/success" element={<InstallSuccess />} />
+        </Routes>
+      </BrowserRouter>
+    );
   }
 
   if (installCheckError) {

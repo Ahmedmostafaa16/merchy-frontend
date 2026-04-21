@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { API_BASE } from "../config/api";
+import { authFetch } from "../lib/authFetch";
+import { getHostParam, getShopParam } from "../shopify/appBridge";
 import "../styles/login.css";
 
 const InstallSuccess = () => {
@@ -12,9 +13,8 @@ const InstallSuccess = () => {
   const [error, setError] = useState("");
 
   const verifyShop = async () => {
-    const params = new URLSearchParams(window.location.search);
-    const shopParam = params.get("shop") || "";
-    const hostParam = params.get("host") || "";
+    const shopParam = getShopParam();
+    const hostParam = getHostParam();
 
     setShop(shopParam);
     setRedirectShop(shopParam);
@@ -29,9 +29,7 @@ const InstallSuccess = () => {
     }
 
     try {
-      const url = `${API_BASE}/auth/shops/${encodeURIComponent(shopParam)}`;
-
-      const response = await fetch(url, {
+      const response = await authFetch(`/auth/shops/${encodeURIComponent(shopParam)}`, {
         headers: {
           "ngrok-skip-browser-warning": "true",
         },

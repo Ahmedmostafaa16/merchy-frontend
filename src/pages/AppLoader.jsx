@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE } from "../config/api";
+import { authFetch } from "../lib/authFetch";
+import { getHostParam, getShopParam, redirectToRemote } from "../shopify/appBridge";
 
 const AppLoader = () => {
   const navigate = useNavigate();
@@ -12,9 +14,8 @@ const AppLoader = () => {
     hasRunRef.current = true;
 
     const run = async () => {
-      const params = new URLSearchParams(window.location.search);
-      const shop = params.get("shop");
-      const host = params.get("host");
+      const shop = getShopParam();
+      const host = getHostParam();
 
       if (!shop) {
         setMessage("Missing shop parameter");
@@ -22,7 +23,7 @@ const AppLoader = () => {
       }
 
       try {
-        const response = await fetch(`${API_BASE}/auth/shops/${encodeURIComponent(shop)}`, {
+        const response = await authFetch(`/auth/shops/${encodeURIComponent(shop)}`, {
           headers: { "ngrok-skip-browser-warning": "true" },
         });
 
@@ -32,7 +33,7 @@ const AppLoader = () => {
             if (host) {
               installParams.set("host", host);
             }
-            window.top.location.href = `${API_BASE}/auth/install?${installParams.toString()}`;
+            redirectToRemote(`${API_BASE}/auth/install?${installParams.toString()}`);
             return;
           }
           setMessage("Unable to verify installation");

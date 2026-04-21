@@ -1,12 +1,5 @@
-import createApp from "@shopify/app-bridge";
+import { getAppBridge } from "./appBridge";
 
 export function getShopifyApp() {
-  const params = new URLSearchParams(window.location.search);
-  const host = params.get("host");
-
-  return createApp({
-    apiKey: process.env.REACT_APP_SHOPIFY_API_KEY,
-    host,
-    forceRedirect: true,
-  });
+  return getAppBridge();
 }
