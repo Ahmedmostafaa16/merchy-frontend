@@ -432,7 +432,7 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
         setForecastData([]);
         setForecastEmpty(false);
         setForecastError("");
-        setForecastMessage("No sales data found. Try syncing orders or selecting another period.");
+        setForecastMessage("No sales data found. Try to select another period.");
         window.localStorage.removeItem("forecast_cache");
         window.localStorage.removeItem("forecast_last_generated");
         clearGlobalError();
