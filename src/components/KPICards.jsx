@@ -15,7 +15,7 @@ const KPICards = ({
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {!canShowKpis ? (
         <Card className="dashboard-panel p-4 sm:col-span-2 lg:col-span-4">
-          <p className="panel-note">Complete Inventory Sync and Sales Sync to load KPI cards.</p>
+          <p className="panel-note">Inventory is automatically synced when you open the app. Complete Sales Sync to load KPI cards.</p>
         </Card>
       ) : loadingKpis ? (
         <>
