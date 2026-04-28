@@ -1,4 +1,5 @@
 import { fetchWithToken } from "./authFetch";
+import { redirectToRemote } from "../shopify/appBridge";
 
 class ApiClientError extends Error {
   constructor(message, options = {}) {
@@ -84,6 +85,20 @@ const request = async (method, path, options = {}) => {
     const data = await parseResponseBody(response);
 
     if (!response.ok) {
+      if (
+        response.status === 409 &&
+        typeof data === "object" &&
+        data &&
+        (data.reauth_url || data.detail?.reauth_url)
+      ) {
+        const reauthUrl = data.reauth_url || data.detail?.reauth_url;
+        redirectToRemote(reauthUrl);
+        throw new ApiClientError("Reauthorization required", {
+          status: response.status,
+          data,
+        });
+      }
+
       const detail = typeof data === "object" && data ? data.detail || data.message : null;
       if (response.status === 401) {
         throw new ApiClientError("Unauthorized request (401)", {

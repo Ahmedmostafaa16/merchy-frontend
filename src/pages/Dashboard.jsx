@@ -368,6 +368,11 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
 
     try {
       const data = await syncSales(startDate, endDate);
+      if (data?.status === "no_orders_access") {
+        setSalesMessage("Sales data unavailable (permissions required)");
+        clearGlobalError();
+        return;
+      }
       if (data?.status === "success") {
         setSalesMessage(data.message || "Sales synced.");
         setSalesSynced(true);
