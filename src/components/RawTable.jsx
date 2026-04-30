@@ -23,6 +23,22 @@ const RawTable = ({
   handleCreatePo,
 }) => {
   const [showStatusHelp, setShowStatusHelp] = useState(false);
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
+
+  const handleSort = (columnKey) => {
+    setSortConfig((currentSort) => ({
+      key: columnKey,
+      direction: currentSort.key === columnKey && currentSort.direction === "asc" ? "desc" : "asc",
+    }));
+  };
+
+  const getSortIcon = (columnKey) => {
+    if (sortConfig.key !== columnKey) return "\u2195";
+    return sortConfig.direction === "asc" ? "\u2191" : "\u2193";
+  };
+
+  const sortableHeaderClassName =
+    "inline-flex items-center gap-1.5 text-zinc-400 transition-colors hover:text-white";
 
   if (forecastGenerating) {
     return (
@@ -47,6 +63,27 @@ const RawTable = ({
       <EmptyState />
     );
   }
+
+  const sortedData = [...filteredRawTableRows].sort((firstRow, secondRow) => {
+    if (!sortConfig.key) return 0;
+
+    if (sortConfig.key === "title") {
+      const firstValue = String(firstRow?.title || "").toLowerCase();
+      const secondValue = String(secondRow?.title || "").toLowerCase();
+      return sortConfig.direction === "asc"
+        ? firstValue.localeCompare(secondValue)
+        : secondValue.localeCompare(firstValue);
+    }
+
+    const firstValue = Number(firstRow?.[sortConfig.key] ?? 0);
+    const secondValue = Number(secondRow?.[sortConfig.key] ?? 0);
+    const safeFirstValue = Number.isFinite(firstValue) ? firstValue : 0;
+    const safeSecondValue = Number.isFinite(secondValue) ? secondValue : 0;
+
+    return sortConfig.direction === "asc"
+      ? safeFirstValue - safeSecondValue
+      : safeSecondValue - safeFirstValue;
+  });
 
   return (
     <div className="mt-0">
@@ -102,11 +139,38 @@ const RawTable = ({
                       className="h-4 w-4 rounded border border-white/20 bg-transparent accent-[#2F6FED]"
                     />
                   </th>
-                  <th className="px-4 py-3 text-zinc-400">Title</th>
+                  <th className="px-4 py-3 text-zinc-400">
+                    <button
+                      type="button"
+                      onClick={() => handleSort("title")}
+                      className={sortableHeaderClassName}
+                    >
+                      <span>Title</span>
+                      <span aria-hidden="true">{getSortIcon("title")}</span>
+                    </button>
+                  </th>
                   <th className="px-4 py-3 text-zinc-400">Size</th>
                   <th className="px-4 py-3 text-zinc-400">SKU</th>
-                  <th className="px-4 py-3 text-zinc-400">Inventory</th>
-                  <th className="px-4 py-3 text-zinc-400">Lifetime</th>
+                  <th className="px-4 py-3 text-zinc-400">
+                    <button
+                      type="button"
+                      onClick={() => handleSort("inventory")}
+                      className={sortableHeaderClassName}
+                    >
+                      <span>Inventory</span>
+                      <span aria-hidden="true">{getSortIcon("inventory")}</span>
+                    </button>
+                  </th>
+                  <th className="px-4 py-3 text-zinc-400">
+                    <button
+                      type="button"
+                      onClick={() => handleSort("lifetime")}
+                      className={sortableHeaderClassName}
+                    >
+                      <span>Lifetime</span>
+                      <span aria-hidden="true">{getSortIcon("lifetime")}</span>
+                    </button>
+                  </th>
                   <th className="px-4 py-3 text-zinc-400">Sales Per Day</th>
                   <th className="px-4 py-3 text-zinc-400">
                     <div className="relative inline-flex items-center gap-1.5">
@@ -146,7 +210,7 @@ const RawTable = ({
                 </tr>
               </thead>
               <tbody>
-                {filteredRawTableRows.map((row, index) => (
+                {sortedData.map((row, index) => (
                   <tr key={`raw-${index}`} className="border-t border-white/10 text-zinc-400">
                     <td className="px-4 py-3 text-zinc-400">
                       <input
