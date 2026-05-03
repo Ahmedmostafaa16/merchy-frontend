@@ -5,7 +5,10 @@ import Sidebar from "../components/Sidebar";
 import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
 import { apiClient } from "../lib/apiClient";
+import { fetchWithToken } from "../lib/authFetch";
 import "../styles/dashboard.css";
+
+const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 const MailNotifications = ({
   notifications,
@@ -53,8 +56,15 @@ const MailNotifications = ({
       setFormError("");
 
       try {
-        await apiClient.post("/locations/sync");
-        const payload = await apiClient.get("/locations");
+        console.log("Calling sync...");
+        await fetchWithToken(`${API_URL}/locations/sync`, {
+          method: "POST",
+        });
+
+        const response = await fetchWithToken(`${API_URL}/locations`);
+        const payload = await response.json();
+        console.log("Locations response:", payload);
+
         if (ignore) return;
         setLocations(Array.isArray(payload) ? payload : []);
       } catch (requestError) {
