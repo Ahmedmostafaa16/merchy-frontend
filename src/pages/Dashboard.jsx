@@ -233,7 +233,7 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
   }, [getRangeFromPeriod]);
 
   useEffect(() => {
-    if (page === "raw-data" && Array.isArray(initialForecastData)) {
+    if ((page === "raw-data" || page === "replenish") && Array.isArray(initialForecastData)) {
       setForecastData(initialForecastData);
       setForecastEmpty(initialForecastData.length === 0);
     }

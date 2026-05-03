@@ -25,7 +25,7 @@ const RawData = ({ settingsEmail = "" }) => {
     }
   }, []);
 
-  return <Dashboard page="raw-data" initialForecastData={rows} rawDataLoading={loading} settingsEmail={settingsEmail} />;
+  return <Dashboard page="replenish" initialForecastData={rows} rawDataLoading={loading} settingsEmail={settingsEmail} />;
 };
 
 export default RawData;
