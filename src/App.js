@@ -15,9 +15,9 @@ import { authFetch } from "./lib/authFetch";
 
 const BACKEND_URL = "https://merchyapp-backend.up.railway.app";
 
-function DefaultRedirect({ notifications }) {
+function DefaultRedirect({ notifications, locationPreferences }) {
   const location = useLocation();
-  const target = notifications?.exists === false ? "/settings" : "/overview";
+  const target = notifications?.exists === false || locationPreferences?.exists === false ? "/settings" : "/overview";
   return <Navigate to={`${target}${location.search}`} replace />;
 }
 
@@ -26,10 +26,15 @@ function SettingsRedirect() {
   return <Navigate to={`/settings${location.search}`} replace />;
 }
 
-function ProtectedRoute({ notifications, children }) {
+function RawDataRedirect() {
+  const location = useLocation();
+  return <Navigate to={`/replenish${location.search}`} replace />;
+}
+
+function ProtectedRoute({ notifications, locationPreferences, children }) {
   const location = useLocation();
 
-  if (notifications?.exists === false) {
+  if (notifications?.exists === false || locationPreferences?.exists === false) {
     return <Navigate to={`/settings${location.search}`} replace />;
   }
 
@@ -52,7 +57,7 @@ function App() {
   const host = getHostParam();
   const path = window.location.pathname;
   const installSuccessRoute = path === "/install/success";
-  const dashboardRoute = ["/", "/dashboard", "/overview", "/raw-data", "/settings", "/mail-notifications", "/po", "/po/create"].includes(path)
+  const dashboardRoute = ["/", "/dashboard", "/overview", "/raw-data", "/replenish", "/settings", "/mail-notifications", "/po", "/po/create"].includes(path)
     || path.startsWith("/po/");
   const [ready, setReady] = useState(false);
   const [notificationsLoading, setNotificationsLoading] = useState(true);
@@ -61,6 +66,12 @@ function App() {
     exists: null,
     email: null,
     threshold_days: null,
+  });
+  const [locationPreferencesLoading, setLocationPreferencesLoading] = useState(true);
+  const [locationPreferencesError, setLocationPreferencesError] = useState("");
+  const [locationPreferencesState, setLocationPreferencesState] = useState({
+    exists: null,
+    location_ids: [],
   });
   const [trialBannerDismissed, setTrialBannerDismissed] = useState(false);
   const [shopInstalled, setShopInstalled] = useState(false);
@@ -214,6 +225,51 @@ function App() {
   }, [ready, installCheckLoading, billingLoading, effectiveBilling?.has_access, shop]);
 
   useEffect(() => {
+    if (!ready || installCheckLoading || billingLoading || !effectiveBilling?.has_access) {
+      setLocationPreferencesLoading(false);
+      return;
+    }
+
+    let ignore = false;
+
+    const loadLocationPreferences = async () => {
+      setLocationPreferencesLoading(true);
+      setLocationPreferencesError("");
+
+      try {
+        const payload = await apiClient.get("/locations/preferences");
+        if (ignore) return;
+        const locationIds = Array.isArray(payload?.location_ids) ? payload.location_ids : [];
+        setLocationPreferencesState({
+          exists: locationIds.length > 0,
+          location_ids: locationIds,
+        });
+      } catch (error) {
+        if (ignore) return;
+        setLocationPreferencesState({
+          exists: false,
+          location_ids: [],
+        });
+        setLocationPreferencesError(
+          error?.status >= 500
+            ? "Something went wrong. Please try again."
+            : (error?.message || "Unable to load inventory locations.")
+        );
+      } finally {
+        if (!ignore) {
+          setLocationPreferencesLoading(false);
+        }
+      }
+    };
+
+    loadLocationPreferences();
+
+    return () => {
+      ignore = true;
+    };
+  }, [ready, installCheckLoading, billingLoading, effectiveBilling?.has_access, shop]);
+
+  useEffect(() => {
     setTrialBannerDismissed(false);
   }, [shop, effectiveBilling?.in_trial, effectiveBilling?.trial_days_left]);
 
@@ -222,6 +278,13 @@ function App() {
       exists: true,
       email,
       threshold_days,
+    });
+  };
+
+  const handleLocationPreferencesSaved = (locationIds) => {
+    setLocationPreferencesState({
+      exists: Array.isArray(locationIds) && locationIds.length > 0,
+      location_ids: Array.isArray(locationIds) ? locationIds : [],
     });
   };
 
@@ -243,7 +306,12 @@ function App() {
     return <div>{installCheckError}</div>;
   }
 
-  if (!ready || installCheckLoading || billingLoading || (effectiveBilling?.has_access && notificationsLoading)) {
+  if (
+    !ready ||
+    installCheckLoading ||
+    billingLoading ||
+    (effectiveBilling?.has_access && (notificationsLoading || locationPreferencesLoading))
+  ) {
     return <BillingLoadingScreen />;
   }
 
@@ -277,20 +345,21 @@ function App() {
 
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<DefaultRedirect notifications={notificationsState} />} />
-          <Route path="/dashboard" element={<DefaultRedirect notifications={notificationsState} />} />
+          <Route path="/" element={<DefaultRedirect notifications={notificationsState} locationPreferences={locationPreferencesState} />} />
+          <Route path="/dashboard" element={<DefaultRedirect notifications={notificationsState} locationPreferences={locationPreferencesState} />} />
           <Route
             path="/overview"
             element={(
-              <ProtectedRoute notifications={notificationsState}>
+              <ProtectedRoute notifications={notificationsState} locationPreferences={locationPreferencesState}>
                 <Overview settingsEmail={notificationsState.email} />
               </ProtectedRoute>
             )}
           />
+          <Route path="/raw-data" element={<RawDataRedirect />} />
           <Route
-            path="/raw-data"
+            path="/replenish"
             element={(
-              <ProtectedRoute notifications={notificationsState}>
+              <ProtectedRoute notifications={notificationsState} locationPreferences={locationPreferencesState}>
                 <RawData settingsEmail={notificationsState.email} />
               </ProtectedRoute>
             )}
@@ -301,7 +370,10 @@ function App() {
               <MailNotifications
                 notifications={notificationsState}
                 notificationsError={notificationsError}
+                locationPreferences={locationPreferencesState}
+                locationPreferencesError={locationPreferencesError}
                 onNotificationSaved={handleNotificationsSaved}
+                onLocationPreferencesSaved={handleLocationPreferencesSaved}
               />
             )}
           />
@@ -309,7 +381,7 @@ function App() {
           <Route
             path="/po"
             element={(
-              <ProtectedRoute notifications={notificationsState}>
+              <ProtectedRoute notifications={notificationsState} locationPreferences={locationPreferencesState}>
                 <PurchaseOrders settingsEmail={notificationsState.email} />
               </ProtectedRoute>
             )}
@@ -317,7 +389,7 @@ function App() {
           <Route
             path="/po/create"
             element={(
-              <ProtectedRoute notifications={notificationsState}>
+              <ProtectedRoute notifications={notificationsState} locationPreferences={locationPreferencesState}>
                 <POBuilder settingsEmail={notificationsState.email} />
               </ProtectedRoute>
             )}

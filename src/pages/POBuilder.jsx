@@ -8,7 +8,7 @@ import { apiClient } from "../lib/apiClient";
 import "../styles/dashboard.css";
 
 const PO_SELECTION_STORAGE_KEY = "po_builder_selected_items";
-const buildPoItemKey = (item) => `${item?.sku || ""}::${item?.title || ""}::${item?.size || ""}`;
+const buildPoItemKey = (item) => `${item?.variant_id || ""}::${item?.sku || ""}::${item?.title || ""}::${item?.variant_title || item?.size || ""}`;
 
 const normalizeSelectedItems = (items) => {
   if (!Array.isArray(items)) return [];
@@ -17,8 +17,10 @@ const normalizeSelectedItems = (items) => {
     .filter((item) => item && (item.sku || item.title))
     .map((item) => ({
       sku: String(item.sku || ""),
+      variant_id: item.variant_id ?? "",
       title: String(item.title || ""),
-      size: String(item.size || ""),
+      variant_title: String(item.variant_title || item.size || ""),
+      size: String(item.variant_title || item.size || ""),
       quantity: String(Number(item.quantity) > 0 ? Number(item.quantity) : ""),
       unit_price: item.unit_price !== undefined && item.unit_price !== null ? String(item.unit_price) : "",
     }));
@@ -188,7 +190,7 @@ const POBuilder = ({ settingsEmail = "" }) => {
   };
 
   const handleBackToForecast = () => {
-    navigate(`/raw-data${location.search}`);
+    navigate(`/replenish${location.search}`);
   };
 
   return (
@@ -307,7 +309,7 @@ const POBuilder = ({ settingsEmail = "" }) => {
                       <tr>
                         <th className="px-4 py-3 text-zinc-400">SKU</th>
                         <th className="px-4 py-3 text-zinc-400">Title</th>
-                        <th className="px-4 py-3 text-zinc-400">Size</th>
+                        <th className="px-4 py-3 text-zinc-400">Variant</th>
                         <th className="px-4 py-3 text-zinc-400">Quantity</th>
                         <th className="px-4 py-3 text-zinc-400">Unit Price</th>
                         <th className="px-4 py-3 text-zinc-400">Total</th>
@@ -333,7 +335,7 @@ const POBuilder = ({ settingsEmail = "" }) => {
                             <tr key={itemKey} className="border-t border-white/10 text-zinc-400">
                               <td className="px-4 py-3 text-zinc-400">{item.sku || "-"}</td>
                               <td className="px-4 py-3 text-zinc-400">{item.title || "-"}</td>
-                              <td className="px-4 py-3 text-zinc-400">{item.size || "-"}</td>
+                              <td className="px-4 py-3 text-zinc-400">{item.variant_title || item.size || "-"}</td>
                               <td className="px-4 py-3 align-top">
                                 <input
                                   type="number"

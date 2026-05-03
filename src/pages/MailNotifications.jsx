@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Mail } from "lucide-react";
+import { Mail, MapPin } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Card from "../components/ui/Card";
@@ -7,16 +7,26 @@ import Button from "../components/ui/Button";
 import { apiClient } from "../lib/apiClient";
 import "../styles/dashboard.css";
 
-const MailNotifications = ({ notifications, notificationsError = "", onNotificationSaved }) => {
+const MailNotifications = ({
+  notifications,
+  notificationsError = "",
+  locationPreferences,
+  locationPreferencesError = "",
+  onNotificationSaved,
+  onLocationPreferencesSaved,
+}) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const isOnboarding = notifications?.exists === false;
+  const isOnboarding = notifications?.exists === false || locationPreferences?.exists === false;
   const [reportEmail, setReportEmail] = useState("");
   const [coverageThreshold, setCoverageThreshold] = useState("");
+  const [locations, setLocations] = useState([]);
+  const [selectedLocationIds, setSelectedLocationIds] = useState([]);
+  const [locationsLoading, setLocationsLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-  const showEmptyMessage = !notificationsError && notifications?.exists === false;
+  const showEmptyMessage = !notificationsError && !locationPreferencesError && isOnboarding;
 
   useEffect(() => {
     setReportEmail(notifications?.email || "");
@@ -26,6 +36,47 @@ const MailNotifications = ({ notifications, notificationsError = "", onNotificat
         : ""
     );
   }, [notifications]);
+
+  useEffect(() => {
+    setSelectedLocationIds(
+      Array.isArray(locationPreferences?.location_ids)
+        ? locationPreferences.location_ids.map((locationId) => Number(locationId)).filter(Number.isFinite)
+        : []
+    );
+  }, [locationPreferences]);
+
+  useEffect(() => {
+    let ignore = false;
+
+    const loadLocations = async () => {
+      setLocationsLoading(true);
+      setFormError("");
+
+      try {
+        const payload = await apiClient.get("/locations");
+        if (ignore) return;
+        setLocations(Array.isArray(payload) ? payload : []);
+      } catch (requestError) {
+        if (ignore) return;
+        setLocations([]);
+        setFormError(
+          requestError?.status >= 500
+            ? "Something went wrong. Please try again."
+            : (requestError?.message || "Unable to load inventory locations.")
+        );
+      } finally {
+        if (!ignore) {
+          setLocationsLoading(false);
+        }
+      }
+    };
+
+    loadLocations();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   const lastSyncLabel = useMemo(() => {
     const timestamp = window.localStorage.getItem("inventory_last_sync");
@@ -56,6 +107,11 @@ const MailNotifications = ({ notifications, notificationsError = "", onNotificat
       return;
     }
 
+    if (selectedLocationIds.length === 0) {
+      setFormError("Select at least one inventory location.");
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -66,13 +122,24 @@ const MailNotifications = ({ notifications, notificationsError = "", onNotificat
         },
       });
 
+      await apiClient.post("/locations/preferences", {
+        body: {
+          location_ids: selectedLocationIds,
+        },
+      });
+
       onNotificationSaved?.({
         email: trimmedEmail,
         threshold_days: threshold,
       });
+      onLocationPreferencesSaved?.(selectedLocationIds);
+
+      setSuccessMessage("Setup saved successfully.");
 
       if (isOnboarding) {
-        navigate(`/overview${location.search}`);
+        window.setTimeout(() => {
+          navigate(`/overview${location.search}`);
+        }, 500);
         return;
       }
 
@@ -86,6 +153,17 @@ const MailNotifications = ({ notifications, notificationsError = "", onNotificat
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleToggleLocation = (locationId) => {
+    setFormError("");
+    setSuccessMessage("");
+
+    setSelectedLocationIds((currentIds) => (
+      currentIds.includes(locationId)
+        ? currentIds.filter((currentId) => currentId !== locationId)
+        : [...currentIds, locationId]
+    ));
   };
 
   return (
@@ -121,9 +199,15 @@ const MailNotifications = ({ notifications, notificationsError = "", onNotificat
               </div>
             ) : null}
 
+            {locationPreferencesError ? (
+              <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                {locationPreferencesError}
+              </div>
+            ) : null}
+
             {showEmptyMessage ? (
               <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-zinc-300">
-                No notifications set yet. Configure your email to start receiving alerts.
+                Complete setup to start generating location-aware inventory forecasts.
               </div>
             ) : null}
 
@@ -149,7 +233,7 @@ const MailNotifications = ({ notifications, notificationsError = "", onNotificat
 
               <div className="mt-6 rounded-[14px] border border-white/10 bg-white/5 p-7">
                 <p className="text-sm leading-6 text-zinc-400">
-                  Configure weekly inventory alerts when items fall below a certain lifetime coverage.
+                  Configure weekly inventory alerts when items fall below a certain coverage threshold.
                 </p>
 
                 <div className="mt-8 space-y-5">
@@ -179,10 +263,51 @@ const MailNotifications = ({ notifications, notificationsError = "", onNotificat
                     />
                   </div>
 
+                  <div className="rounded-[14px] border border-white/10 bg-white/5 p-5">
+                    <div className="flex items-center gap-3">
+                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#197FE6] text-white">
+                        <MapPin size={16} />
+                      </span>
+                      <div>
+                        <h3 className="text-sm font-semibold text-white">Select Inventory Locations</h3>
+                        <p className="mt-1 text-xs text-zinc-400">Choose at least one location for forecasting.</p>
+                      </div>
+                    </div>
+
+                    <div className="mt-5 space-y-2">
+                      {locationsLoading ? (
+                        <p className="text-sm text-zinc-400">Loading locations...</p>
+                      ) : null}
+
+                      {!locationsLoading && locations.length === 0 ? (
+                        <p className="text-sm text-zinc-400">No inventory locations found.</p>
+                      ) : null}
+
+                      {!locationsLoading && locations.map((inventoryLocation) => {
+                        const locationId = Number(inventoryLocation?.id);
+                        if (!Number.isFinite(locationId)) return null;
+                        return (
+                          <label
+                            key={locationId}
+                            className="flex cursor-pointer items-center gap-3 rounded-lg border border-white/10 bg-[#0f1528]/60 px-3 py-2 text-sm text-zinc-300 transition-colors hover:border-white/20 hover:text-white"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedLocationIds.includes(locationId)}
+                              onChange={() => handleToggleLocation(locationId)}
+                              className="h-4 w-4 rounded border border-white/20 bg-transparent accent-[#2F6FED]"
+                            />
+                            <span>{inventoryLocation?.name || "Unnamed Location"}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   <div className="pt-2">
                     <Button
                       className="!m-0 !flex !h-11 !w-full max-w-[280px] !items-center !justify-center px-5 !rounded-lg !border-0 !bg-[#2F6FED] !text-white !shadow-none hover:!bg-[#1F5AE0]"
-                      disabled={saving}
+                      disabled={saving || locationsLoading}
                       onClick={handleSave}
                     >
                       {saving ? "Saving..." : isOnboarding ? "Continue" : "Save"}

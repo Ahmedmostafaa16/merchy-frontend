@@ -37,8 +37,19 @@ const RawTable = ({
     return sortConfig.direction === "asc" ? "\u2191" : "\u2193";
   };
 
+  const formatCoverageDays = (value) => {
+    const numericValue = Number(value);
+    if (!Number.isFinite(numericValue) || numericValue < 0) return "0";
+    if (Number.isInteger(numericValue)) return String(numericValue);
+    return String(Number(numericValue.toFixed(numericValue < 10 ? 2 : 1)));
+  };
+
   const sortableHeaderClassName =
     "inline-flex items-center gap-1.5 text-zinc-400 transition-colors hover:text-white";
+
+  const getRowSelectionKey = (row) => (
+    `${row?.variant_id || ""}::${row?.sku || ""}::${row?.title || ""}::${row?.variant_title || row?.size || ""}`
+  );
 
   if (forecastGenerating) {
     return (
@@ -126,11 +137,22 @@ const RawTable = ({
               </Button>
             </div>
           </div>
-          <div className="max-h-[420px] overflow-y-auto overflow-x-auto rounded-xl border border-white/10">
-            <table className="w-full min-w-[1030px] text-left text-sm text-zinc-400">
+          <div className="max-h-[420px] overflow-y-auto rounded-xl border border-white/10">
+            <table className="w-full table-fixed text-left text-xs text-zinc-400 sm:text-sm">
+              <colgroup>
+                <col className="w-[5%]" />
+                <col className="w-[21%]" />
+                <col className="w-[15%]" />
+                <col className="w-[11%]" />
+                <col className="w-[9%]" />
+                <col className="w-[12%]" />
+                <col className="w-[10%]" />
+                <col className="w-[10%]" />
+                <col className="w-[7%]" />
+              </colgroup>
               <thead className="bg-white/5">
                 <tr>
-                  <th className="px-4 py-3 text-zinc-400">
+                  <th className="px-2 py-3 text-zinc-400">
                     <input
                       type="checkbox"
                       checked={areAllRawRowsSelected}
@@ -139,7 +161,7 @@ const RawTable = ({
                       className="h-4 w-4 rounded border border-white/20 bg-transparent accent-[#2F6FED]"
                     />
                   </th>
-                  <th className="px-4 py-3 text-zinc-400">
+                  <th className="px-2 py-3 text-zinc-400">
                     <button
                       type="button"
                       onClick={() => handleSort("title")}
@@ -149,9 +171,9 @@ const RawTable = ({
                       <span aria-hidden="true">{getSortIcon("title")}</span>
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-zinc-400">Size</th>
-                  <th className="px-4 py-3 text-zinc-400">SKU</th>
-                  <th className="px-4 py-3 text-zinc-400">
+                  <th className="px-2 py-3 text-zinc-400">Variant</th>
+                  <th className="px-2 py-3 text-zinc-400">SKU</th>
+                  <th className="px-2 py-3 text-zinc-400">
                     <button
                       type="button"
                       onClick={() => handleSort("inventory")}
@@ -161,18 +183,18 @@ const RawTable = ({
                       <span aria-hidden="true">{getSortIcon("inventory")}</span>
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-zinc-400">
+                  <th className="px-2 py-3 text-zinc-400">
                     <button
                       type="button"
-                      onClick={() => handleSort("lifetime")}
+                      onClick={() => handleSort("coverage_days")}
                       className={sortableHeaderClassName}
                     >
-                      <span>Lifetime</span>
-                      <span aria-hidden="true">{getSortIcon("lifetime")}</span>
+                      <span>Coverage Days</span>
+                      <span aria-hidden="true">{getSortIcon("coverage_days")}</span>
                     </button>
                   </th>
-                  <th className="px-4 py-3 text-zinc-400">Sales Per Day</th>
-                  <th className="px-4 py-3 text-zinc-400">
+                  <th className="px-2 py-3 text-zinc-400">Sales Per Day</th>
+                  <th className="px-2 py-3 text-zinc-400">
                     <div className="relative inline-flex items-center gap-1.5">
                       <span>Status</span>
                       <button
@@ -206,32 +228,32 @@ const RawTable = ({
                       ) : null}
                     </div>
                   </th>
-                  <th className="px-4 py-3 text-zinc-400">Restock Amount</th>
+                  <th className="px-2 py-3 text-zinc-400">Restock</th>
                 </tr>
               </thead>
               <tbody>
                 {sortedData.map((row, index) => (
-                  <tr key={`raw-${index}`} className="border-t border-white/10 text-zinc-400">
-                    <td className="px-4 py-3 text-zinc-400">
+                  <tr key={`raw-${row?.variant_id || index}`} className="border-t border-white/10 text-zinc-400">
+                    <td className="px-2 py-3 text-zinc-400">
                       <input
                         type="checkbox"
-                        checked={selectedRawItemKeys.has(`${row?.sku || ""}::${row?.title || ""}::${row?.size || ""}`)}
+                        checked={selectedRawItemKeys.has(getRowSelectionKey(row))}
                         onChange={() => handleToggleRawRow(row)}
                         className="h-4 w-4 rounded border border-white/20 bg-transparent accent-[#2F6FED]"
                       />
                     </td>
-                    <td className="px-4 py-3 text-zinc-400">{row?.title || "-"}</td>
-                    <td className="px-4 py-3 text-zinc-400">{row?.size || "-"}</td>
-                    <td className="px-4 py-3 text-zinc-400">{row?.sku || "-"}</td>
-                    <td className="px-4 py-3 text-zinc-400">{row?.inventory ?? "-"}</td>
-                    <td className="px-4 py-3 text-zinc-400">{row?.lifetime ?? "-"}</td>
-                    <td className="px-4 py-3 text-zinc-400">{row?.sales_per_day ?? "-"}</td>
-                    <td className="px-4 py-3">
+                    <td className="truncate px-2 py-3 text-zinc-400" title={row?.title || ""}>{row?.title || "-"}</td>
+                    <td className="truncate px-2 py-3 text-zinc-400" title={row?.variant_title || ""}>{row?.variant_title || "-"}</td>
+                    <td className="truncate px-2 py-3 text-zinc-400" title={row?.sku || ""}>{row?.sku || "-"}</td>
+                    <td className="px-2 py-3 text-zinc-400">{row?.inventory ?? "-"}</td>
+                    <td className="px-2 py-3 text-zinc-400">{formatCoverageDays(row?.coverage_days)}</td>
+                    <td className="px-2 py-3 text-zinc-400">{row?.sales_per_day ?? "-"}</td>
+                    <td className="px-2 py-3">
                       <span className={`inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] leading-none ${getRawStatusClasses(row?.status)}`}>
                         {row?.status || "-"}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-zinc-400">{row?.restock_amount ?? "-"}</td>
+                    <td className="px-2 py-3 text-zinc-400">{row?.restock_amount ?? "-"}</td>
                   </tr>
                 ))}
               </tbody>

@@ -29,7 +29,7 @@ const Sidebar = ({ settingsEmail = "" }) => {
           <LayoutDashboard size={18} />
           <span>Overview</span>
         </NavLink>
-        <NavLink to={`/raw-data${search}`} className={linkClassName}>
+        <NavLink to={`/replenish${search}`} className={linkClassName}>
           <Boxes size={18} />
           <span>Replenish</span>
         </NavLink>

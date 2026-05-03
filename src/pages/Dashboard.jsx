@@ -15,7 +15,7 @@ import "../styles/dashboard.css";
 const INVENTORY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const KPI_CACHE_KEY = "kpi_cache";
 const PO_SELECTION_STORAGE_KEY = "po_builder_selected_items";
-const buildPoSelectionKey = (item) => `${item?.sku || ""}::${item?.title || ""}::${item?.size || ""}`;
+const buildPoSelectionKey = (item) => `${item?.variant_id || ""}::${item?.sku || ""}::${item?.title || ""}::${item?.variant_title || item?.size || ""}`;
 
 const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading = false, settingsEmail = "" }) => {
   const navigate = useNavigate();
@@ -427,7 +427,7 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
         return;
       }
 
-      const payload = await apiClient.post("/requests/report", {
+      const payload = await apiClient.post("/report", {
         query: {
           number_of_days: numberOfDays,
           minimum_value: Math.floor(parsedMinimumValue),
@@ -453,6 +453,7 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
       setForecastMessage(rows.length === 0 ? "" : "Forecast generated successfully.");
       clearGlobalError();
       await fetchDashboardMetrics(shop);
+      navigate(`/replenish${location.search}`);
     } catch (error) {
       setForecastData([]);
       if (error?.isEmpty) {
@@ -478,9 +479,9 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
   const getRawStatusClasses = useCallback((status) => {
     const normalized = normalizeStatusValue(status);
     if (normalized === "fastmoving") return "bg-green-500/20 text-green-400 border border-green-500/40";
-    if (normalized === "moderate") return "bg-blue-500/20 text-blue-400 border border-blue-500/40";
-    if (normalized === "slowmoving") return "bg-orange-500/20 text-orange-300 border border-orange-500/40";
-    if (normalized === "neversold") return "bg-zinc-500/20 text-zinc-300 border border-zinc-500/40";
+    if (normalized === "moderate") return "bg-yellow-500/20 text-yellow-300 border border-yellow-500/40";
+    if (normalized === "slowmoving") return "bg-zinc-500/20 text-zinc-300 border border-zinc-500/40";
+    if (normalized === "neversold") return "bg-[#111827] text-zinc-400 border border-zinc-700";
     if (normalized === "stockout") return "bg-red-500/20 text-red-400 border border-red-500/40";
     return "bg-zinc-500/20 text-zinc-300 border border-zinc-500/40";
   }, [normalizeStatusValue]);
@@ -489,9 +490,10 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
     const search = rawTableSearch.trim().toLowerCase();
     return forecastData.filter((row) => {
       const title = String(row?.title || "").toLowerCase();
+      const variantTitle = String(row?.variant_title || row?.size || "").toLowerCase();
       const sku = String(row?.sku || "").toLowerCase();
       const status = normalizeStatusValue(row?.status);
-      const matchesSearch = !search || title.includes(search) || sku.includes(search);
+      const matchesSearch = !search || title.includes(search) || variantTitle.includes(search) || sku.includes(search);
       const matchesStatus = rawTableStatusFilter === "all" || status === rawTableStatusFilter;
       return matchesSearch && matchesStatus;
     });
@@ -499,14 +501,14 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
 
   const handleExportRawTableCsv = () => {
     if (filteredRawTableRows.length === 0) return;
-    const header = ["title", "size", "sku", "inventory", "lifetime", "sales_per_day", "status", "restock_amount"];
+    const header = ["title", "variant_title", "sku", "inventory", "coverage_days", "sales_per_day", "status", "restock_amount"];
     const lines = filteredRawTableRows.map((row) => (
       [
         row?.title ?? "",
-        row?.size ?? "",
+        row?.variant_title ?? "",
         row?.sku ?? "",
         row?.inventory ?? "",
-        row?.lifetime ?? "",
+        row?.coverage_days ?? "",
         row?.sales_per_day ?? "",
         row?.status ?? "",
         row?.restock_amount ?? "",
@@ -517,9 +519,11 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
   };
 
   const mapForecastRowToPoItem = useCallback((row) => ({
+    variant_id: row?.variant_id ?? "",
     sku: String(row?.sku || ""),
     title: String(row?.title || ""),
-    size: String(row?.size || ""),
+    variant_title: String(row?.variant_title || row?.size || ""),
+    size: String(row?.variant_title || row?.size || ""),
     quantity: Number(row?.restock_amount) > 0 ? Number(row?.restock_amount) : 0,
   }), []);
 
@@ -662,9 +666,9 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
             ) : (
               <>
                 <div className="pt-4">
-                  <h1 className="text-3xl font-semibold tracking-tight text-white">Raw Data</h1>
+                  <h1 className="text-3xl font-semibold tracking-tight text-white">Replenish</h1>
                   <p className="mt-2 text-base text-zinc-400">
-                    Review KPI metrics and generated forecast rows at SKU level.
+                    Review KPI metrics and generated forecast rows at variant level.
                   </p>
                 </div>
                 <KPICards
