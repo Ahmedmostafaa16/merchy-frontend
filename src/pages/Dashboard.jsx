@@ -13,6 +13,7 @@ import { apiClient, getApiBase } from "../lib/apiClient";
 import { fetchWithToken } from "../lib/authFetch";
 import "../styles/dashboard.css";
 
+// eslint-disable-next-line no-unused-vars
 const INVENTORY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const KPI_CACHE_KEY = "kpi_cache";
 const PO_SELECTION_STORAGE_KEY = "po_builder_selected_items";
