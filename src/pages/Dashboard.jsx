@@ -286,21 +286,23 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
   useEffect(() => {
     if (page !== "overview" || !shop || !getApiBase()) return;
 
-    const cachedInventory = window.localStorage.getItem("inventory_cache");
-    const cachedLastSync = window.localStorage.getItem("inventory_last_sync");
-    const parsedLastSync = Number(cachedLastSync);
-    const hasFreshInventoryCache = (
-      Boolean(cachedInventory) &&
-      Number.isFinite(parsedLastSync) &&
-      (Date.now() - parsedLastSync) < INVENTORY_CACHE_TTL_MS
-    );
-
-    if (hasFreshInventoryCache) {
-      setInventorySynced(true);
-      setInventoryStatus("synced");
-      window.sessionStorage.setItem("merchy_inventory_synced", "true");
-      return;
-    }
+    // Temporarily bypass the 24h inventory cache guard for sync debugging.
+    // Restore this block after debugging:
+    // const cachedInventory = window.localStorage.getItem("inventory_cache");
+    // const cachedLastSync = window.localStorage.getItem("inventory_last_sync");
+    // const parsedLastSync = Number(cachedLastSync);
+    // const hasFreshInventoryCache = (
+    //   Boolean(cachedInventory) &&
+    //   Number.isFinite(parsedLastSync) &&
+    //   (Date.now() - parsedLastSync) < INVENTORY_CACHE_TTL_MS
+    // );
+    //
+    // if (hasFreshInventoryCache) {
+    //   setInventorySynced(true);
+    //   setInventoryStatus("synced");
+    //   window.sessionStorage.setItem("merchy_inventory_synced", "true");
+    //   return;
+    // }
 
     let cancelled = false;
 
