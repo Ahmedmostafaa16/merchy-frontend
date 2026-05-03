@@ -10,6 +10,7 @@ import RawTable from "../components/RawTable";
 import WorkflowPanel from "../components/WorkflowPanel";
 import { syncInventory, syncSales } from "../services/requestsApi";
 import { apiClient, getApiBase } from "../lib/apiClient";
+import { fetchWithToken } from "../lib/authFetch";
 import "../styles/dashboard.css";
 
 const INVENTORY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
@@ -427,12 +428,24 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
         return;
       }
 
-      const payload = await apiClient.post("/report", {
-        query: {
-          number_of_days: numberOfDays,
-          minimum_value: Math.floor(parsedMinimumValue),
-        },
-      });
+      const API_URL = getApiBase();
+      const res = await fetchWithToken(
+        `${API_URL}/report?number_of_days=${numberOfDays}&minimum_value=${Math.floor(parsedMinimumValue)}`,
+        {
+          method: "POST",
+        }
+      );
+
+      if (!res.ok) {
+        console.error("Forecast failed");
+        setForecastError("Something went wrong. Please try again.");
+        setForecastMessage("");
+        return;
+      }
+
+      const payload = await res.json();
+      console.log("Forecast result:", payload);
+
       if (payload?.error === "NO_SALES_DATA") {
         setForecastData([]);
         setForecastEmpty(false);
