@@ -21,8 +21,8 @@ const MailNotifications = ({
   const [reportEmail, setReportEmail] = useState("");
   const [coverageThreshold, setCoverageThreshold] = useState("");
   const [locations, setLocations] = useState([]);
-  const [selectedLocationIds, setSelectedLocationIds] = useState([]);
-  const [locationsLoading, setLocationsLoading] = useState(false);
+  const [selectedLocations, setSelectedLocations] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -38,7 +38,7 @@ const MailNotifications = ({
   }, [notifications]);
 
   useEffect(() => {
-    setSelectedLocationIds(
+    setSelectedLocations(
       Array.isArray(locationPreferences?.location_ids)
         ? locationPreferences.location_ids.map((locationId) => Number(locationId)).filter(Number.isFinite)
         : []
@@ -49,10 +49,11 @@ const MailNotifications = ({
     let ignore = false;
 
     const loadLocations = async () => {
-      setLocationsLoading(true);
+      setLoading(true);
       setFormError("");
 
       try {
+        await apiClient.post("/locations/sync");
         const payload = await apiClient.get("/locations");
         if (ignore) return;
         setLocations(Array.isArray(payload) ? payload : []);
@@ -66,7 +67,7 @@ const MailNotifications = ({
         );
       } finally {
         if (!ignore) {
-          setLocationsLoading(false);
+          setLoading(false);
         }
       }
     };
@@ -107,7 +108,7 @@ const MailNotifications = ({
       return;
     }
 
-    if (selectedLocationIds.length === 0) {
+    if (selectedLocations.length === 0) {
       setFormError("Select at least one inventory location.");
       return;
     }
@@ -124,7 +125,7 @@ const MailNotifications = ({
 
       await apiClient.post("/locations/preferences", {
         body: {
-          location_ids: selectedLocationIds,
+          location_ids: selectedLocations,
         },
       });
 
@@ -132,7 +133,7 @@ const MailNotifications = ({
         email: trimmedEmail,
         threshold_days: threshold,
       });
-      onLocationPreferencesSaved?.(selectedLocationIds);
+      onLocationPreferencesSaved?.(selectedLocations);
 
       setSuccessMessage("Setup saved successfully.");
 
@@ -159,7 +160,7 @@ const MailNotifications = ({
     setFormError("");
     setSuccessMessage("");
 
-    setSelectedLocationIds((currentIds) => (
+    setSelectedLocations((currentIds) => (
       currentIds.includes(locationId)
         ? currentIds.filter((currentId) => currentId !== locationId)
         : [...currentIds, locationId]
@@ -275,15 +276,15 @@ const MailNotifications = ({
                     </div>
 
                     <div className="mt-5 space-y-2">
-                      {locationsLoading ? (
+                      {loading ? (
                         <p className="text-sm text-zinc-400">Loading locations...</p>
                       ) : null}
 
-                      {!locationsLoading && locations.length === 0 ? (
+                      {!loading && locations.length === 0 ? (
                         <p className="text-sm text-zinc-400">No inventory locations found.</p>
                       ) : null}
 
-                      {!locationsLoading && locations.map((inventoryLocation) => {
+                      {!loading && locations.map((inventoryLocation) => {
                         const locationId = Number(inventoryLocation?.id);
                         if (!Number.isFinite(locationId)) return null;
                         return (
@@ -293,7 +294,7 @@ const MailNotifications = ({
                           >
                             <input
                               type="checkbox"
-                              checked={selectedLocationIds.includes(locationId)}
+                              checked={selectedLocations.includes(locationId)}
                               onChange={() => handleToggleLocation(locationId)}
                               className="h-4 w-4 rounded border border-white/20 bg-transparent accent-[#2F6FED]"
                             />
@@ -307,7 +308,7 @@ const MailNotifications = ({
                   <div className="pt-2">
                     <Button
                       className="!m-0 !flex !h-11 !w-full max-w-[280px] !items-center !justify-center px-5 !rounded-lg !border-0 !bg-[#2F6FED] !text-white !shadow-none hover:!bg-[#1F5AE0]"
-                      disabled={saving || locationsLoading}
+                      disabled={saving || loading}
                       onClick={handleSave}
                     >
                       {saving ? "Saving..." : isOnboarding ? "Continue" : "Save"}
