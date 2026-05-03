@@ -402,12 +402,8 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
     }
   };
 
-  const handleGenerateForecast = async () => {
-    if (!shop) {
-      setForecastMessage("Missing shop domain");
-      return;
-    }
-    if (!getApiBase()) return;
+  const handleForecast = async () => {
+    console.log("🔥 CLICKED");
 
     setForecastGenerating(true);
     setForecastMessage("");
@@ -415,36 +411,31 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
     setForecastEmpty(false);
 
     try {
-      const rawDays = Number(forecastDays);
-      if (!Number.isFinite(rawDays) || rawDays <= 0) {
-        setForecastDaysError("Number of days must be greater than 0");
-        return;
-      }
-      const numberOfDays = Math.floor(rawDays);
-      setForecastDaysError("");
-      const parsedMinimumValue = Number(minimumValue);
-      if (!Number.isFinite(parsedMinimumValue) || parsedMinimumValue < 0) {
-        setForecastMessage("Minimum Restock Value must be 0 or greater");
-        return;
-      }
-
+      const numberOfDays = Math.floor(Number(forecastDays));
       const API_URL = getApiBase();
+
+      console.log("STATE:", {
+        numberOfDays,
+        minimumValue,
+      });
+      console.log("🚀 CALLING API");
+
       const res = await fetchWithToken(
-        `${API_URL}/report?number_of_days=${numberOfDays}&minimum_value=${Math.floor(parsedMinimumValue)}`,
+        `${API_URL}/report?number_of_days=${numberOfDays}&minimum_value=${minimumValue}`,
         {
           method: "POST",
         }
       );
 
+      console.log("📡 RESPONSE STATUS:", res.status);
+
       if (!res.ok) {
         console.error("Forecast failed");
-        setForecastError("Something went wrong. Please try again.");
-        setForecastMessage("");
         return;
       }
 
       const payload = await res.json();
-      console.log("Forecast result:", payload);
+      console.log("📊 DATA:", payload);
 
       if (payload?.error === "NO_SALES_DATA") {
         setForecastData([]);
@@ -478,7 +469,7 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
         setForecastEmpty(false);
         setForecastError(error?.message || "Something went wrong. Please try again.");
         setForecastMessage("");
-        handleApiError(error, "Forecast generation failed.", handleGenerateForecast);
+        handleApiError(error, "Forecast generation failed.", handleForecast);
       }
     } finally {
       setForecastGenerating(false);
@@ -672,7 +663,7 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
                   shop={shop}
                   salesSynced={salesSynced}
                   noSalesDataAvailable={noSalesDataAvailable}
-                  handleGenerateForecast={handleGenerateForecast}
+                  handleGenerateForecast={handleForecast}
                   forecastMessage={forecastMessage}
                 />
               </>

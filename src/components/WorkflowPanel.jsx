@@ -168,12 +168,8 @@ const WorkflowPanel = ({
             <div className="mt-4 justify-self-start lg:mt-0 lg:border-t-0 lg:pt-0">
               <Button
                 className="!m-0 !flex !h-11 !w-[180px] !items-center !justify-center px-5 !rounded-lg !border-0 !bg-[#2F6FED] !text-white !shadow-none hover:!bg-[#1F5AE0]"
-                disabled={loading || !salesSynced}
-                onClick={
-                  loading || !salesSynced
-                    ? undefined
-                    : handleGenerateForecast
-                }
+                disabled={false}
+                onClick={handleGenerateForecast}
               >
                 {!forecastGenerating ? <Sparkles size={16} className="mr-2" /> : null}
                 {forecastGenerating ? "Generating..." : "Generate Forecast"}
