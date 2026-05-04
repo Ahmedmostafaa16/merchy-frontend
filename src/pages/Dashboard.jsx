@@ -13,8 +13,7 @@ import { apiClient, getApiBase } from "../lib/apiClient";
 import { fetchWithToken } from "../lib/authFetch";
 import "../styles/dashboard.css";
 
-// eslint-disable-next-line no-unused-vars
-const INVENTORY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const INVENTORY_CACHE_TTL_MS = 15 * 60 * 1000; // Temporary test value; restore to 24 * 60 * 60 * 1000 later.
 const KPI_CACHE_KEY = "kpi_cache";
 const PO_SELECTION_STORAGE_KEY = "po_builder_selected_items";
 const buildPoSelectionKey = (item) => `${item?.variant_id || ""}::${item?.sku || ""}::${item?.title || ""}::${item?.variant_title || item?.size || ""}`;
@@ -287,23 +286,21 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
   useEffect(() => {
     if (page !== "overview" || !shop || !getApiBase()) return;
 
-    // Temporarily bypass the 24h inventory cache guard for sync debugging.
-    // Restore this block after debugging:
-    // const cachedInventory = window.localStorage.getItem("inventory_cache");
-    // const cachedLastSync = window.localStorage.getItem("inventory_last_sync");
-    // const parsedLastSync = Number(cachedLastSync);
-    // const hasFreshInventoryCache = (
-    //   Boolean(cachedInventory) &&
-    //   Number.isFinite(parsedLastSync) &&
-    //   (Date.now() - parsedLastSync) < INVENTORY_CACHE_TTL_MS
-    // );
-    //
-    // if (hasFreshInventoryCache) {
-    //   setInventorySynced(true);
-    //   setInventoryStatus("synced");
-    //   window.sessionStorage.setItem("merchy_inventory_synced", "true");
-    //   return;
-    // }
+    const cachedInventory = window.localStorage.getItem("inventory_cache");
+    const cachedLastSync = window.localStorage.getItem("inventory_last_sync");
+    const parsedLastSync = Number(cachedLastSync);
+    const hasFreshInventoryCache = (
+      Boolean(cachedInventory) &&
+      Number.isFinite(parsedLastSync) &&
+      (Date.now() - parsedLastSync) < INVENTORY_CACHE_TTL_MS
+    );
+
+    if (hasFreshInventoryCache) {
+      setInventorySynced(true);
+      setInventoryStatus("synced");
+      window.sessionStorage.setItem("merchy_inventory_synced", "true");
+      return;
+    }
 
     let cancelled = false;
 
