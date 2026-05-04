@@ -6,6 +6,7 @@ import { apiClient } from "./lib/apiClient";
 import useBilling from "./hooks/useBilling";
 import InstallSuccess from "./pages/InstallSuccess";
 import MailNotifications from "./pages/MailNotifications";
+import Dashboard from "./pages/Dashboard";
 import Overview from "./pages/Overview";
 import POBuilder from "./pages/POBuilder";
 import PurchaseOrders from "./pages/PurchaseOrders";
@@ -346,7 +347,14 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<DefaultRedirect notifications={notificationsState} locationPreferences={locationPreferencesState} />} />
-          <Route path="/dashboard" element={<DefaultRedirect notifications={notificationsState} locationPreferences={locationPreferencesState} />} />
+          <Route
+            path="/dashboard"
+            element={(
+              <ProtectedRoute notifications={notificationsState} locationPreferences={locationPreferencesState}>
+                <Dashboard page="dashboard" settingsEmail={notificationsState.email} />
+              </ProtectedRoute>
+            )}
+          />
           <Route
             path="/overview"
             element={(

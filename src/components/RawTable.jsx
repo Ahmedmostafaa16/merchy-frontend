@@ -105,7 +105,7 @@ const RawTable = ({
               value={rawTableSearch}
               onChange={(event) => setRawTableSearch(event.target.value)}
               placeholder="Search title or SKU..."
-              className="dashboard-input h-10 min-w-[220px] rounded-xl px-3"
+              className="dashboard-input h-10 min-w-[220px] flex-1 rounded-xl px-3 sm:max-w-[360px]"
             />
             <select
               value={rawTableStatusFilter}
@@ -137,8 +137,8 @@ const RawTable = ({
               </Button>
             </div>
           </div>
-          <div className="max-h-[420px] overflow-y-auto rounded-xl border border-white/10">
-            <table className="w-full table-fixed text-left text-xs text-zinc-400 sm:text-sm">
+          <div className="max-h-[calc(100vh-220px)] overflow-auto rounded-xl border border-white/10">
+            <table className="min-w-[1120px] w-full table-fixed text-left text-xs text-zinc-400 sm:text-sm">
               <colgroup>
                 <col className="w-[5%]" />
                 <col className="w-[21%]" />

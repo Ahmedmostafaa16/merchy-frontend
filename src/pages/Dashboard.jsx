@@ -13,7 +13,7 @@ import { apiClient, getApiBase } from "../lib/apiClient";
 import { fetchWithToken } from "../lib/authFetch";
 import "../styles/dashboard.css";
 
-const INVENTORY_CACHE_TTL_MS = 15 * 60 * 1000; // Temporary test value; restore to 24 * 60 * 60 * 1000 later.
+const INVENTORY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const KPI_CACHE_KEY = "kpi_cache";
 const PO_SELECTION_STORAGE_KEY = "po_builder_selected_items";
 const buildPoSelectionKey = (item) => `${item?.variant_id || ""}::${item?.sku || ""}::${item?.title || ""}::${item?.variant_title || item?.size || ""}`;
@@ -614,9 +614,13 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
     return `${diffHours}h ago`;
   }, []);
 
+  const mainClassName = page === "replenish"
+    ? "w-full px-2 py-4 sm:px-3 lg:px-4"
+    : "mx-auto w-full max-w-[1320px] px-8 py-8 font-sans";
+
   return (
-    <div className={page === "overview" ? "dashboard-page min-h-screen" : "dashboard-page min-h-screen"}>
-      <main className={`mx-auto max-w-[1320px] ${page === "overview" ? "px-8 py-8 font-sans" : "px-4 py-6 sm:px-6"}`}>
+    <div className="dashboard-page min-h-screen">
+      <main className={mainClassName}>
         {globalError ? (
           <div className="mb-4 flex items-center justify-between rounded-xl border border-white/15 bg-[#2f1638]/60 px-4 py-3 text-sm text-[#f3d9ff]">
             <span>{globalError}</span>
@@ -628,10 +632,10 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
           </div>
         ) : null}
 
-        <div className={`grid ${page === "overview" ? "gap-6 lg:grid-cols-[240px_minmax(0,1fr)]" : "gap-6 lg:grid-cols-[220px_minmax(0,1fr)]"}`}>
+        <div className="flex items-start gap-5">
           <Sidebar page={page} settingsEmail={settingsEmail} />
 
-          <div className={page === "overview" ? "space-y-8" : "space-y-5"}>
+          <div className={`min-w-0 flex-1 ${page === "overview" ? "space-y-8" : "space-y-5"}`}>
             {page === "overview" ? (
               <>
                 <div className="w-full pt-2">
@@ -667,12 +671,12 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
                   forecastMessage={forecastMessage}
                 />
               </>
-            ) : (
+            ) : page === "dashboard" ? (
               <>
                 <div className="pt-4">
-                  <h1 className="text-3xl font-semibold tracking-tight text-white">Replenish</h1>
+                  <h1 className="text-3xl font-semibold tracking-tight text-white">Dashboard</h1>
                   <p className="mt-2 text-base text-zinc-400">
-                    Review KPI metrics and generated forecast rows at variant level.
+                    Monitor the latest inventory and sales KPI metrics for your store.
                   </p>
                 </div>
                 <KPICards
@@ -684,7 +688,16 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
                   unitsInStock={unitsInStock}
                   renderKpiValue={renderKpiValue}
                 />
-                <Card className="dashboard-panel p-6">
+              </>
+            ) : (
+              <>
+                <div className="pt-4">
+                  <h1 className="text-3xl font-semibold tracking-tight text-white">Replenish</h1>
+                  <p className="mt-2 text-base text-zinc-400">
+                    Review generated forecast rows at variant level.
+                  </p>
+                </div>
+                <Card className="dashboard-panel p-3 sm:p-4">
                   <RawTable
                     forecastGenerating={forecastGenerating || rawDataLoading}
                     forecastError={forecastError}
