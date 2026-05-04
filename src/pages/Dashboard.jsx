@@ -421,7 +421,7 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
       console.log("🚀 CALLING API");
 
       const res = await fetchWithToken(
-        `${API_URL}/report?number_of_days=${numberOfDays}&minimum_value=${minimumValue}`,
+        `${API_URL}/requests/report?number_of_days=${numberOfDays}&minimum_value=${minimumValue}`,
         {
           method: "POST",
         }
