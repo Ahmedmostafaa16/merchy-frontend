@@ -97,7 +97,7 @@ const WorkflowPanel = ({
               <div className="relative" ref={daysHelpRef}>
                 <div className="mb-2 flex items-center gap-2">
                   <label className="text-[13px] font-medium text-[#9CA3AF]">
-                    Forecast horizon (days)
+                    How many days you forecast for
                   </label>
                   <button
                     type="button"

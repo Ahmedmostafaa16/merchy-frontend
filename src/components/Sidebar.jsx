@@ -31,7 +31,7 @@ const Sidebar = ({ page = "", settingsEmail = "" }) => {
           <img
             src={logo}
             alt="Merchy"
-            className="h-14 w-auto object-contain"
+            className="h-28 w-auto object-contain"
           />
         ) : null}
         <button
@@ -48,10 +48,6 @@ const Sidebar = ({ page = "", settingsEmail = "" }) => {
       </div>
 
       <nav className="mt-4 flex flex-col gap-2">
-        <NavLink to={`/dashboard${search}`} className={linkClassName} title="Dashboard">
-          <BarChart3 size={18} />
-          {!collapsed ? <span>Dashboard</span> : null}
-        </NavLink>
         <NavLink to={`/overview${search}`} className={linkClassName} title="Overview">
           <LayoutDashboard size={18} />
           {!collapsed ? <span>Overview</span> : null}
@@ -59,6 +55,10 @@ const Sidebar = ({ page = "", settingsEmail = "" }) => {
         <NavLink to={`/replenish${search}`} className={linkClassName} title="Replenish">
           <Boxes size={18} />
           {!collapsed ? <span>Replenish</span> : null}
+        </NavLink>
+        <NavLink to={`/dashboard${search}`} className={linkClassName} title="Dashboard">
+          <BarChart3 size={18} />
+          {!collapsed ? <span>Dashboard</span> : null}
         </NavLink>
         <NavLink to={`/po${search}`} className={linkClassName} title="Purchase Orders">
           <ClipboardList size={18} />
