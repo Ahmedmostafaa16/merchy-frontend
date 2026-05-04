@@ -3,7 +3,7 @@ import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import logo from "../assets/logo.png";
 
-const Sidebar = ({ settingsEmail = "" }) => {
+const Sidebar = ({ page = "", settingsEmail = "" }) => {
   const location = useLocation();
   const search = location.search || "";
   const [collapsed, setCollapsed] = useState(false);
@@ -18,16 +18,20 @@ const Sidebar = ({ settingsEmail = "" }) => {
     }`
   );
 
+  const edgeFillClassName = page === "replenish"
+    ? "-ml-2 -mt-4 min-h-[calc(100vh+2rem)] sm:-ml-3 lg:-ml-4"
+    : "-ml-8 -mt-8 min-h-[calc(100vh+4rem)]";
+
   return (
-    <aside className={`dashboard-panel sticky top-0 flex min-h-screen flex-col border-r border-white/10 px-3 py-4 transition-[width,min-width] duration-300 ease-in-out ${
+    <aside className={`dashboard-panel sticky top-0 flex flex-col border-r border-white/10 px-3 py-4 transition-[width,min-width] duration-300 ease-in-out ${edgeFillClassName} ${
       collapsed ? "w-[60px] min-w-[60px]" : "w-[184px] min-w-[184px]"
     }`}>
-      <div className={`relative flex h-9 items-center ${collapsed ? "justify-center" : "justify-start"}`}>
+      <div className={`relative flex h-14 items-center ${collapsed ? "justify-center" : "justify-start"}`}>
         {!collapsed ? (
           <img
             src={logo}
             alt="Merchy"
-            className="h-7 w-auto object-contain"
+            className="h-14 w-auto object-contain"
           />
         ) : null}
         <button
@@ -43,7 +47,7 @@ const Sidebar = ({ settingsEmail = "" }) => {
         </button>
       </div>
 
-      <nav className="mt-5 flex flex-col gap-2">
+      <nav className="mt-4 flex flex-col gap-2">
         <NavLink to={`/dashboard${search}`} className={linkClassName} title="Dashboard">
           <BarChart3 size={18} />
           {!collapsed ? <span>Dashboard</span> : null}
