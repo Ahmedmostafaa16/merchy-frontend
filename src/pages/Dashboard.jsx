@@ -16,7 +16,7 @@ import "../styles/dashboard.css";
 const INVENTORY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const KPI_CACHE_KEY = "kpi_cache";
 const PO_SELECTION_STORAGE_KEY = "po_builder_selected_items";
-const buildPoSelectionKey = (item) => `${item?.variant_id || ""}::${item?.sku || ""}::${item?.title || ""}::${item?.variant_title || item?.size || ""}`;
+const buildPoSelectionKey = (item) => `${item?.variant_id || ""}::${item?.sku || ""}::${item?.title || ""}::${item?.variant_title || item?.variant || item?.size || ""}`;
 
 const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading = false, settingsEmail = "" }) => {
   const navigate = useNavigate();
@@ -28,6 +28,7 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
   const [avgSalesPerDay, setAvgSalesPerDay] = useState(null);
   const [inventoryValue, setInventoryValue] = useState(null);
   const [unitsInStock, setUnitsInStock] = useState(null);
+  const [hasCachedKpis, setHasCachedKpis] = useState(false);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [, setInventorySyncing] = useState(false);
@@ -66,6 +67,7 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
   const [selectedForecastItems, setSelectedForecastItems] = useState([]);
   const daysHelpRef = useRef(null);
   const canShowKpis = inventorySynced && salesSynced;
+  const canShowDashboardKpis = canShowKpis || hasCachedKpis;
   const noSalesDataAvailable = salesSynced && !loadingKpis && Number(avgSalesPerDay) === 0;
 
   const readKpiCache = useCallback((shopDomain) => {
@@ -205,6 +207,7 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
       setAvgSalesPerDay(extractMetricValue(avgSalesData));
       setInventoryValue(extractMetricValue(inventoryValueData));
       setUnitsInStock(extractMetricValue(unitsInStockData));
+      setHasCachedKpis(true);
       window.localStorage.setItem(KPI_CACHE_KEY, JSON.stringify({
         shop: shopDomain,
         metrics: {
@@ -245,7 +248,7 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
   }, [forecastData]);
 
   useEffect(() => {
-    if (!shop || !canShowKpis) {
+    if (!shop) {
       setLoadingKpis(false);
       return;
     }
@@ -256,9 +259,16 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
       setAvgSalesPerDay(cachedMetrics.avgSalesPerDay ?? null);
       setInventoryValue(cachedMetrics.inventoryValue ?? null);
       setUnitsInStock(cachedMetrics.unitsInStock ?? null);
+      setHasCachedKpis(true);
       setLoadingKpis(false);
       setKpiError("");
       return;
+    } else {
+      setHasCachedKpis(false);
+      if (!canShowKpis) {
+        setLoadingKpis(false);
+        return;
+      }
     }
 
     fetchDashboardMetrics(shop);
@@ -452,12 +462,12 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
       setForecastEmpty(rows.length === 0);
       window.localStorage.setItem("forecast_cache", JSON.stringify(rows));
       window.localStorage.setItem("forecast_last_generated", String(Date.now()));
-      window.localStorage.removeItem(KPI_CACHE_KEY);
 
       setForecastMessage(rows.length === 0 ? "" : "Forecast generated successfully.");
       clearGlobalError();
-      await fetchDashboardMetrics(shop);
+      const metricsRefresh = fetchDashboardMetrics(shop);
       navigate(`/replenish${location.search}`);
+      await metricsRefresh;
     } catch (error) {
       setForecastData([]);
       if (error?.isEmpty) {
@@ -526,8 +536,12 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
     variant_id: row?.variant_id ?? "",
     sku: String(row?.sku || ""),
     title: String(row?.title || ""),
-    variant_title: String(row?.variant_title || row?.size || ""),
-    size: String(row?.variant_title || row?.size || ""),
+    variant: String(row?.variant || row?.variant_title || row?.size || ""),
+    variant_title: String(row?.variant_title || row?.variant || row?.size || ""),
+    size: String(row?.variant_title || row?.variant || row?.size || ""),
+    inventory: row?.inventory ?? "",
+    sales_per_day: row?.sales_per_day ?? "",
+    coverage_days: row?.coverage_days ?? "",
     quantity: Number(row?.restock_amount) > 0 ? Number(row?.restock_amount) : 0,
   }), []);
 
@@ -680,7 +694,7 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
                   </p>
                 </div>
                 <KPICards
-                  canShowKpis={canShowKpis}
+                  canShowKpis={canShowDashboardKpis}
                   loadingKpis={loadingKpis}
                   totalSkus={totalSkus}
                   avgSalesPerDay={avgSalesPerDay}

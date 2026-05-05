@@ -8,7 +8,8 @@ import { apiClient } from "../lib/apiClient";
 import "../styles/dashboard.css";
 
 const PO_SELECTION_STORAGE_KEY = "po_builder_selected_items";
-const buildPoItemKey = (item) => `${item?.variant_id || ""}::${item?.sku || ""}::${item?.title || ""}::${item?.variant_title || item?.size || ""}`;
+const buildPoItemKey = (item) => `${item?.variant_id || ""}::${item?.sku || ""}::${item?.title || ""}::${item?.variant_title || item?.variant || item?.size || ""}`;
+const buildProductKey = (title) => String(title || "Untitled product");
 
 const normalizeSelectedItems = (items) => {
   if (!Array.isArray(items)) return [];
@@ -19,8 +20,12 @@ const normalizeSelectedItems = (items) => {
       sku: String(item.sku || ""),
       variant_id: item.variant_id ?? "",
       title: String(item.title || ""),
-      variant_title: String(item.variant_title || item.size || ""),
-      size: String(item.variant_title || item.size || ""),
+      variant: String(item.variant || item.variant_title || item.size || ""),
+      variant_title: String(item.variant_title || item.variant || item.size || ""),
+      size: String(item.variant_title || item.variant || item.size || ""),
+      inventory: item.inventory ?? "",
+      sales_per_day: item.sales_per_day ?? "",
+      coverage_days: item.coverage_days ?? "",
       quantity: String(Number(item.quantity) > 0 ? Number(item.quantity) : ""),
       unit_price: item.unit_price !== undefined && item.unit_price !== null ? String(item.unit_price) : "",
     }));
@@ -51,6 +56,7 @@ const POBuilder = ({ settingsEmail = "" }) => {
   const [supplierError, setSupplierError] = useState("");
   const [itemsError, setItemsError] = useState("");
   const [rowErrors, setRowErrors] = useState({});
+  const [leadTimesByProduct, setLeadTimesByProduct] = useState({});
   const [submitError, setSubmitError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [saving, setSaving] = useState(false);
@@ -81,6 +87,27 @@ const POBuilder = ({ settingsEmail = "" }) => {
     }, 0)
   ), [items]);
 
+  const groupedItems = useMemo(() => {
+    const groups = [];
+    const groupIndexByTitle = new Map();
+
+    items.forEach((item, index) => {
+      const productKey = buildProductKey(item.title);
+      if (!groupIndexByTitle.has(productKey)) {
+        groupIndexByTitle.set(productKey, groups.length);
+        groups.push({
+          productKey,
+          title: productKey,
+          items: [],
+        });
+      }
+
+      groups[groupIndexByTitle.get(productKey)].items.push({ item, index });
+    });
+
+    return groups;
+  }, [items]);
+
   const updateItemField = (index, field, value) => {
     setItems((currentItems) => currentItems.map((item, itemIndex) => (
       itemIndex === index ? { ...item, [field]: value } : item
@@ -98,6 +125,47 @@ const POBuilder = ({ settingsEmail = "" }) => {
       };
       return nextErrors;
     });
+  };
+
+  const updateProductLeadTime = (productKey, value) => {
+    setLeadTimesByProduct((currentLeadTimes) => ({
+      ...currentLeadTimes,
+      [productKey]: value,
+    }));
+    setSubmitError("");
+  };
+
+  const updateProductUnitPrice = (productKey, value) => {
+    setItems((currentItems) => currentItems.map((item) => (
+      buildProductKey(item.title) === productKey ? { ...item, unit_price: value } : item
+    )));
+
+    setItemsError("");
+    setSubmitError("");
+    setRowErrors((currentErrors) => {
+      const nextErrors = { ...currentErrors };
+      items.forEach((item) => {
+        if (buildProductKey(item.title) !== productKey) return;
+        const key = buildPoItemKey(item);
+        if (!nextErrors[key]) return;
+        nextErrors[key] = {
+          ...nextErrors[key],
+          unit_price: "",
+        };
+      });
+      return nextErrors;
+    });
+  };
+
+  const getCoverageStatus = (coverageDays, leadTime) => {
+    const normalizedCoverageDays = Number(coverageDays);
+    const normalizedLeadTime = Number(leadTime);
+
+    if (!Number.isFinite(normalizedCoverageDays) || !Number.isFinite(normalizedLeadTime) || normalizedLeadTime <= 0) {
+      return "ok";
+    }
+
+    return normalizedCoverageDays < normalizedLeadTime ? "risk" : "ok";
   };
 
   const validateForm = () => {
@@ -176,6 +244,7 @@ const POBuilder = ({ settingsEmail = "" }) => {
       setSupplierName("");
       setStatus("draft");
       setDueDate("");
+      setLeadTimesByProduct({});
       setSupplierError("");
       setItemsError("");
       setRowErrors({});
@@ -303,70 +372,119 @@ const POBuilder = ({ settingsEmail = "" }) => {
 
                 {itemsError ? <p className="mb-3 text-xs text-red-300">{itemsError}</p> : null}
 
-                <div className="max-h-[430px] overflow-y-auto overflow-x-auto rounded-xl border border-white/10">
-                  <table className="w-full min-w-[980px] text-left text-sm text-zinc-400">
-                    <thead className="bg-white/5">
-                      <tr>
-                        <th className="px-4 py-3 text-zinc-400">SKU</th>
-                        <th className="px-4 py-3 text-zinc-400">Title</th>
-                        <th className="px-4 py-3 text-zinc-400">Variant</th>
-                        <th className="px-4 py-3 text-zinc-400">Quantity</th>
-                        <th className="px-4 py-3 text-zinc-400">Unit Price</th>
-                        <th className="px-4 py-3 text-zinc-400">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {items.length === 0 ? (
-                        <tr>
-                          <td className="px-4 py-3 text-zinc-400" colSpan={6}>
-                            No forecast rows selected yet.
-                          </td>
-                        </tr>
-                      ) : (
-                        items.map((item, index) => {
-                          const itemKey = buildPoItemKey(item);
-                          const quantityError = rowErrors[itemKey]?.quantity;
-                          const unitPriceError = rowErrors[itemKey]?.unit_price;
-                          const quantity = Number(item.quantity);
-                          const unitPrice = Number(item.unit_price);
-                          const total = (Number.isFinite(quantity) ? quantity : 0) * (Number.isFinite(unitPrice) ? unitPrice : 0);
+                {items.length === 0 ? (
+                  <div className="rounded-xl border border-white/10 px-4 py-3 text-sm text-zinc-400">
+                    No forecast rows selected yet.
+                  </div>
+                ) : (
+                  <div className="max-h-[560px] space-y-4 overflow-y-auto pr-1">
+                    {groupedItems.map((group) => {
+                      const leadTime = leadTimesByProduct[group.productKey] ?? "";
+                      const productUnitPrice = group.items[0]?.item?.unit_price ?? "";
 
-                          return (
-                            <tr key={itemKey} className="border-t border-white/10 text-zinc-400">
-                              <td className="px-4 py-3 text-zinc-400">{item.sku || "-"}</td>
-                              <td className="px-4 py-3 text-zinc-400">{item.title || "-"}</td>
-                              <td className="px-4 py-3 text-zinc-400">{item.variant_title || item.size || "-"}</td>
-                              <td className="px-4 py-3 align-top">
+                      return (
+                        <div key={group.productKey} className="overflow-hidden rounded-xl border border-white/10 bg-[#07111f]/40">
+                          <div className="flex flex-wrap items-end justify-between gap-4 border-b border-white/10 bg-white/5 px-4 py-4">
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7aaef0]">Product</p>
+                              <h3 className="mt-1 break-words text-base font-semibold text-white">{group.title}</h3>
+                            </div>
+                            <div className="grid w-full gap-3 sm:w-auto sm:grid-cols-2">
+                              <div className="flex flex-col gap-1.5">
+                                <label className="text-xs font-medium text-[#9CA3AF]">Lead Time</label>
                                 <input
                                   type="number"
-                                  min="1"
-                                  value={item.quantity}
-                                  onChange={(event) => updateItemField(index, "quantity", event.target.value)}
-                                  className="dashboard-input h-10 w-full min-w-[110px] rounded-lg px-3 text-sm"
+                                  min="0"
+                                  value={leadTime}
+                                  onChange={(event) => updateProductLeadTime(group.productKey, event.target.value)}
+                                  className="dashboard-input h-10 w-full rounded-lg px-3 text-sm sm:w-32"
+                                  placeholder="Days"
                                 />
-                                {quantityError ? <p className="mt-2 text-xs text-red-300">{quantityError}</p> : null}
-                              </td>
-                              <td className="px-4 py-3 align-top">
+                              </div>
+                              <div className="flex flex-col gap-1.5">
+                                <label className="text-xs font-medium text-[#9CA3AF]">Unit Price</label>
                                 <input
                                   type="number"
                                   min="0"
                                   step="0.01"
-                                  value={item.unit_price}
-                                  onChange={(event) => updateItemField(index, "unit_price", event.target.value)}
-                                  className="dashboard-input h-10 w-full min-w-[130px] rounded-lg px-3 text-sm"
+                                  value={productUnitPrice}
+                                  onChange={(event) => updateProductUnitPrice(group.productKey, event.target.value)}
+                                  className="dashboard-input h-10 w-full rounded-lg px-3 text-sm sm:w-36"
+                                  placeholder="EGP"
                                 />
-                                {unitPriceError ? <p className="mt-2 text-xs text-red-300">{unitPriceError}</p> : null}
-                              </td>
-                              <td className="px-4 py-3 text-zinc-200">
-                                EGP {total.toFixed(2)}
-                              </td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="overflow-x-auto">
+                            <table className="w-full min-w-[920px] text-left text-sm text-zinc-400">
+                              <thead className="bg-[#050b14]/60">
+                                <tr>
+                                  <th className="px-4 py-3 text-zinc-400">SKU</th>
+                                  <th className="px-4 py-3 text-zinc-400">Variant</th>
+                                  <th className="px-4 py-3 text-zinc-400">Inventory</th>
+                                  <th className="px-4 py-3 text-zinc-400">Sales/Day</th>
+                                  <th className="px-4 py-3 text-zinc-400">Quantity</th>
+                                  <th className="px-4 py-3 text-zinc-400">Coverage Days</th>
+                                  <th className="px-4 py-3 text-zinc-400">Status</th>
+                                  <th className="px-4 py-3 text-zinc-400">Total</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {group.items.map(({ item, index }) => {
+                                  const itemKey = buildPoItemKey(item);
+                                  const quantityError = rowErrors[itemKey]?.quantity;
+                                  const unitPriceError = rowErrors[itemKey]?.unit_price;
+                                  const quantity = Number(item.quantity);
+                                  const unitPrice = Number(item.unit_price);
+                                  const total = (Number.isFinite(quantity) ? quantity : 0) * (Number.isFinite(unitPrice) ? unitPrice : 0);
+                                  const coverageStatus = getCoverageStatus(item.coverage_days, leadTime);
+                                  const isRisk = coverageStatus === "risk";
+
+                                  return (
+                                    <tr
+                                      key={itemKey}
+                                      className={`border-t border-white/10 text-zinc-400 ${isRisk ? "bg-red-500/10" : ""}`}
+                                    >
+                                      <td className="px-4 py-3 text-zinc-400">{item.sku || "-"}</td>
+                                      <td className="px-4 py-3 text-zinc-400">{item.variant_title || item.variant || item.size || "-"}</td>
+                                      <td className="px-4 py-3 text-zinc-400">{item.inventory || item.inventory === 0 ? item.inventory : "-"}</td>
+                                      <td className="px-4 py-3 text-zinc-400">{item.sales_per_day || item.sales_per_day === 0 ? item.sales_per_day : "-"}</td>
+                                      <td className="px-4 py-3 align-top">
+                                        <input
+                                          type="number"
+                                          min="1"
+                                          value={item.quantity}
+                                          onChange={(event) => updateItemField(index, "quantity", event.target.value)}
+                                          className="dashboard-input h-10 w-full min-w-[110px] rounded-lg px-3 text-sm"
+                                        />
+                                        {quantityError ? <p className="mt-2 text-xs text-red-300">{quantityError}</p> : null}
+                                        {unitPriceError ? <p className="mt-2 text-xs text-red-300">{unitPriceError}</p> : null}
+                                      </td>
+                                      <td className="px-4 py-3 text-zinc-200">{item.coverage_days || item.coverage_days === 0 ? item.coverage_days : "-"}</td>
+                                      <td className="px-4 py-3">
+                                        <span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ${
+                                          isRisk
+                                            ? "border border-red-500/40 bg-red-500/20 text-red-300"
+                                            : "border border-emerald-500/40 bg-emerald-500/15 text-emerald-300"
+                                        }`}>
+                                          {isRisk ? "Understock risk" : "OK"}
+                                        </span>
+                                      </td>
+                                      <td className="px-4 py-3 text-zinc-200">
+                                        EGP {total.toFixed(2)}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
 
                 <div className="mt-5 flex flex-wrap items-center justify-end gap-3">
                   <Button
