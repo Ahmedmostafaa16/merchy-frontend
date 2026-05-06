@@ -1,6 +1,5 @@
 import { useState } from "react";
 import Button from "./ui/Button";
-import EmptyState from "./ui/EmptyState";
 import Skeleton from "./ui/Skeleton";
 
 const RawTable = ({
@@ -48,7 +47,7 @@ const RawTable = ({
     "inline-flex items-center gap-1.5 text-zinc-400 transition-colors hover:text-white";
 
   const getRowSelectionKey = (row) => (
-    `${row?.variant_id || ""}::${row?.sku || ""}::${row?.title || ""}::${row?.variant_title || row?.size || ""}`
+    `${row?.variant_id || ""}::${row?.sku || ""}::${row?.title || ""}::${row?.variant_title || row?.variant || row?.size || ""}`
   );
 
   if (forecastGenerating) {
@@ -66,12 +65,6 @@ const RawTable = ({
       <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
         {forecastError}
       </div>
-    );
-  }
-
-  if (forecastEmpty || filteredRawTableRows.length === 0) {
-    return (
-      <EmptyState />
     );
   }
 
@@ -100,13 +93,25 @@ const RawTable = ({
     <div className="mt-0">
       <>
           <div className="mb-3 flex flex-wrap items-center gap-2">
-            <input
-              type="text"
-              value={rawTableSearch}
-              onChange={(event) => setRawTableSearch(event.target.value)}
-              placeholder="Search title or SKU..."
-              className="dashboard-input h-10 min-w-[220px] flex-1 rounded-xl px-3 sm:max-w-[360px]"
-            />
+            <div className="relative min-w-[220px] flex-1 sm:max-w-[360px]">
+              <input
+                type="text"
+                value={rawTableSearch}
+                onChange={(event) => setRawTableSearch(event.target.value)}
+                placeholder="Search title, SKU, or variant..."
+                className="dashboard-input h-10 w-full rounded-xl px-3 pr-10"
+              />
+              {rawTableSearch ? (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  onClick={() => setRawTableSearch("")}
+                  className="absolute right-2 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-sm text-zinc-400 transition-colors hover:bg-white/10 hover:text-white"
+                >
+                  x
+                </button>
+              ) : null}
+            </div>
             <select
               value={rawTableStatusFilter}
               onChange={(event) => setRawTableStatusFilter(event.target.value)}
@@ -136,6 +141,9 @@ const RawTable = ({
                 Create PO
               </Button>
             </div>
+            <span className="text-xs font-medium text-zinc-400">
+              {filteredRawTableRows.length} {filteredRawTableRows.length === 1 ? "result" : "results"}
+            </span>
           </div>
           <div className="max-h-[calc(100vh-220px)] overflow-auto rounded-xl border border-white/10">
             <table className="min-w-[1120px] w-full table-fixed text-left text-xs text-zinc-400 sm:text-sm">
@@ -232,30 +240,43 @@ const RawTable = ({
                 </tr>
               </thead>
               <tbody>
-                {sortedData.map((row, index) => (
-                  <tr key={`raw-${row?.variant_id || index}`} className="border-t border-white/10 text-zinc-400">
-                    <td className="px-2 py-3 text-zinc-400">
-                      <input
-                        type="checkbox"
-                        checked={selectedRawItemKeys.has(getRowSelectionKey(row))}
-                        onChange={() => handleToggleRawRow(row)}
-                        className="h-4 w-4 rounded border border-white/20 bg-transparent accent-[#2F6FED]"
-                      />
+                {sortedData.length === 0 ? (
+                  <tr className="border-t border-white/10">
+                    <td colSpan={9} className="px-4 py-12 text-center">
+                      <p className="text-sm font-medium text-white">
+                        {forecastEmpty ? "No data yet" : "No matching SKUs or products found"}
+                      </p>
+                      <p className="mt-1 text-xs text-zinc-400">
+                        {forecastEmpty ? "Generate a forecast to populate this table" : "Try another keyword or clear filters"}
+                      </p>
                     </td>
-                    <td className="truncate px-2 py-3 text-zinc-400" title={row?.title || ""}>{row?.title || "-"}</td>
-                    <td className="truncate px-2 py-3 text-zinc-400" title={row?.variant_title || ""}>{row?.variant_title || "-"}</td>
-                    <td className="truncate px-2 py-3 text-zinc-400" title={row?.sku || ""}>{row?.sku || "-"}</td>
-                    <td className="px-2 py-3 text-zinc-400">{row?.inventory ?? "-"}</td>
-                    <td className="px-2 py-3 text-zinc-400">{formatCoverageDays(row?.coverage_days)}</td>
-                    <td className="px-2 py-3 text-zinc-400">{row?.sales_per_day ?? "-"}</td>
-                    <td className="px-2 py-3">
-                      <span className={`inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] leading-none ${getRawStatusClasses(row?.status)}`}>
-                        {row?.status || "-"}
-                      </span>
-                    </td>
-                    <td className="px-2 py-3 text-zinc-400">{row?.restock_amount ?? "-"}</td>
                   </tr>
-                ))}
+                ) : (
+                  sortedData.map((row, index) => (
+                    <tr key={`raw-${row?.variant_id || index}`} className="border-t border-white/10 text-zinc-400">
+                      <td className="px-2 py-3 text-zinc-400">
+                        <input
+                          type="checkbox"
+                          checked={selectedRawItemKeys.has(getRowSelectionKey(row))}
+                          onChange={() => handleToggleRawRow(row)}
+                          className="h-4 w-4 rounded border border-white/20 bg-transparent accent-[#2F6FED]"
+                        />
+                      </td>
+                      <td className="truncate px-2 py-3 text-zinc-400" title={row?.title || ""}>{row?.title || "-"}</td>
+                      <td className="truncate px-2 py-3 text-zinc-400" title={row?.variant_title || row?.variant || ""}>{row?.variant_title || row?.variant || "-"}</td>
+                      <td className="truncate px-2 py-3 text-zinc-400" title={row?.sku || ""}>{row?.sku || "-"}</td>
+                      <td className="px-2 py-3 text-zinc-400">{row?.inventory ?? "-"}</td>
+                      <td className="px-2 py-3 text-zinc-400">{formatCoverageDays(row?.coverage_days)}</td>
+                      <td className="px-2 py-3 text-zinc-400">{row?.sales_per_day ?? "-"}</td>
+                      <td className="px-2 py-3">
+                        <span className={`inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] leading-none ${getRawStatusClasses(row?.status)}`}>
+                          {row?.status || "-"}
+                        </span>
+                      </td>
+                      <td className="px-2 py-3 text-zinc-400">{row?.restock_amount ?? "-"}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

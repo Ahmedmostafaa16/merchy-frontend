@@ -9,6 +9,8 @@ import MailNotifications from "./pages/MailNotifications";
 import Dashboard from "./pages/Dashboard";
 import Overview from "./pages/Overview";
 import POBuilder from "./pages/POBuilder";
+import POEdit from "./pages/POEdit";
+import POView from "./pages/POView";
 import PurchaseOrders from "./pages/PurchaseOrders";
 import RawData from "./pages/RawData";
 import { getAppBridge, getHostParam, getShopParam, redirectToRemote } from "./shopify/appBridge";
@@ -399,6 +401,22 @@ function App() {
             element={(
               <ProtectedRoute notifications={notificationsState} locationPreferences={locationPreferencesState}>
                 <POBuilder settingsEmail={notificationsState.email} />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/po/:poId"
+            element={(
+              <ProtectedRoute notifications={notificationsState} locationPreferences={locationPreferencesState}>
+                <POView settingsEmail={notificationsState.email} />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/po/:poId/edit"
+            element={(
+              <ProtectedRoute notifications={notificationsState} locationPreferences={locationPreferencesState}>
+                <POEdit settingsEmail={notificationsState.email} />
               </ProtectedRoute>
             )}
           />

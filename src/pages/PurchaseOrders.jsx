@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { ClipboardList, Trash2 } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import { ClipboardList, Eye, Pencil, Trash2 } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
@@ -72,6 +72,7 @@ const writePoCache = (cacheKey, data) => {
 
 const PurchaseOrders = ({ settingsEmail = "" }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const fetchGuardRef = useRef("");
   const [pos, setPos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -194,11 +195,11 @@ const PurchaseOrders = ({ settingsEmail = "" }) => {
 
   return (
     <div className="dashboard-page min-h-screen">
-      <main className="mx-auto max-w-[1320px] px-8 py-8 font-sans">
-        <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
+      <main className="w-full px-8 py-8 font-sans">
+        <div className="flex w-full items-start gap-6">
           <Sidebar settingsEmail={settingsEmail} />
 
-          <div className="space-y-6">
+          <div className="min-w-0 flex-1 space-y-6">
             <div className="flex flex-col gap-6 pt-2">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
@@ -232,7 +233,7 @@ const PurchaseOrders = ({ settingsEmail = "" }) => {
               </div>
             ) : null}
 
-            <Card className="dashboard-panel p-6">
+            <Card className="dashboard-panel w-full p-6">
               <div className="flex items-center gap-3">
                 <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[#197FE6] text-white">
                   <ClipboardList size={18} />
@@ -259,8 +260,17 @@ const PurchaseOrders = ({ settingsEmail = "" }) => {
               ) : null}
 
               {!loading && !error && !empty ? (
-              <div className="mt-6 max-h-[620px] overflow-y-auto overflow-x-auto rounded-xl border border-white/10">
-                <table className="w-full min-w-[1080px] text-left text-sm text-zinc-400">
+              <div className="mt-6 max-h-[620px] w-full overflow-y-auto overflow-x-auto rounded-xl border border-white/10">
+                <table className="w-full min-w-[1180px] table-fixed text-left text-sm text-zinc-400">
+                  <colgroup>
+                    <col className="w-[10%]" />
+                    <col className="w-[22%]" />
+                    <col className="w-[12%]" />
+                    <col className="w-[13%]" />
+                    <col className="w-[13%]" />
+                    <col className="w-[13%]" />
+                    <col className="w-[17%]" />
+                  </colgroup>
                   <thead className="bg-white/5">
                     <tr>
                       <th className="px-4 py-3 text-zinc-400">PO ID</th>
@@ -278,8 +288,8 @@ const PurchaseOrders = ({ settingsEmail = "" }) => {
                       const currentStatus = String(po?.status || "draft");
                       return (
                         <tr key={poId} className="border-t border-white/10 text-zinc-400">
-                          <td className="px-4 py-4 text-zinc-200">{poId ? poId.slice(0, 6) : "-"}</td>
-                          <td className="px-4 py-4">{po?.supplier_name || po?.supplierName || "-"}</td>
+                          <td className="truncate px-4 py-4 text-zinc-200" title={poId}>{poId ? poId.slice(0, 8) : "-"}</td>
+                          <td className="truncate px-4 py-4" title={po?.supplier_name || po?.supplierName || ""}>{po?.supplier_name || po?.supplierName || "-"}</td>
                           <td className="px-4 py-4">
                             <span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-semibold ${statusBadgeClasses[currentStatus] || statusBadgeClasses.draft}`}>
                               {currentStatus}
@@ -291,12 +301,30 @@ const PurchaseOrders = ({ settingsEmail = "" }) => {
                           <td className="px-4 py-4">{formatDate(po?.due_date || po?.dueDate)}</td>
                           <td className="px-4 py-4">{formatDate(po?.created_at || po?.createdAt)}</td>
                           <td className="px-4 py-4">
-                            <div className="flex flex-wrap items-center gap-3">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Button
+                                variant="secondary"
+                                className="!h-9 !w-auto px-3 text-xs"
+                                onClick={() => navigate(`/po/${encodeURIComponent(poId)}${location.search}`)}
+                              >
+                                <Eye size={14} className="mr-2" />
+                                View
+                              </Button>
+
+                              <Button
+                                variant="secondary"
+                                className="!h-9 !w-auto px-3 text-xs"
+                                onClick={() => navigate(`/po/${encodeURIComponent(poId)}/edit${location.search}`)}
+                              >
+                                <Pencil size={14} className="mr-2" />
+                                Edit
+                              </Button>
+
                               <select
                                 value={currentStatus}
                                 onChange={(event) => handleStatusChange(poId, event.target.value)}
                                 disabled={updatingStatusId === poId}
-                                className="dashboard-input h-9 min-w-[148px] rounded-lg px-3 text-xs"
+                                className="dashboard-input h-9 min-w-[132px] rounded-lg px-3 text-xs"
                               >
                                 {statusOptions.map((status) => (
                                   <option key={status} value={status}>{status}</option>

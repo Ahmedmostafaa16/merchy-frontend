@@ -501,13 +501,21 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
   }, [normalizeStatusValue]);
 
   const filteredRawTableRows = useMemo(() => {
-    const search = rawTableSearch.trim().toLowerCase();
+    const searchTerms = rawTableSearch
+      .toLowerCase()
+      .split(/[,|]/)
+      .map((term) => term.trim())
+      .filter(Boolean);
+
     return forecastData.filter((row) => {
       const title = String(row?.title || "").toLowerCase();
-      const variantTitle = String(row?.variant_title || row?.size || "").toLowerCase();
+      const variant = String(row?.variant || row?.variant_title || row?.size || "").toLowerCase();
       const sku = String(row?.sku || "").toLowerCase();
       const status = normalizeStatusValue(row?.status);
-      const matchesSearch = !search || title.includes(search) || variantTitle.includes(search) || sku.includes(search);
+      const matchesSearch = (
+        searchTerms.length === 0 ||
+        searchTerms.some((term) => title.includes(term) || sku.includes(term) || variant.includes(term))
+      );
       const matchesStatus = rawTableStatusFilter === "all" || status === rawTableStatusFilter;
       return matchesSearch && matchesStatus;
     });
