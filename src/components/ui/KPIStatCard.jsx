@@ -1,11 +1,15 @@
 import Card from "./Card";
 import Skeleton from "./Skeleton";
 
-const KPIStatCard = ({ label, icon: Icon }) => {
+const KPIStatCard = ({ label, icon: Icon, iconClassName = "bg-sky-100 text-sky-600" }) => {
   return (
     <Card className="p-4">
-      <p className="inline-flex items-center gap-1.5 text-xs font-medium text-[#94a2ca]">
-        {Icon ? <Icon size={16} strokeWidth={1.5} color="rgba(255,255,255,0.7)" /> : null}
+      <p className="inline-flex items-center gap-2 text-xs font-medium text-[#6B7280]">
+        {Icon ? (
+          <span className={`inline-flex h-7 w-7 items-center justify-center rounded-lg ${iconClassName}`}>
+            <Icon size={15} strokeWidth={1.8} />
+          </span>
+        ) : null}
         <span>{label}</span>
       </p>
       <Skeleton className="mt-3 h-7 w-24" />

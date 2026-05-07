@@ -234,7 +234,7 @@ const POEdit = ({ settingsEmail = "" }) => {
                       <label className="mb-2 block text-[13px] font-medium text-[#9CA3AF]">Total Cost</label>
                       <input
                         type="text"
-                        value={`${currency} ${totalCost.toFixed(2)}`}
+                        value={`$${totalCost.toFixed(2)}`}
                         readOnly
                         className="dashboard-input h-11 w-full rounded-lg px-3 text-sm opacity-80"
                       />
@@ -288,7 +288,7 @@ const POEdit = ({ settingsEmail = "" }) => {
                                   className="dashboard-input h-10 w-full min-w-[130px] rounded-lg px-3 text-sm"
                                 />
                               </td>
-                              <td className="px-4 py-3 text-zinc-200">{currency} {total.toFixed(2)}</td>
+                              <td className="px-4 py-3 text-zinc-200">${total.toFixed(2)}</td>
                             </tr>
                           );
                         })}

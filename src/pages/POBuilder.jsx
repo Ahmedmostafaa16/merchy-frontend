@@ -366,7 +366,7 @@ const POBuilder = ({ settingsEmail = "" }) => {
                     </p>
                   </div>
                   <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-zinc-300">
-                    Total Cost: EGP {totalCost.toFixed(2)}
+                    Total Cost: ${totalCost.toFixed(2)}
                   </div>
                 </div>
 
@@ -410,7 +410,7 @@ const POBuilder = ({ settingsEmail = "" }) => {
                                   value={productUnitPrice}
                                   onChange={(event) => updateProductUnitPrice(group.productKey, event.target.value)}
                                   className="dashboard-input h-10 w-full rounded-lg px-3 text-sm sm:w-36"
-                                  placeholder="EGP"
+                                  placeholder="$"
                                 />
                               </div>
                             </div>
@@ -472,7 +472,7 @@ const POBuilder = ({ settingsEmail = "" }) => {
                                         </span>
                                       </td>
                                       <td className="px-4 py-3 text-zinc-200">
-                                        EGP {total.toFixed(2)}
+                                        ${total.toFixed(2)}
                                       </td>
                                     </tr>
                                   );

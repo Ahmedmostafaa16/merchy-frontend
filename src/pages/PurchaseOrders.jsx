@@ -21,15 +21,14 @@ const statusBadgeClasses = {
   delayed: "border-[#FECACA] bg-[#FEE2E2] text-[#DC2626]",
 };
 
-const formatCurrency = (value, currency = "EGP") => {
+const formatCurrency = (value) => {
   const numericValue = Number(value);
   if (!Number.isFinite(numericValue)) return "-";
 
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
+  return `$${numericValue.toLocaleString("en-US", {
     maximumFractionDigits: 2,
-  }).format(numericValue);
+    minimumFractionDigits: 2,
+  })}`;
 };
 
 const formatDate = (value) => {
@@ -41,17 +40,6 @@ const formatDate = (value) => {
     month: "short",
     day: "numeric",
   });
-};
-
-const isOverdueDate = (value) => {
-  if (!value) return false;
-  const dueDate = new Date(value);
-  if (Number.isNaN(dueDate.getTime())) return false;
-
-  const today = new Date();
-  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const dueDay = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
-  return dueDay < startOfToday;
 };
 
 const buildPoCacheKey = (shopDomain, statusFilter) => `po_cache::${shopDomain || "unknown"}::${statusFilter || "all"}`;
@@ -254,15 +242,15 @@ const PurchaseOrders = ({ settingsEmail = "" }) => {
                   </p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="relative min-w-[240px]">
+                <div className="flex w-full flex-wrap items-end gap-2 rounded-xl border border-[#E5E7EB] bg-white p-2 md:w-auto">
+                  <div className="relative min-w-[260px] flex-1 md:w-[300px] md:flex-none">
                     <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
                     <input
                       type="text"
                       value={searchQuery}
                       onChange={(event) => setSearchQuery(event.target.value)}
                       placeholder="Search PO..."
-                      className="dashboard-input h-10 w-full rounded-lg pl-9 pr-9 text-sm"
+                      className="dashboard-input h-9 w-full rounded-lg pl-9 pr-9 text-sm"
                     />
                     {searchQuery ? (
                       <button
@@ -275,17 +263,19 @@ const PurchaseOrders = ({ settingsEmail = "" }) => {
                       </button>
                     ) : null}
                   </div>
-                  <label className="text-sm text-zinc-400" htmlFor="po-status-filter">Filter</label>
-                  <select
-                    id="po-status-filter"
-                    value={selectedStatusFilter}
-                    onChange={(event) => setSelectedStatusFilter(event.target.value)}
-                    className="dashboard-input h-10 min-w-[150px] rounded-lg px-3 text-sm"
-                  >
-                    {statusFilterOptions.map((option) => (
-                      <option key={option} value={option}>{option === "all" ? "All" : option}</option>
-                    ))}
-                  </select>
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-medium text-[#6B7280]" htmlFor="po-status-filter">Status</label>
+                    <select
+                      id="po-status-filter"
+                      value={selectedStatusFilter}
+                      onChange={(event) => setSelectedStatusFilter(event.target.value)}
+                      className="dashboard-input h-9 min-w-[140px] rounded-lg px-3 text-sm"
+                    >
+                      {statusFilterOptions.map((option) => (
+                        <option key={option} value={option}>{option === "all" ? "All" : option}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
@@ -379,7 +369,6 @@ const PurchaseOrders = ({ settingsEmail = "" }) => {
                       const poId = String(po?.id || "");
                       const currentStatus = String(po?.status || "draft");
                       const dueDate = po?.due_date || po?.dueDate;
-                      const overdue = isOverdueDate(dueDate);
                       return (
                         <tr key={poId} className="border-t border-white/10 text-zinc-400 hover:bg-white/[0.03]">
                           <td className="px-3 py-2.5">
@@ -391,23 +380,14 @@ const PurchaseOrders = ({ settingsEmail = "" }) => {
                             </div>
                           </td>
                           <td className="px-3 py-2.5 text-zinc-200">
-                            {formatCurrency(po?.total_cost ?? po?.totalCost, po?.currency || "EGP")}
+                            {formatCurrency(po?.total_cost ?? po?.totalCost)}
                           </td>
                           <td className="px-3 py-2.5">
                             <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold leading-4 ${statusBadgeClasses[currentStatus] || statusBadgeClasses.draft}`}>
                               {currentStatus}
                             </span>
                           </td>
-                          <td className="px-3 py-2.5">
-                            <div className={overdue ? "font-medium text-red-300" : "text-zinc-300"}>
-                              {formatDate(dueDate)}
-                            </div>
-                            {overdue ? (
-                              <span className="mt-1 inline-flex rounded-full border border-red-500/40 bg-red-500/15 px-2 py-0.5 text-[10px] font-semibold leading-4 text-red-300">
-                                Overdue
-                              </span>
-                            ) : null}
-                          </td>
+                          <td className="px-3 py-2.5">{formatDate(dueDate)}</td>
                           <td className="px-3 py-2.5">{formatDate(po?.created_at || po?.createdAt)}</td>
                           <td className="px-3 py-2.5">
                             <div className="flex items-center gap-1.5 whitespace-nowrap">

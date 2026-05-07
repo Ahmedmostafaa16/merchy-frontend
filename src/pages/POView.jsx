@@ -7,15 +7,14 @@ import Button from "../components/ui/Button";
 import { apiClient } from "../lib/apiClient";
 import "../styles/dashboard.css";
 
-const formatCurrency = (value, currency = "EGP") => {
+const formatCurrency = (value) => {
   const numericValue = Number(value);
   if (!Number.isFinite(numericValue)) return "-";
 
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
+  return `$${numericValue.toLocaleString("en-US", {
     maximumFractionDigits: 2,
-  }).format(numericValue);
+    minimumFractionDigits: 2,
+  })}`;
 };
 
 const formatDate = (value) => {
@@ -78,7 +77,6 @@ const POView = ({ settingsEmail = "" }) => {
   const items = useMemo(() => (
     Array.isArray(po?.items) ? po.items : []
   ), [po?.items]);
-  const currency = po?.currency || "EGP";
   const computedTotal = useMemo(() => (
     items.reduce((sum, item) => sum + (Number(item?.total_price ?? item?.totalPrice) || 0), 0)
   ), [items]);
@@ -149,7 +147,7 @@ const POView = ({ settingsEmail = "" }) => {
                   </div>
                   <div>
                     <p className="text-xs uppercase tracking-[0.14em] text-zinc-500">Total</p>
-                    <p className="mt-2 text-sm font-medium text-white">{formatCurrency(total, currency)}</p>
+                    <p className="mt-2 text-sm font-medium text-white">{formatCurrency(total)}</p>
                   </div>
                 </div>
 
@@ -170,8 +168,8 @@ const POView = ({ settingsEmail = "" }) => {
                           <td className="px-4 py-3">{item?.sku || "-"}</td>
                           <td className="px-4 py-3 text-zinc-200">{item?.title || "-"}</td>
                           <td className="px-4 py-3">{item?.quantity ?? "-"}</td>
-                          <td className="px-4 py-3">{formatCurrency(item?.unit_price, currency)}</td>
-                          <td className="px-4 py-3 text-zinc-200">{formatCurrency(item?.total_price, currency)}</td>
+                          <td className="px-4 py-3">{formatCurrency(item?.unit_price)}</td>
+                          <td className="px-4 py-3 text-zinc-200">{formatCurrency(item?.total_price)}</td>
                         </tr>
                       ))}
                     </tbody>
