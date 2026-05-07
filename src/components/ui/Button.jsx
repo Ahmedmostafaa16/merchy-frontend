@@ -1,10 +1,10 @@
 const stylesByVariant = {
   primary:
-    "border-[#6A329F] bg-gradient-to-b from-[#6A329F] to-[#522081] text-white shadow-[0_0_0_1px_rgba(106,50,159,0.25),0_8px_24px_rgba(106,50,159,0.25)] hover:from-[#601F9E] hover:to-[#522081] active:from-[#522081] active:to-[#522081] focus-visible:ring-[rgba(106,50,159,0.35)]",
+    "border-[#7DD3FC] bg-[#7DD3FC] text-[#111827] shadow-none hover:border-[#38BDF8] hover:bg-[#38BDF8] active:bg-[#0EA5E9] focus-visible:ring-[rgba(56,189,248,0.3)]",
   secondary:
-    "border-[#24335e] bg-[#121c3a] text-[#dbe4ff] hover:bg-[#18264d] focus-visible:ring-[rgba(106,50,159,0.35)]",
+    "border-[#D1D5DB] bg-white text-[#111827] shadow-none hover:bg-[#F9FAFB] focus-visible:ring-[rgba(56,189,248,0.3)]",
   disabled:
-    "cursor-not-allowed border-[#1f2b4f] bg-[#151e37] text-[#5e6b93]",
+    "cursor-not-allowed border-[#E5E7EB] bg-[#F3F4F6] text-[#9CA3AF]",
 };
 
 const Button = ({

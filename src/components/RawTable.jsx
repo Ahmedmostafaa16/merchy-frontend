@@ -44,7 +44,7 @@ const RawTable = ({
   };
 
   const sortableHeaderClassName =
-    "inline-flex items-center gap-1.5 text-zinc-400 transition-colors hover:text-white";
+    "inline-flex items-center gap-1.5 text-[#6B7280] transition-colors hover:text-[#111827]";
 
   const getRowSelectionKey = (row) => (
     `${row?.variant_id || ""}::${row?.sku || ""}::${row?.title || ""}::${row?.variant_title || row?.variant || row?.size || ""}`
@@ -99,14 +99,14 @@ const RawTable = ({
                 value={rawTableSearch}
                 onChange={(event) => setRawTableSearch(event.target.value)}
                 placeholder="Search title, SKU, or variant..."
-                className="dashboard-input h-10 w-full rounded-xl px-3 pr-10"
+                className="dashboard-input h-9 w-full rounded-lg px-3 pr-10"
               />
               {rawTableSearch ? (
                 <button
                   type="button"
                   aria-label="Clear search"
                   onClick={() => setRawTableSearch("")}
-                  className="absolute right-2 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-sm text-zinc-400 transition-colors hover:bg-white/10 hover:text-white"
+                  className="absolute right-2 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-sm text-[#6B7280] transition-colors hover:bg-[#F3F4F6] hover:text-[#111827]"
                 >
                   x
                 </button>
@@ -115,7 +115,7 @@ const RawTable = ({
             <select
               value={rawTableStatusFilter}
               onChange={(event) => setRawTableStatusFilter(event.target.value)}
-              className="dashboard-input h-10 rounded-xl px-3"
+              className="dashboard-input h-9 rounded-lg px-3"
             >
               <option value="all">All Status</option>
               <option value="fastmoving">fast moving</option>
@@ -126,7 +126,7 @@ const RawTable = ({
             </select>
             <Button
               variant="secondary"
-              className="!h-10 !w-auto px-4"
+              className="!h-9 !w-auto rounded-lg px-3"
               disabled={filteredRawTableRows.length === 0}
               onClick={handleExportRawTableCsv}
             >
@@ -134,7 +134,7 @@ const RawTable = ({
             </Button>
             <div className="ml-auto">
               <Button
-                className="!h-10 !w-auto px-4"
+                className="!h-9 !w-auto rounded-lg px-3"
                 disabled={selectedRawItemCount === 0}
                 onClick={handleCreatePo}
               >
@@ -145,8 +145,8 @@ const RawTable = ({
               {filteredRawTableRows.length} {filteredRawTableRows.length === 1 ? "result" : "results"}
             </span>
           </div>
-          <div className="max-h-[calc(100vh-220px)] overflow-auto rounded-xl border border-white/10">
-            <table className="min-w-[1120px] w-full table-fixed text-left text-xs text-zinc-400 sm:text-sm">
+          <div className="max-h-[calc(100vh-220px)] overflow-auto rounded-xl border border-[#E5E7EB] bg-white">
+            <table className="min-w-[1120px] w-full table-fixed text-left text-sm text-[#374151]">
               <colgroup>
                 <col className="w-[5%]" />
                 <col className="w-[21%]" />
@@ -158,7 +158,7 @@ const RawTable = ({
                 <col className="w-[10%]" />
                 <col className="w-[7%]" />
               </colgroup>
-              <thead className="bg-white/5">
+              <thead className="bg-[#F9FAFB]">
                 <tr>
                   <th className="px-2 py-3 text-zinc-400">
                     <input
@@ -241,9 +241,9 @@ const RawTable = ({
               </thead>
               <tbody>
                 {sortedData.length === 0 ? (
-                  <tr className="border-t border-white/10">
+                  <tr className="border-t border-[#E5E7EB]">
                     <td colSpan={9} className="px-4 py-12 text-center">
-                      <p className="text-sm font-medium text-white">
+                      <p className="text-sm font-medium text-[#111827]">
                         {forecastEmpty ? "No data yet" : "No matching SKUs or products found"}
                       </p>
                       <p className="mt-1 text-xs text-zinc-400">
@@ -253,13 +253,13 @@ const RawTable = ({
                   </tr>
                 ) : (
                   sortedData.map((row, index) => (
-                    <tr key={`raw-${row?.variant_id || index}`} className="border-t border-white/10 text-zinc-400">
+                    <tr key={`raw-${row?.variant_id || index}`} className="border-t border-[#E5E7EB] text-[#374151] hover:bg-[#F9FAFB]">
                       <td className="px-2 py-3 text-zinc-400">
                         <input
                           type="checkbox"
                           checked={selectedRawItemKeys.has(getRowSelectionKey(row))}
                           onChange={() => handleToggleRawRow(row)}
-                          className="h-4 w-4 rounded border border-white/20 bg-transparent accent-[#2F6FED]"
+                          className="h-4 w-4 rounded border border-[#D1D5DB] bg-white accent-[#38BDF8]"
                         />
                       </td>
                       <td className="truncate px-2 py-3 text-zinc-400" title={row?.title || ""}>{row?.title || "-"}</td>
@@ -269,7 +269,7 @@ const RawTable = ({
                       <td className="px-2 py-3 text-zinc-400">{formatCoverageDays(row?.coverage_days)}</td>
                       <td className="px-2 py-3 text-zinc-400">{row?.sales_per_day ?? "-"}</td>
                       <td className="px-2 py-3">
-                        <span className={`inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] leading-none ${getRawStatusClasses(row?.status)}`}>
+                        <span className={`inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium leading-4 ${getRawStatusClasses(row?.status)}`}>
                           {row?.status || "-"}
                         </span>
                       </td>

@@ -492,12 +492,12 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
 
   const getRawStatusClasses = useCallback((status) => {
     const normalized = normalizeStatusValue(status);
-    if (normalized === "fastmoving") return "bg-green-500/20 text-green-400 border border-green-500/40";
-    if (normalized === "moderate") return "bg-yellow-500/20 text-yellow-300 border border-yellow-500/40";
-    if (normalized === "slowmoving") return "bg-zinc-500/20 text-zinc-300 border border-zinc-500/40";
-    if (normalized === "neversold") return "bg-[#111827] text-zinc-400 border border-zinc-700";
-    if (normalized === "stockout") return "bg-red-500/20 text-red-400 border border-red-500/40";
-    return "bg-zinc-500/20 text-zinc-300 border border-zinc-500/40";
+    if (normalized === "fastmoving") return "bg-[#DCFCE7] text-[#16A34A] border border-[#BBF7D0]";
+    if (normalized === "moderate") return "bg-[#FEF3C7] text-[#D97706] border border-[#FDE68A]";
+    if (normalized === "slowmoving") return "bg-[#F3F4F6] text-[#6B7280] border border-[#E5E7EB]";
+    if (normalized === "neversold") return "bg-[#F3F4F6] text-[#6B7280] border border-[#E5E7EB]";
+    if (normalized === "stockout") return "bg-[#FEE2E2] text-[#DC2626] border border-[#FECACA]";
+    return "bg-[#F3F4F6] text-[#6B7280] border border-[#E5E7EB]";
   }, [normalizeStatusValue]);
 
   const filteredRawTableRows = useMemo(() => {

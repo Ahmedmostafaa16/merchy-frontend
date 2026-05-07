@@ -13,12 +13,12 @@ const statusFilterOptions = ["all", "draft", "ordered", "received", "delayed", "
 const PO_CACHE_TTL_MS = 5 * 60 * 1000;
 
 const statusBadgeClasses = {
-  draft: "border-zinc-500/40 bg-zinc-500/15 text-zinc-300",
-  confirmed: "border-blue-500/40 bg-blue-500/15 text-blue-300",
-  ordered: "border-orange-500/40 bg-orange-500/15 text-orange-300",
-  received: "border-emerald-500/40 bg-emerald-500/15 text-emerald-300",
-  delivered: "border-emerald-500/40 bg-emerald-500/15 text-emerald-300",
-  delayed: "border-red-500/40 bg-red-500/15 text-red-300",
+  draft: "border-[#E5E7EB] bg-[#F3F4F6] text-[#6B7280]",
+  confirmed: "border-[#BFDBFE] bg-[#DBEAFE] text-[#2563EB]",
+  ordered: "border-[#BFDBFE] bg-[#DBEAFE] text-[#2563EB]",
+  received: "border-[#BBF7D0] bg-[#DCFCE7] text-[#16A34A]",
+  delivered: "border-[#BBF7D0] bg-[#DCFCE7] text-[#16A34A]",
+  delayed: "border-[#FECACA] bg-[#FEE2E2] text-[#DC2626]",
 };
 
 const formatCurrency = (value, currency = "EGP") => {
@@ -415,7 +415,7 @@ const PurchaseOrders = ({ settingsEmail = "" }) => {
                                 type="button"
                                 aria-label="View purchase order"
                                 title="View"
-                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#24335e] bg-[#121c3a] text-zinc-200 transition hover:bg-[#18264d] hover:text-white"
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#D1D5DB] bg-white text-[#374151] transition hover:bg-[#F9FAFB]"
                                 onClick={() => navigate(`/po/${encodeURIComponent(poId)}${location.search}`)}
                               >
                                 <Eye size={14} />
@@ -425,7 +425,7 @@ const PurchaseOrders = ({ settingsEmail = "" }) => {
                                 type="button"
                                 aria-label="Edit purchase order"
                                 title="Edit"
-                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#24335e] bg-[#121c3a] text-zinc-200 transition hover:bg-[#18264d] hover:text-white"
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#D1D5DB] bg-white text-[#374151] transition hover:bg-[#F9FAFB]"
                                 onClick={() => navigate(`/po/${encodeURIComponent(poId)}/edit${location.search}`)}
                               >
                                 <Pencil size={14} />
@@ -437,7 +437,7 @@ const PurchaseOrders = ({ settingsEmail = "" }) => {
                                 title="Delete"
                                 disabled={deletingId === poId}
                                 onClick={() => setPendingDeleteId(poId)}
-                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-500/30 bg-red-500/10 text-red-300 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#FECACA] bg-[#FEE2E2] text-[#DC2626] transition hover:bg-[#FECACA] disabled:cursor-not-allowed disabled:opacity-60"
                               >
                                 <Trash2 size={14} />
                               </button>

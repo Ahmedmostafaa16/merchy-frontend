@@ -1,27 +1,33 @@
 :root {
-  --dashboard-bg: radial-gradient(circle at 20% 0%, #122554 0%, #0b1531 36%, #081126 72%, #060c1d 100%);
-  --panel-border: #23345f;
-  --panel-bg: linear-gradient(180deg, rgba(13, 24, 52, 0.94) 0%, rgba(8, 15, 35, 0.94) 100%);
-  --text-primary: #f3f6ff;
-  --text-secondary: #9aa8cc;
-  --text-muted: #8f9ec7;
-  --text-muted-2: #7f8db3;
-  --text-meta: #8b99c1;
-  --text-meta-strong: #b4c2e8;
-  --purple-500: #6a329f;
-  --purple-500-35: rgba(106, 50, 159, 0.35);
+  --dashboard-bg: #f8fafc;
+  --panel-border: #e5e7eb;
+  --panel-bg: #ffffff;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-muted: #6b7280;
+  --text-muted-2: #9ca3af;
+  --text-meta: #6b7280;
+  --text-meta-strong: #374151;
+  --accent-500: #38bdf8;
+  --accent-300: #7dd3fc;
+  --accent-ring: rgba(56, 189, 248, 0.25);
 }
 
 .dashboard-page {
   background: var(--dashboard-bg);
+  color: var(--text-primary);
 }
 
-.dashboard-panel {
+.dashboard-panel:not(aside) {
   border-color: var(--panel-border) !important;
   background: var(--panel-bg) !important;
-  box-shadow:
-    0 12px 36px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  box-shadow: none !important;
+}
+
+aside.dashboard-panel {
+  border-color: #23345f !important;
+  background: linear-gradient(180deg, rgba(13, 24, 52, 0.96) 0%, rgba(8, 15, 35, 0.96) 100%) !important;
+  box-shadow: none !important;
 }
 
 .panel-title {
@@ -59,16 +65,16 @@
 }
 
 .dashboard-input {
-  border: 1px solid #2a3861;
-  background: #101a36;
-  color: #e2e9ff;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #111827;
   font-size: 13px;
   outline: none;
 }
 
 .dashboard-input:focus {
-  border-color: var(--purple-500);
-  box-shadow: 0 0 0 2px var(--purple-500-35);
+  border-color: var(--accent-500);
+  box-shadow: 0 0 0 2px var(--accent-ring);
 }
 
 .panel-meta {
@@ -87,13 +93,13 @@
 }
 
 .scope-radio {
-  border: 1px solid #3a4671;
-  background: #0f1833;
-  color: var(--purple-500);
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: var(--accent-500);
 }
 
 .scope-radio:focus {
-  box-shadow: 0 0 0 2px var(--purple-500-35);
+  box-shadow: 0 0 0 2px var(--accent-ring);
 }
 
 .kpi-label {
@@ -116,13 +122,86 @@
 }
 
 .chart-placeholder {
-  border: 2px dashed #2c3e6e;
-  background: #0e1733;
+  border: 1px dashed #d1d5db;
+  background: #f9fafb;
 }
 
 .chart-accent {
-  background: linear-gradient(90deg, transparent 0%, var(--purple-500) 50%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, var(--accent-500) 50%, transparent 100%);
   opacity: 0.8;
+}
+
+.dashboard-page main > div > div:not(:first-child) h1,
+.dashboard-page main > div > div:not(:first-child) h2,
+.dashboard-page main > div > div:not(:first-child) h3,
+.dashboard-page main > div > div:not(:first-child) .text-white,
+.dashboard-page main > div > div:not(:first-child) .text-zinc-200 {
+  color: #111827 !important;
+}
+
+.dashboard-page main > div > div:not(:first-child) h1 {
+  font-size: 24px !important;
+  line-height: 1.2 !important;
+  font-weight: 600 !important;
+}
+
+.dashboard-page main > div > div:not(:first-child) .text-zinc-300,
+.dashboard-page main > div > div:not(:first-child) .text-zinc-400,
+.dashboard-page main > div > div:not(:first-child) .text-zinc-500 {
+  color: #6b7280 !important;
+}
+
+.dashboard-page main > div > div:not(:first-child) .border-white\/10,
+.dashboard-page main > div > div:not(:first-child) .border-white\/15 {
+  border-color: #e5e7eb !important;
+}
+
+.dashboard-page main > div > div:not(:first-child) .bg-white\/5,
+.dashboard-page main > div > div:not(:first-child) .bg-white\/\[0\.04\] {
+  background-color: #f9fafb !important;
+}
+
+.dashboard-page main > div > div:not(:first-child) [class*="bg-[#07111f]"],
+.dashboard-page main > div > div:not(:first-child) [class*="bg-[#050b14]"],
+.dashboard-page main > div > div:not(:first-child) [class*="bg-[#0f1528]"],
+.dashboard-page main > div > div:not(:first-child) [class*="bg-[#0d1834]"] {
+  background: #ffffff !important;
+}
+
+.dashboard-page main > div > div:not(:first-child) [class*="shadow-"] {
+  box-shadow: none !important;
+}
+
+.dashboard-page main > div > div:not(:first-child) table {
+  width: 100%;
+  color: #374151 !important;
+  font-size: 14px !important;
+}
+
+.dashboard-page main > div > div:not(:first-child) thead {
+  background: #f9fafb !important;
+}
+
+.dashboard-page main > div > div:not(:first-child) th {
+  padding: 10px 12px !important;
+  color: #6b7280 !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  vertical-align: middle !important;
+}
+
+.dashboard-page main > div > div:not(:first-child) td {
+  padding: 10px 12px !important;
+  color: #374151 !important;
+  vertical-align: middle !important;
+}
+
+.dashboard-page main > div > div:not(:first-child) tbody tr {
+  border-color: #e5e7eb !important;
+}
+
+.dashboard-page main > div > div:not(:first-child) tbody tr:hover {
+  background: #f9fafb !important;
 }
 
 @media (max-width: 768px) {

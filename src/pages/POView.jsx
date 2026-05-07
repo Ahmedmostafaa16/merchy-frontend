@@ -30,10 +30,12 @@ const formatDate = (value) => {
 };
 
 const statusBadgeClasses = {
-  draft: "bg-zinc-500/20 text-zinc-300 border border-zinc-500/40",
-  confirmed: "bg-blue-500/20 text-blue-300 border border-blue-500/40",
-  ordered: "bg-orange-500/20 text-orange-300 border border-orange-500/40",
-  delivered: "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40",
+  draft: "bg-[#F3F4F6] text-[#6B7280] border border-[#E5E7EB]",
+  confirmed: "bg-[#DBEAFE] text-[#2563EB] border border-[#BFDBFE]",
+  ordered: "bg-[#DBEAFE] text-[#2563EB] border border-[#BFDBFE]",
+  received: "bg-[#DCFCE7] text-[#16A34A] border border-[#BBF7D0]",
+  delivered: "bg-[#DCFCE7] text-[#16A34A] border border-[#BBF7D0]",
+  delayed: "bg-[#FEE2E2] text-[#DC2626] border border-[#FECACA]",
 };
 
 const POView = ({ settingsEmail = "" }) => {
