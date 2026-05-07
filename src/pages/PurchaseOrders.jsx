@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { ClipboardList, Eye, Pencil, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ClipboardList, Eye, Pencil, Search, Trash2, X } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Card from "../components/ui/Card";
@@ -9,13 +9,16 @@ import { apiClient } from "../lib/apiClient";
 import "../styles/dashboard.css";
 
 const statusOptions = ["draft", "confirmed", "ordered", "delivered"];
+const statusFilterOptions = ["all", "draft", "ordered", "received", "delayed", "confirmed", "delivered"];
 const PO_CACHE_TTL_MS = 5 * 60 * 1000;
 
 const statusBadgeClasses = {
-  draft: "bg-zinc-500/20 text-zinc-300 border border-zinc-500/40",
-  confirmed: "bg-blue-500/20 text-blue-300 border border-blue-500/40",
-  ordered: "bg-orange-500/20 text-orange-300 border border-orange-500/40",
-  delivered: "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40",
+  draft: "border-zinc-500/40 bg-zinc-500/15 text-zinc-300",
+  confirmed: "border-blue-500/40 bg-blue-500/15 text-blue-300",
+  ordered: "border-orange-500/40 bg-orange-500/15 text-orange-300",
+  received: "border-emerald-500/40 bg-emerald-500/15 text-emerald-300",
+  delivered: "border-emerald-500/40 bg-emerald-500/15 text-emerald-300",
+  delayed: "border-red-500/40 bg-red-500/15 text-red-300",
 };
 
 const formatCurrency = (value, currency = "EGP") => {
@@ -38,6 +41,17 @@ const formatDate = (value) => {
     month: "short",
     day: "numeric",
   });
+};
+
+const isOverdueDate = (value) => {
+  if (!value) return false;
+  const dueDate = new Date(value);
+  if (Number.isNaN(dueDate.getTime())) return false;
+
+  const today = new Date();
+  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const dueDay = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+  return dueDay < startOfToday;
 };
 
 const buildPoCacheKey = (shopDomain, statusFilter) => `po_cache::${shopDomain || "unknown"}::${statusFilter || "all"}`;
@@ -77,6 +91,7 @@ const PurchaseOrders = ({ settingsEmail = "" }) => {
   const [pos, setPos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedStatusFilter, setSelectedStatusFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState("");
   const [empty, setEmpty] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState(null);
@@ -86,8 +101,8 @@ const PurchaseOrders = ({ settingsEmail = "" }) => {
 
   useEffect(() => {
     let ignore = false;
-    const cacheKey = buildPoCacheKey(shopDomain, selectedStatusFilter);
-    const requestKey = `${shopDomain}::${selectedStatusFilter}`;
+    const cacheKey = buildPoCacheKey(shopDomain, "all");
+    const requestKey = `${shopDomain}::all`;
 
     if (fetchGuardRef.current === requestKey) {
       return () => {
@@ -112,8 +127,7 @@ const PurchaseOrders = ({ settingsEmail = "" }) => {
       setError("");
 
       try {
-        const query = selectedStatusFilter === "all" ? undefined : { status: selectedStatusFilter };
-        const payload = await apiClient.get("/po", { query });
+        const payload = await apiClient.get("/po");
         if (ignore) return;
         const rows = Array.isArray(payload) ? payload : [];
         setPos(rows);
@@ -142,7 +156,38 @@ const PurchaseOrders = ({ settingsEmail = "" }) => {
     return () => {
       ignore = true;
     };
-  }, [selectedStatusFilter, shopDomain]);
+  }, [shopDomain]);
+
+  const filteredPos = useMemo(() => {
+    const search = searchQuery.trim().toLowerCase();
+
+    return pos.filter((po) => {
+      const poId = String(po?.id || "").toLowerCase();
+      const supplier = String(po?.supplier_name || po?.supplierName || "").toLowerCase();
+      const status = String(po?.status || "draft").toLowerCase();
+      const matchesSearch = !search || poId.includes(search) || supplier.includes(search) || status.includes(search);
+      const matchesStatus = selectedStatusFilter === "all" || status === selectedStatusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [pos, searchQuery, selectedStatusFilter]);
+
+  const poMetrics = useMemo(() => (
+    pos.reduce((metrics, po) => {
+      const status = String(po?.status || "draft").toLowerCase();
+      const totalCost = Number(po?.total_cost ?? po?.totalCost);
+
+      metrics.total += 1;
+      if (status === "draft") metrics.draft += 1;
+      if (status === "ordered") metrics.ordered += 1;
+      if (Number.isFinite(totalCost)) metrics.totalSpend += totalCost;
+      return metrics;
+    }, {
+      total: 0,
+      draft: 0,
+      ordered: 0,
+      totalSpend: 0,
+    })
+  ), [pos]);
 
   const handleStatusChange = async (poId, nextStatus) => {
     const currentPo = pos.find((po) => po?.id === poId);
@@ -155,7 +200,7 @@ const PurchaseOrders = ({ settingsEmail = "" }) => {
     setError("");
     setUpdatingStatusId(poId);
     setPos(nextPos);
-    writePoCache(buildPoCacheKey(shopDomain, selectedStatusFilter), nextPos);
+    writePoCache(buildPoCacheKey(shopDomain, "all"), nextPos);
 
     try {
       await apiClient.patch(`/po/${encodeURIComponent(poId)}/status`, {
@@ -166,7 +211,7 @@ const PurchaseOrders = ({ settingsEmail = "" }) => {
         po?.id === poId ? { ...po, status: previousStatus } : po
       ));
       setPos(revertedPos);
-      writePoCache(buildPoCacheKey(shopDomain, selectedStatusFilter), revertedPos);
+      writePoCache(buildPoCacheKey(shopDomain, "all"), revertedPos);
       setError(requestError?.message || "Unable to update purchase order status.");
     } finally {
       setUpdatingStatusId("");
@@ -184,7 +229,7 @@ const PurchaseOrders = ({ settingsEmail = "" }) => {
     try {
       await apiClient.delete(`/po/${encodeURIComponent(poId)}`);
       setPos(nextPos);
-      writePoCache(buildPoCacheKey(shopDomain, selectedStatusFilter), nextPos);
+      writePoCache(buildPoCacheKey(shopDomain, "all"), nextPos);
       setPendingDeleteId(null);
     } catch (requestError) {
       setError(requestError?.message || "Unable to delete purchase order.");
@@ -200,7 +245,7 @@ const PurchaseOrders = ({ settingsEmail = "" }) => {
           <Sidebar settingsEmail={settingsEmail} />
 
           <div className="min-w-0 flex-1 space-y-6">
-            <div className="flex flex-col gap-6 pt-2">
+            <div className="flex flex-col gap-5 pt-2">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <h1 className="text-[30px] font-bold leading-tight text-white">Purchase Orders</h1>
@@ -209,19 +254,37 @@ const PurchaseOrders = ({ settingsEmail = "" }) => {
                   </p>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="relative min-w-[240px]">
+                    <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(event) => setSearchQuery(event.target.value)}
+                      placeholder="Search PO..."
+                      className="dashboard-input h-10 w-full rounded-lg pl-9 pr-9 text-sm"
+                    />
+                    {searchQuery ? (
+                      <button
+                        type="button"
+                        aria-label="Clear search"
+                        onClick={() => setSearchQuery("")}
+                        className="absolute right-2 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-zinc-400 transition-colors hover:bg-white/10 hover:text-white"
+                      >
+                        <X size={14} />
+                      </button>
+                    ) : null}
+                  </div>
                   <label className="text-sm text-zinc-400" htmlFor="po-status-filter">Filter</label>
                   <select
                     id="po-status-filter"
                     value={selectedStatusFilter}
                     onChange={(event) => setSelectedStatusFilter(event.target.value)}
-                    className="dashboard-input h-11 min-w-[180px] rounded-lg px-3 text-sm"
+                    className="dashboard-input h-10 min-w-[150px] rounded-lg px-3 text-sm"
                   >
-                    <option value="all">All</option>
-                    <option value="draft">draft</option>
-                    <option value="confirmed">confirmed</option>
-                    <option value="ordered">ordered</option>
-                    <option value="delivered">delivered</option>
+                    {statusFilterOptions.map((option) => (
+                      <option key={option} value={option}>{option === "all" ? "All" : option}</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -233,12 +296,36 @@ const PurchaseOrders = ({ settingsEmail = "" }) => {
               </div>
             ) : null}
 
-            <Card className="dashboard-panel w-full p-6">
-              <div className="flex items-center gap-3">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-lg border border-white/10 bg-white/[0.04] px-4 py-3">
+                <p className="text-xs uppercase tracking-[0.12em] text-zinc-500">Total POs</p>
+                <p className="mt-1 text-xl font-semibold text-white">{poMetrics.total}</p>
+              </div>
+              <div className="rounded-lg border border-white/10 bg-white/[0.04] px-4 py-3">
+                <p className="text-xs uppercase tracking-[0.12em] text-zinc-500">Draft</p>
+                <p className="mt-1 text-xl font-semibold text-white">{poMetrics.draft}</p>
+              </div>
+              <div className="rounded-lg border border-white/10 bg-white/[0.04] px-4 py-3">
+                <p className="text-xs uppercase tracking-[0.12em] text-zinc-500">Ordered</p>
+                <p className="mt-1 text-xl font-semibold text-white">{poMetrics.ordered}</p>
+              </div>
+              <div className="rounded-lg border border-white/10 bg-white/[0.04] px-4 py-3">
+                <p className="text-xs uppercase tracking-[0.12em] text-zinc-500">Total Spend</p>
+                <p className="mt-1 text-xl font-semibold text-white">{formatCurrency(poMetrics.totalSpend)}</p>
+              </div>
+            </div>
+
+            <Card className="dashboard-panel w-full p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
                 <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[#197FE6] text-white">
                   <ClipboardList size={18} />
                 </span>
                 <h2 className="text-lg font-semibold text-white">PO Dashboard</h2>
+                </div>
+                <span className="text-xs font-medium text-zinc-400">
+                  {filteredPos.length} {filteredPos.length === 1 ? "result" : "results"}
+                </span>
               </div>
 
               {loading ? (
@@ -260,86 +347,111 @@ const PurchaseOrders = ({ settingsEmail = "" }) => {
               ) : null}
 
               {!loading && !error && !empty ? (
-              <div className="mt-6 max-h-[620px] w-full overflow-y-auto overflow-x-auto rounded-xl border border-white/10">
-                <table className="w-full min-w-[1180px] table-fixed text-left text-sm text-zinc-400">
+              <div className="mt-4 max-h-[680px] w-full overflow-y-auto overflow-x-auto rounded-xl border border-white/10">
+                <table className="w-full min-w-[1040px] table-fixed text-left text-xs text-zinc-400">
                   <colgroup>
-                    <col className="w-[10%]" />
-                    <col className="w-[22%]" />
-                    <col className="w-[12%]" />
-                    <col className="w-[13%]" />
-                    <col className="w-[13%]" />
-                    <col className="w-[13%]" />
-                    <col className="w-[17%]" />
+                    <col className="w-[24%]" />
+                    <col className="w-[14%]" />
+                    <col className="w-[11%]" />
+                    <col className="w-[16%]" />
+                    <col className="w-[15%]" />
+                    <col className="w-[20%]" />
                   </colgroup>
                   <thead className="bg-white/5">
                     <tr>
-                      <th className="px-4 py-3 text-zinc-400">PO ID</th>
-                      <th className="px-4 py-3 text-zinc-400">Supplier Name</th>
-                      <th className="px-4 py-3 text-zinc-400">Status</th>
-                      <th className="px-4 py-3 text-zinc-400">Total Cost</th>
-                      <th className="px-4 py-3 text-zinc-400">Due Date</th>
-                      <th className="px-4 py-3 text-zinc-400">Created At</th>
-                      <th className="px-4 py-3 text-zinc-400">Actions</th>
+                      <th className="px-3 py-2.5 text-zinc-400">Supplier</th>
+                      <th className="px-3 py-2.5 text-zinc-400">Total Cost</th>
+                      <th className="px-3 py-2.5 text-zinc-400">Status</th>
+                      <th className="px-3 py-2.5 text-zinc-400">Due Date</th>
+                      <th className="px-3 py-2.5 text-zinc-400">Created At</th>
+                      <th className="px-3 py-2.5 text-zinc-400">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {pos.map((po) => {
+                    {filteredPos.length === 0 ? (
+                      <tr className="border-t border-white/10">
+                        <td colSpan={6} className="px-4 py-10 text-center">
+                          <p className="text-sm font-medium text-white">No matching purchase orders found</p>
+                          <p className="mt-1 text-xs text-zinc-400">Try another supplier, PO id, or status.</p>
+                        </td>
+                      </tr>
+                    ) : filteredPos.map((po) => {
                       const poId = String(po?.id || "");
                       const currentStatus = String(po?.status || "draft");
+                      const dueDate = po?.due_date || po?.dueDate;
+                      const overdue = isOverdueDate(dueDate);
                       return (
-                        <tr key={poId} className="border-t border-white/10 text-zinc-400">
-                          <td className="truncate px-4 py-4 text-zinc-200" title={poId}>{poId ? poId.slice(0, 8) : "-"}</td>
-                          <td className="truncate px-4 py-4" title={po?.supplier_name || po?.supplierName || ""}>{po?.supplier_name || po?.supplierName || "-"}</td>
-                          <td className="px-4 py-4">
-                            <span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-semibold ${statusBadgeClasses[currentStatus] || statusBadgeClasses.draft}`}>
+                        <tr key={poId} className="border-t border-white/10 text-zinc-400 hover:bg-white/[0.03]">
+                          <td className="px-3 py-2.5">
+                            <div className="truncate text-sm font-medium text-zinc-200" title={po?.supplier_name || po?.supplierName || ""}>
+                              {po?.supplier_name || po?.supplierName || "-"}
+                            </div>
+                            <div className="mt-0.5 truncate text-[11px] text-zinc-500" title={poId}>
+                              {poId ? `#${poId.slice(0, 8)}` : "-"}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2.5 text-zinc-200">
+                            {formatCurrency(po?.total_cost ?? po?.totalCost, po?.currency || "EGP")}
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold leading-4 ${statusBadgeClasses[currentStatus] || statusBadgeClasses.draft}`}>
                               {currentStatus}
                             </span>
                           </td>
-                          <td className="px-4 py-4">
-                            {formatCurrency(po?.total_cost ?? po?.totalCost, po?.currency || "EGP")}
+                          <td className="px-3 py-2.5">
+                            <div className={overdue ? "font-medium text-red-300" : "text-zinc-300"}>
+                              {formatDate(dueDate)}
+                            </div>
+                            {overdue ? (
+                              <span className="mt-1 inline-flex rounded-full border border-red-500/40 bg-red-500/15 px-2 py-0.5 text-[10px] font-semibold leading-4 text-red-300">
+                                Overdue
+                              </span>
+                            ) : null}
                           </td>
-                          <td className="px-4 py-4">{formatDate(po?.due_date || po?.dueDate)}</td>
-                          <td className="px-4 py-4">{formatDate(po?.created_at || po?.createdAt)}</td>
-                          <td className="px-4 py-4">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Button
-                                variant="secondary"
-                                className="!h-9 !w-auto px-3 text-xs"
+                          <td className="px-3 py-2.5">{formatDate(po?.created_at || po?.createdAt)}</td>
+                          <td className="px-3 py-2.5">
+                            <div className="flex items-center gap-1.5 whitespace-nowrap">
+                              <button
+                                type="button"
+                                aria-label="View purchase order"
+                                title="View"
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#24335e] bg-[#121c3a] text-zinc-200 transition hover:bg-[#18264d] hover:text-white"
                                 onClick={() => navigate(`/po/${encodeURIComponent(poId)}${location.search}`)}
                               >
-                                <Eye size={14} className="mr-2" />
-                                View
-                              </Button>
+                                <Eye size={14} />
+                              </button>
 
-                              <Button
-                                variant="secondary"
-                                className="!h-9 !w-auto px-3 text-xs"
+                              <button
+                                type="button"
+                                aria-label="Edit purchase order"
+                                title="Edit"
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#24335e] bg-[#121c3a] text-zinc-200 transition hover:bg-[#18264d] hover:text-white"
                                 onClick={() => navigate(`/po/${encodeURIComponent(poId)}/edit${location.search}`)}
                               >
-                                <Pencil size={14} className="mr-2" />
-                                Edit
-                              </Button>
+                                <Pencil size={14} />
+                              </button>
+
+                              <button
+                                type="button"
+                                aria-label="Delete purchase order"
+                                title="Delete"
+                                disabled={deletingId === poId}
+                                onClick={() => setPendingDeleteId(poId)}
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-500/30 bg-red-500/10 text-red-300 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                <Trash2 size={14} />
+                              </button>
 
                               <select
                                 value={currentStatus}
                                 onChange={(event) => handleStatusChange(poId, event.target.value)}
                                 disabled={updatingStatusId === poId}
-                                className="dashboard-input h-9 min-w-[132px] rounded-lg px-3 text-xs"
+                                className="dashboard-input h-8 min-w-[118px] rounded-lg px-2 text-xs"
                               >
                                 {statusOptions.map((status) => (
                                   <option key={status} value={status}>{status}</option>
                                 ))}
                               </select>
-
-                              <Button
-                                variant="secondary"
-                                className="!h-9 !w-auto px-3 text-xs"
-                                disabled={deletingId === poId}
-                                onClick={() => setPendingDeleteId(poId)}
-                              >
-                                <Trash2 size={14} className="mr-2" />
-                                Delete
-                              </Button>
                             </div>
                           </td>
                         </tr>
