@@ -134,7 +134,7 @@ const RawTable = ({
             </Button>
             <div className="ml-auto">
               <Button
-                className="!h-9 !w-auto rounded-lg px-3"
+                className="!h-9 !w-auto rounded-lg px-3 !font-medium !text-[#374151]"
                 disabled={selectedRawItemCount === 0}
                 onClick={handleCreatePo}
               >

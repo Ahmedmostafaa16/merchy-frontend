@@ -1,4 +1,4 @@
-import { ChartNoAxesColumn, Sparkles } from "lucide-react";
+import { ChartNoAxesColumn, CircleCheck, Sparkles } from "lucide-react";
 import Button from "./ui/Button";
 import Card from "./ui/Card";
 
@@ -31,6 +31,16 @@ const WorkflowPanel = ({
   forecastMessage,
 }) => {
   const loading = forecastGenerating;
+  const formatSalesSyncDate = (value) => {
+    if (!value) return "";
+    const date = new Date(`${value}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "2-digit",
+      year: "numeric",
+    });
+  };
 
   console.log({
     salesSynced,
@@ -178,7 +188,20 @@ const WorkflowPanel = ({
           </div>
         </div>
 
-        {salesMessage ? <p className="mt-5 text-xs text-zinc-400">{salesMessage}</p> : null}
+        {salesMessage ? (
+          <div className="mt-5 flex items-start gap-4 rounded-2xl border border-[#BBF7D0] bg-[#ECFDF5] px-5 py-4">
+            <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#D1FAE5] text-[#047857]">
+              <CircleCheck size={24} strokeWidth={2.2} />
+            </span>
+            <div>
+              <p className="text-base font-semibold text-[#047857]">Sales synced successfully</p>
+              <p className="mt-1 text-sm font-medium text-[#047857]">
+                Sales data updated for {formatSalesSyncDate(startDate)} &rarr; {formatSalesSyncDate(endDate)}
+              </p>
+              {shop ? <p className="mt-1 text-xs text-[#047857]/80">Store: {shop}</p> : null}
+            </div>
+          </div>
+        ) : null}
         {noSalesDataAvailable && !forecastMessage ? (
           <p className="mt-3 text-xs text-zinc-400">
             No sales data found. Try to select another period.

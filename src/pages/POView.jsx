@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, ClipboardList } from "lucide-react";
+import { ArrowLeft, BadgeCheck, Building2, Calendar, ClipboardList, Package, Wallet } from "lucide-react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Card from "../components/ui/Card";
@@ -36,6 +36,12 @@ const statusBadgeClasses = {
   delivered: "bg-[#DCFCE7] text-[#16A34A] border border-[#BBF7D0]",
   delayed: "bg-[#FEE2E2] text-[#DC2626] border border-[#FECACA]",
 };
+
+const DetailIcon = ({ icon: Icon }) => (
+  <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#EFF6FF] text-[#2665F9]">
+    <Icon size={19} strokeWidth={1.9} />
+  </span>
+);
 
 const POView = ({ settingsEmail = "" }) => {
   const { poId = "" } = useParams();
@@ -132,22 +138,41 @@ const POView = ({ settingsEmail = "" }) => {
                   </span>
                 </div>
 
-                <div className="grid gap-4 border-b border-white/10 py-6 md:grid-cols-4">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.14em] text-zinc-500">Supplier</p>
-                    <p className="mt-2 text-sm font-medium text-white">{po?.supplier_name || "-"}</p>
+                <div className="grid gap-4 border-b border-white/10 py-6 md:grid-cols-5">
+                  <div className="flex items-start gap-3">
+                    <DetailIcon icon={Building2} />
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.14em] text-zinc-500">Supplier</p>
+                      <p className="mt-2 text-sm font-medium text-white">{po?.supplier_name || "-"}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.14em] text-zinc-500">Created</p>
-                    <p className="mt-2 text-sm font-medium text-white">{formatDate(po?.created_at)}</p>
+                  <div className="flex items-start gap-3">
+                    <DetailIcon icon={BadgeCheck} />
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.14em] text-zinc-500">Status</p>
+                      <p className="mt-2 text-sm font-medium text-white">{status}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.14em] text-zinc-500">Due Date</p>
-                    <p className="mt-2 text-sm font-medium text-white">{formatDate(po?.due_date)}</p>
+                  <div className="flex items-start gap-3">
+                    <DetailIcon icon={Calendar} />
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.14em] text-zinc-500">Due Date</p>
+                      <p className="mt-2 text-sm font-medium text-white">{formatDate(po?.due_date)}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.14em] text-zinc-500">Total</p>
-                    <p className="mt-2 text-sm font-medium text-white">{formatCurrency(total)}</p>
+                  <div className="flex items-start gap-3">
+                    <DetailIcon icon={Wallet} />
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.14em] text-zinc-500">Total</p>
+                      <p className="mt-2 text-sm font-medium text-white">{formatCurrency(total)}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <DetailIcon icon={Package} />
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.14em] text-zinc-500">Items</p>
+                      <p className="mt-2 text-sm font-medium text-white">{items.length}</p>
+                    </div>
                   </div>
                 </div>
 
