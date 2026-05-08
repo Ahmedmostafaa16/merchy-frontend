@@ -732,6 +732,7 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
                     handleExportRawTableCsv={handleExportRawTableCsv}
                     getRawStatusClasses={getRawStatusClasses}
                     selectedRawItemCount={selectedForecastItems.length}
+                    selectedRawItems={selectedForecastItems}
                     selectedRawItemKeys={selectedRawItemKeys}
                     areAllRawRowsSelected={areAllRawRowsSelected}
                     canSelectAllRawRows={canSelectAllRawRows}

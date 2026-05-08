@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { Loader2, Sparkles, TrendingUp, X } from "lucide-react";
 import Button from "./ui/Button";
 import Skeleton from "./ui/Skeleton";
+import { apiClient } from "../lib/apiClient";
 
 const RawTable = ({
   forecastGenerating,
@@ -14,6 +16,7 @@ const RawTable = ({
   handleExportRawTableCsv,
   getRawStatusClasses,
   selectedRawItemCount,
+  selectedRawItems = [],
   selectedRawItemKeys,
   areAllRawRowsSelected,
   canSelectAllRawRows,
@@ -23,6 +26,9 @@ const RawTable = ({
 }) => {
   const [showStatusHelp, setShowStatusHelp] = useState(false);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
+  const [advancedForecasting, setAdvancedForecasting] = useState(false);
+  const [advancedForecastError, setAdvancedForecastError] = useState("");
+  const [advancedForecastResult, setAdvancedForecastResult] = useState(null);
 
   const handleSort = (columnKey) => {
     setSortConfig((currentSort) => ({
@@ -49,6 +55,32 @@ const RawTable = ({
   const getRowSelectionKey = (row) => (
     `${row?.variant_id || ""}::${row?.sku || ""}::${row?.title || ""}::${row?.variant_title || row?.variant || row?.size || ""}`
   );
+
+  const handleAdvancedForecast = async () => {
+    const skus = [...new Set(
+      selectedRawItems
+        .map((item) => String(item?.sku || "").trim())
+        .filter(Boolean)
+    )];
+
+    if (skus.length === 0 || advancedForecasting) return;
+
+    setAdvancedForecasting(true);
+    setAdvancedForecastError("");
+
+    try {
+      const payload = await apiClient.post("/ai/forecast", {
+        body: { skus },
+      });
+      setAdvancedForecastResult(payload || null);
+    } catch (_error) {
+      setAdvancedForecastError("Forecasting failed. Please try again.");
+    } finally {
+      setAdvancedForecasting(false);
+    }
+  };
+
+  const forecastRows = Object.entries(advancedForecastResult?.forecast || {});
 
   if (forecastGenerating) {
     return (
@@ -92,6 +124,12 @@ const RawTable = ({
   return (
     <div className="mt-0">
       <>
+          {advancedForecastError ? (
+            <div className="mb-3 rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-sm font-medium text-[#DC2626]">
+              {advancedForecastError}
+            </div>
+          ) : null}
+
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <div className="relative min-w-[220px] flex-1 sm:max-w-[360px]">
               <input
@@ -134,13 +172,23 @@ const RawTable = ({
             </Button>
             <div className="ml-auto">
               <Button
-                className="!h-9 !w-auto rounded-lg px-3 !font-medium !text-[#374151]"
+                className="!h-9 !w-auto rounded-lg px-3 !border-[#7DD3FC] !bg-[#7DD3FC] !font-medium !text-white hover:!bg-[#38BDF8]"
                 disabled={selectedRawItemCount === 0}
                 onClick={handleCreatePo}
               >
                 Create PO
               </Button>
             </div>
+            <Button
+              className={`!h-9 !w-auto rounded-lg px-3 !border-[#7DD3FC] !bg-[#7DD3FC] !font-medium !text-white hover:!bg-[#38BDF8] ${
+                selectedRawItemCount === 0 || advancedForecasting ? "opacity-60 cursor-not-allowed" : ""
+              }`}
+              disabled={selectedRawItemCount === 0 || advancedForecasting}
+              onClick={handleAdvancedForecast}
+            >
+              {advancedForecasting ? <Loader2 size={15} className="mr-2 animate-spin" /> : <Sparkles size={15} className="mr-2" />}
+              {advancedForecasting ? "Forecasting..." : "Advanced Forecasting"}
+            </Button>
             <span className="text-xs font-medium text-zinc-400">
               {filteredRawTableRows.length} {filteredRawTableRows.length === 1 ? "result" : "results"}
             </span>
@@ -280,6 +328,70 @@ const RawTable = ({
               </tbody>
             </table>
           </div>
+          {advancedForecastResult ? (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#111827]/40 px-4 backdrop-blur-sm transition-opacity">
+              <div className="w-full max-w-2xl rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_24px_80px_rgba(15,23,42,0.18)]">
+                <div className="flex items-start justify-between gap-4 border-b border-[#E5E7EB] px-6 py-5">
+                  <div className="flex items-start gap-3">
+                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#EFF6FF] text-[#2665F9]">
+                      <TrendingUp size={20} />
+                    </span>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-semibold text-[#111827]">Advanced Forecast Results</h3>
+                        <Sparkles size={17} className="text-[#2665F9]" />
+                      </div>
+                      <p className="mt-1 text-sm text-[#6B7280]">
+                        ML-powered demand recommendations for selected SKUs.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label="Close advanced forecast results"
+                    onClick={() => setAdvancedForecastResult(null)}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[#6B7280] transition hover:bg-[#F3F4F6] hover:text-[#111827]"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div className="max-h-[420px] overflow-auto px-6 py-5">
+                  <div className="overflow-hidden rounded-xl border border-[#E5E7EB]">
+                    <table className="w-full text-left text-sm">
+                      <thead className="bg-[#F9FAFB]">
+                        <tr>
+                          <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.08em] text-[#6B7280]">SKU</th>
+                          <th className="px-4 py-3 text-xs font-semibold uppercase tracking-[0.08em] text-[#6B7280]">Recommended Qty</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {forecastRows.length === 0 ? (
+                          <tr>
+                            <td colSpan={2} className="px-4 py-6 text-center text-sm text-[#6B7280]">
+                              No recommendations returned.
+                            </td>
+                          </tr>
+                        ) : forecastRows.map(([sku, forecast]) => {
+                          const recommendedQty = Number(forecast?.recommended_qty);
+                          const hasRecommendation = Number.isFinite(recommendedQty) && recommendedQty > 0;
+
+                          return (
+                            <tr key={sku} className="border-t border-[#E5E7EB]">
+                              <td className="px-4 py-3 font-medium text-[#111827]">{sku}</td>
+                              <td className="px-4 py-3 text-[#374151]">
+                                {hasRecommendation ? `${recommendedQty} units` : "Low confidence / insufficient sales data"}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
       </>
     </div>
   );
