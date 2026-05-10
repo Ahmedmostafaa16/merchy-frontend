@@ -9,12 +9,12 @@ const Sidebar = ({ page = "", settingsEmail = "" }) => {
   const [collapsed, setCollapsed] = useState(false);
 
   const linkClassName = ({ isActive }) => (
-    `flex h-11 w-full items-center rounded-[8px] text-sm transition-colors ${
+    `group flex h-11 w-full items-center rounded-xl text-sm font-medium transition-all duration-200 ${
       collapsed ? "justify-center px-0" : "gap-3 px-3"
     } ${
       isActive
-        ? "bg-[rgba(47,111,237,0.25)] text-white"
-        : "text-zinc-300 hover:bg-[rgba(47,111,237,0.18)] hover:text-white"
+        ? "bg-[#EFF6FF] text-[#2563EB] shadow-[inset_0_0_0_1px_rgba(37,99,235,0.12)]"
+        : "text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#111827]"
     }`
   );
 
@@ -23,15 +23,15 @@ const Sidebar = ({ page = "", settingsEmail = "" }) => {
     : "-ml-8 -mt-8 min-h-[calc(100vh+4rem)]";
 
   return (
-    <aside className={`dashboard-panel sticky top-0 flex flex-col border-r border-white/10 px-3 py-4 transition-[width,min-width] duration-300 ease-in-out ${edgeFillClassName} ${
-      collapsed ? "w-[60px] min-w-[60px]" : "w-[184px] min-w-[184px]"
+    <aside className={`dashboard-panel sticky top-0 flex flex-col border-r border-[#E5E7EB] px-4 py-5 transition-[width,min-width] duration-300 ease-in-out ${edgeFillClassName} ${
+      collapsed ? "w-[68px] min-w-[68px]" : "w-[212px] min-w-[212px]"
     }`}>
       <div className={`relative flex h-14 items-center ${collapsed ? "justify-center" : "justify-start"}`}>
         {!collapsed ? (
           <img
             src={logo}
             alt="Merchy"
-            className="h-28 w-auto object-contain"
+            className="h-24 w-auto object-contain"
           />
         ) : null}
         <button
@@ -39,15 +39,15 @@ const Sidebar = ({ page = "", settingsEmail = "" }) => {
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           onClick={() => setCollapsed((current) => !current)}
-          className={`absolute inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-[#0b1020] text-zinc-300 transition hover:border-white/20 hover:bg-white/5 hover:text-white ${
-            collapsed ? "left-1/2 -translate-x-1/2" : "-right-[26px]"
+          className={`absolute inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#E5E7EB] bg-white text-[#64748B] shadow-[0_8px_20px_rgba(15,23,42,0.08)] transition hover:border-[#BFDBFE] hover:bg-[#EFF6FF] hover:text-[#2563EB] ${
+            collapsed ? "left-1/2 -translate-x-1/2" : "-right-[30px]"
           }`}
         >
           {collapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
         </button>
       </div>
 
-      <nav className="mt-4 flex flex-col gap-2">
+      <nav className="mt-5 flex flex-col gap-2">
         <NavLink to={`/overview${search}`} className={linkClassName} title="Overview">
           <LayoutDashboard size={18} />
           {!collapsed ? <span>Overview</span> : null}
@@ -66,13 +66,13 @@ const Sidebar = ({ page = "", settingsEmail = "" }) => {
         </NavLink>
       </nav>
 
-      <div className="mt-auto border-t border-white/10 pt-4">
+      <div className="mt-auto border-t border-[#E5E7EB] pt-4">
         <NavLink to={`/settings${search}`} className={linkClassName} title="Settings">
           <Settings size={18} />
           {!collapsed ? <div className="min-w-0">
             <div className="text-sm font-medium">Settings</div>
             {settingsEmail ? (
-              <div className="mt-1 truncate text-xs text-zinc-400">{settingsEmail}</div>
+              <div className="mt-1 truncate text-xs text-[#94A3B8]">{settingsEmail}</div>
             ) : null}
           </div> : null}
         </NavLink>

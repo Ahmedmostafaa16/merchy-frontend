@@ -7,11 +7,11 @@ const Tabs = ({ tabs = [], activeTab, onTabChange }) => {
           <button
             key={tab}
             type="button"
-            onClick={() => onTabChange(tab)}
-            className={`rounded-full border px-5 py-2.5 text-sm font-semibold transition ${
+          onClick={() => onTabChange(tab)}
+            className={`rounded-xl border px-5 py-2.5 text-sm font-semibold transition-all duration-200 ${
               active
-                ? "border-[#6A329F] bg-[rgba(106,50,159,0.2)] text-[#f2ebff] shadow-[0_0_0_1px_rgba(106,50,159,0.35),0_0_30px_rgba(106,50,159,0.2)]"
-                : "border-[#2a3861] bg-[#101a36] text-[#a4b0d4] hover:border-[#6A329F] hover:bg-[rgba(106,50,159,0.14)] hover:text-[#ddd3f6]"
+                ? "border-[#BFDBFE] bg-[#EFF6FF] text-[#2563EB] shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
+                : "border-[#E5E7EB] bg-white text-[#64748B] hover:border-[#BFDBFE] hover:bg-[#F8FAFC] hover:text-[#111827]"
             }`}
           >
             {tab}

@@ -46,10 +46,12 @@ function ProtectedRoute({ notifications, locationPreferences, children }) {
 
 function BillingLoadingScreen() {
   return (
-    <div className="min-h-screen bg-[#0a1228] text-[#dbe4ff]">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#111827]">
       <div className="flex min-h-screen flex-col items-center justify-center gap-4">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-white/10 border-t-[#6A329F]" />
-        <p className="text-sm font-medium text-[#aab6d3]">Loading your store...</p>
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#DBEAFE] border-t-[#2563EB]" />
+        </div>
+        <p className="text-sm font-semibold text-[#6B7280]">Loading your store...</p>
       </div>
     </div>
   );
@@ -325,7 +327,7 @@ function App() {
   return (
     <>
       {effectiveBilling?.in_trial && !trialBannerDismissed ? (
-        <div className="sticky top-0 z-50 border-b border-[#8f6a1f] bg-[#2c2412] px-4 py-3 text-[#f8e7b5] shadow-[0_10px_30px_rgba(0,0,0,0.25)]">
+        <div className="sticky top-0 z-50 border-b border-[#FDE68A] bg-[#FFFBEB] px-4 py-3 text-[#92400E] shadow-[0_10px_30px_rgba(15,23,42,0.08)]">
           <div className="mx-auto flex max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex-1 text-sm font-medium">
               {"\u26A0\uFE0F Trial ends in "}
@@ -337,7 +339,7 @@ function App() {
               <button
                 type="button"
                 onClick={() => setTrialBannerDismissed(true)}
-                className="inline-flex h-10 items-center justify-center rounded-full border border-[#8f6a1f] px-4 text-sm font-semibold text-[#f8e7b5] transition hover:bg-white/5"
+                className="inline-flex h-10 items-center justify-center rounded-xl border border-[#FCD34D] bg-white px-4 text-sm font-semibold text-[#92400E] transition hover:bg-[#FEF3C7]"
               >
                 Dismiss
               </button>

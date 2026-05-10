@@ -3,10 +3,10 @@ const PillChip = ({ children, active = false, className = "", onClick }) => {
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${
         active
-          ? "border-[#6A329F] bg-[rgba(106,50,159,0.22)] text-[#efe6ff] shadow-[0_0_0_1px_rgba(106,50,159,0.35),0_0_24px_rgba(106,50,159,0.18)]"
-          : "border-[#23345f] bg-[#111b38] text-[#9aa8cc] hover:border-[#6A329F] hover:bg-[rgba(106,50,159,0.16)] hover:text-[#ddd3f6]"
+          ? "border-[#BFDBFE] bg-[#EFF6FF] text-[#2563EB] shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
+          : "border-[#E5E7EB] bg-white text-[#64748B] hover:border-[#BFDBFE] hover:bg-[#F8FAFC] hover:text-[#111827]"
       } ${className}`}
     >
       {children}
