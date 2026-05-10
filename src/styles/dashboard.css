@@ -447,14 +447,29 @@ aside.dashboard-panel {
   transition: background-color 0.18s ease, box-shadow 0.18s ease;
 }
 
+.dashboard-page .replenish-table-shell tbody tr:nth-child(odd) {
+  background: #ffffff !important;
+}
+
+.dashboard-page .replenish-table-shell tbody tr:nth-child(even) {
+  background: #f8fafc !important;
+}
+
 .dashboard-page .replenish-table-shell tbody tr:hover {
-  background: #f8fbff !important;
+  background: #eff6ff !important;
   box-shadow: inset 3px 0 0 #bfdbfe;
 }
 
 .dashboard-page .replenish-table-shell td {
   padding-top: 16px !important;
   padding-bottom: 16px !important;
+  color: #1f2937 !important;
+  font-weight: 500;
+}
+
+.dashboard-page .replenish-table-shell td.text-zinc-400,
+.dashboard-page .replenish-table-shell td .text-zinc-400 {
+  color: #1f2937 !important;
 }
 
 .dashboard-page .replenish-pagination-button {
@@ -499,6 +514,16 @@ aside.dashboard-panel {
   background: #f8fafc;
   color: #cbd5e1;
   box-shadow: none;
+}
+
+.dashboard-page .forecast-donut-segment {
+  transition: opacity 0.18s ease, stroke-width 0.18s ease, filter 0.18s ease;
+}
+
+.dashboard-page .forecast-donut-segment:hover {
+  filter: drop-shadow(0 8px 14px rgba(15, 23, 42, 0.16));
+  opacity: 0.9;
+  stroke-width: 14;
 }
 
 .dashboard-page span[class*="bg-[#197FE6]"],

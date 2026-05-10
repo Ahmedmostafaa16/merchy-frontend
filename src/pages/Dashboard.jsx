@@ -17,6 +17,91 @@ const INVENTORY_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const KPI_CACHE_KEY = "kpi_cache";
 const PO_SELECTION_STORAGE_KEY = "po_builder_selected_items";
 const buildPoSelectionKey = (item) => `${item?.variant_id || ""}::${item?.sku || ""}::${item?.title || ""}::${item?.variant_title || item?.variant || item?.size || ""}`;
+const FORECAST_STATUS_CONFIG = {
+  fastmoving: { label: "Fast Moving", color: "#2563EB" },
+  moderate: { label: "Moderate", color: "#10B981" },
+  slowmoving: { label: "Slow Moving", color: "#F59E0B" },
+  stockout: { label: "Stock Out", color: "#EF4444" },
+  neversold: { label: "Never Sold", color: "#9CA3AF" },
+};
+
+const ForecastStatusDonut = ({ segments = [], total = 0 }) => {
+  const radius = 42;
+  const circumference = 2 * Math.PI * radius;
+  let offset = 0;
+
+  return (
+    <Card className="dashboard-panel p-6">
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <p className="text-sm font-semibold text-[#111827]">Forecast Status Mix</p>
+          <p className="mt-1 text-sm text-[#6B7280]">
+            Derived from the current replenish table data.
+          </p>
+        </div>
+        <div className="flex flex-col items-center gap-5 sm:flex-row">
+          <div className="relative h-40 w-40">
+            <svg className="h-40 w-40 -rotate-90" viewBox="0 0 120 120" role="img" aria-label="Forecast status distribution">
+              <circle
+                cx="60"
+                cy="60"
+                r={radius}
+                fill="none"
+                stroke="#E5E7EB"
+                strokeWidth="12"
+              />
+              {segments.map((segment) => {
+                const dashLength = (segment.percentage / 100) * circumference;
+                const currentOffset = offset;
+                offset += dashLength;
+
+                return (
+                  <circle
+                    key={segment.key}
+                    className="forecast-donut-segment"
+                    cx="60"
+                    cy="60"
+                    r={radius}
+                    fill="none"
+                    stroke={segment.color}
+                    strokeWidth="12"
+                    strokeDasharray={`${dashLength} ${circumference - dashLength}`}
+                    strokeDashoffset={-currentOffset}
+                    strokeLinecap="round"
+                  >
+                    <title>{`${segment.label}: ${segment.percentage}% (${segment.count})`}</title>
+                  </circle>
+                );
+              })}
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-3xl font-bold text-[#111827]">{total}</span>
+              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-[#94A3B8]">Rows</span>
+            </div>
+          </div>
+          <div className="grid min-w-[220px] gap-2">
+            {segments.length === 0 ? (
+              <div className="rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] px-4 py-5 text-sm text-[#6B7280]">
+                Generate a forecast to see status percentages.
+              </div>
+            ) : segments.map((segment) => (
+              <div key={segment.key} className="group relative flex items-center justify-between gap-4 rounded-xl px-3 py-2 transition hover:bg-[#F8FAFC]">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: segment.color }} />
+                  <span className="truncate text-sm font-medium text-[#374151]">{segment.label}</span>
+                </div>
+                <span className="text-sm font-bold text-[#111827]">{segment.percentage}%</span>
+                <span className="pointer-events-none absolute -top-9 right-2 z-10 rounded-lg border border-[#E5E7EB] bg-white px-2.5 py-1 text-xs font-semibold text-[#374151] opacity-0 shadow-[0_10px_30px_rgba(15,23,42,0.12)] transition group-hover:opacity-100">
+                  {segment.count} rows
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+};
 
 const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading = false, settingsEmail = "" }) => {
   const navigate = useNavigate();
@@ -500,6 +585,38 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
     return "bg-[#F3F4F6] text-[#6B7280] border border-[#E5E7EB]";
   }, [normalizeStatusValue]);
 
+  const forecastStatusDistribution = useMemo(() => {
+    const counts = Object.keys(FORECAST_STATUS_CONFIG).reduce((accumulator, statusKey) => ({
+      ...accumulator,
+      [statusKey]: 0,
+    }), {});
+
+    const rows = Array.isArray(forecastData) ? forecastData : [];
+
+    rows.forEach((row) => {
+      const statusKey = normalizeStatusValue(row?.status);
+      if (Object.prototype.hasOwnProperty.call(counts, statusKey)) {
+        counts[statusKey] += 1;
+      }
+    });
+
+    const total = Object.values(counts).reduce((sum, count) => sum + count, 0);
+    const segments = Object.entries(FORECAST_STATUS_CONFIG)
+      .map(([key, config]) => {
+        const count = counts[key] || 0;
+        return {
+          key,
+          count,
+          label: config.label,
+          color: config.color,
+          percentage: total > 0 ? Math.round((count / total) * 100) : 0,
+        };
+      })
+      .filter((segment) => segment.count > 0);
+
+    return { total, segments };
+  }, [forecastData, normalizeStatusValue]);
+
   const filteredRawTableRows = useMemo(() => {
     const searchTerms = rawTableSearch
       .toLowerCase()
@@ -709,6 +826,10 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
                   inventoryValue={inventoryValue}
                   unitsInStock={unitsInStock}
                   renderKpiValue={renderKpiValue}
+                />
+                <ForecastStatusDonut
+                  segments={forecastStatusDistribution.segments}
+                  total={forecastStatusDistribution.total}
                 />
               </>
             ) : (
