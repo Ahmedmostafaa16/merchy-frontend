@@ -13,7 +13,7 @@ import POEdit from "./pages/POEdit";
 import POView from "./pages/POView";
 import PurchaseOrders from "./pages/PurchaseOrders";
 import RawData from "./pages/RawData";
-import { getAppBridge, getHostParam, getShopParam, openCurrentPageOutsideShopifyAdmin, redirectToRemote } from "./shopify/appBridge";
+import { getAppBridge, getHostParam, getShopParam, redirectToRemote } from "./shopify/appBridge";
 import { authFetch } from "./lib/authFetch";
 
 const BACKEND_URL = "https://merchyapp-backend.up.railway.app";
@@ -90,7 +90,6 @@ function App() {
       if (!app) {
         return;
       }
-      openCurrentPageOutsideShopifyAdmin();
     }
 
     setReady(true);
