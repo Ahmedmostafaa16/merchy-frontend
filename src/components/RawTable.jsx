@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { Loader2, Sparkles, TrendingUp, X } from "lucide-react";
+import { Sparkles, TrendingUp, X } from "lucide-react";
 import Button from "./ui/Button";
 import Skeleton from "./ui/Skeleton";
-import { apiClient } from "../lib/apiClient";
 
 const RawTable = ({
   forecastGenerating,
@@ -16,7 +15,6 @@ const RawTable = ({
   handleExportRawTableCsv,
   getRawStatusClasses,
   selectedRawItemCount,
-  selectedRawItems = [],
   selectedRawItemKeys,
   areAllRawRowsSelected,
   canSelectAllRawRows,
@@ -26,8 +24,6 @@ const RawTable = ({
 }) => {
   const [showStatusHelp, setShowStatusHelp] = useState(false);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
-  const [advancedForecasting, setAdvancedForecasting] = useState(false);
-  const [advancedForecastError, setAdvancedForecastError] = useState("");
   const [advancedForecastResult, setAdvancedForecastResult] = useState(null);
 
   const handleSort = (columnKey) => {
@@ -55,30 +51,6 @@ const RawTable = ({
   const getRowSelectionKey = (row) => (
     `${row?.variant_id || ""}::${row?.sku || ""}::${row?.title || ""}::${row?.variant_title || row?.variant || row?.size || ""}`
   );
-
-  const handleAdvancedForecast = async () => {
-    const skus = [...new Set(
-      selectedRawItems
-        .map((item) => String(item?.sku || "").trim())
-        .filter(Boolean)
-    )];
-
-    if (skus.length === 0 || advancedForecasting) return;
-
-    setAdvancedForecasting(true);
-    setAdvancedForecastError("");
-
-    try {
-      const payload = await apiClient.post("/ai/forecast", {
-        body: { skus },
-      });
-      setAdvancedForecastResult(payload || null);
-    } catch (_error) {
-      setAdvancedForecastError("Forecasting failed. Please try again.");
-    } finally {
-      setAdvancedForecasting(false);
-    }
-  };
 
   const forecastRows = Object.entries(advancedForecastResult?.forecast || {});
 
@@ -124,12 +96,6 @@ const RawTable = ({
   return (
     <div className="mt-0">
       <>
-          {advancedForecastError ? (
-            <div className="mb-3 rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-sm font-medium text-[#DC2626]">
-              {advancedForecastError}
-            </div>
-          ) : null}
-
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <div className="relative min-w-[220px] flex-1 sm:max-w-[360px]">
               <input
@@ -179,20 +145,6 @@ const RawTable = ({
                 Create PO
               </Button>
             </div>
-            {/* Advanced Forecasting button intentionally hidden from the UI for now.
-                The request logic and results modal remain in code for future re-enable. */}
-            {/*
-              <Button
-                className={`!h-9 !w-auto rounded-lg px-3 !border-[#7DD3FC] !bg-[#7DD3FC] !font-medium !text-white hover:!bg-[#38BDF8] ${
-                  selectedRawItemCount === 0 || advancedForecasting ? "opacity-60 cursor-not-allowed" : ""
-                }`}
-                disabled={selectedRawItemCount === 0 || advancedForecasting}
-                onClick={handleAdvancedForecast}
-              >
-                {advancedForecasting ? <Loader2 size={15} className="mr-2 animate-spin" /> : <Sparkles size={15} className="mr-2" />}
-                {advancedForecasting ? "Forecasting..." : "Advanced Forecasting"}
-              </Button>
-            */}
             <span className="text-xs font-medium text-zinc-400">
               {filteredRawTableRows.length} {filteredRawTableRows.length === 1 ? "result" : "results"}
             </span>
