@@ -380,6 +380,34 @@ aside.dashboard-panel {
   background: var(--merchy-primary-dark) !important;
 }
 
+.dashboard-page .legacy-table-action {
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+
+.dashboard-page .legacy-table-action-secondary {
+  border-color: #d1d5db !important;
+  background: #ffffff !important;
+  color: #111827 !important;
+}
+
+.dashboard-page .legacy-table-action-secondary:hover:not(:disabled) {
+  background: #f9fafb !important;
+  color: #111827 !important;
+}
+
+.dashboard-page .legacy-table-action-primary {
+  border-color: #7dd3fc !important;
+  background: #7dd3fc !important;
+  color: #ffffff !important;
+}
+
+.dashboard-page .legacy-table-action-primary:hover:not(:disabled) {
+  border-color: #38bdf8 !important;
+  background: #38bdf8 !important;
+  color: #ffffff !important;
+}
+
 .dashboard-page span[class*="bg-[#197FE6]"],
 .dashboard-page span[class*="bg-[#EFF6FF]"],
 .dashboard-page .bg-sky-100,

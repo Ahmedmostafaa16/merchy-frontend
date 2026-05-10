@@ -182,7 +182,7 @@ const WorkflowPanel = ({
                 onClick={handleGenerateForecast}
               >
                 {!forecastGenerating ? <Sparkles size={16} className="mr-2" /> : null}
-                {forecastGenerating ? "Generating..." : "Generate Forecast"}
+                {forecastGenerating ? "Generating..." : "Forecast"}
               </Button>
             </div>
           </div>

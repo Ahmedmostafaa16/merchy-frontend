@@ -166,7 +166,7 @@ const RawTable = ({
             </select>
             <Button
               variant="secondary"
-              className="!h-9 !w-auto rounded-lg px-3"
+              className="legacy-table-action legacy-table-action-secondary !h-9 !w-auto rounded-lg px-3"
               disabled={filteredRawTableRows.length === 0}
               onClick={handleExportRawTableCsv}
             >
@@ -174,7 +174,7 @@ const RawTable = ({
             </Button>
             <div className="ml-auto">
               <Button
-                className="!h-9 !w-auto rounded-lg px-3 !border-[#7DD3FC] !bg-[#7DD3FC] !font-medium !text-white hover:!bg-[#38BDF8]"
+                className="legacy-table-action legacy-table-action-primary !h-9 !w-auto rounded-lg px-3 !border-[#7DD3FC] !bg-[#7DD3FC] !font-medium !text-white hover:!bg-[#38BDF8]"
                 disabled={selectedRawItemCount === 0}
                 onClick={handleCreatePo}
               >
