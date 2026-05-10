@@ -4,9 +4,17 @@ import { Redirect } from "@shopify/app-bridge/actions";
 let appInstance = null;
 let appHost = "";
 let initErrorMessage = "";
+let outsideAdminOpenDispatched = false;
 const SHOP_STORAGE_KEY = "shopify_shop";
 const HOST_STORAGE_KEY = "shopify_host";
 const readSearchParams = () => new URLSearchParams(window.location.search);
+const isRunningInsideFrame = () => {
+  try {
+    return window.top !== window.self;
+  } catch (_error) {
+    return true;
+  }
+};
 
 export const getShopParam = () => {
   const shop = readSearchParams().get("shop") || window.sessionStorage.getItem(SHOP_STORAGE_KEY) || "";
@@ -61,4 +69,29 @@ export const redirectToRemote = (url) => {
   }
 
   window.location.assign(url);
+};
+
+export const openCurrentPageOutsideShopifyAdmin = () => {
+  if (outsideAdminOpenDispatched || !isRunningInsideFrame()) {
+    return false;
+  }
+
+  const app = getAppBridge();
+  if (!app) {
+    return false;
+  }
+
+  outsideAdminOpenDispatched = true;
+
+  try {
+    const redirect = Redirect.create(app);
+    redirect.dispatch(Redirect.Action.REMOTE, {
+      url: window.location.href,
+      newContext: true,
+    });
+  } catch (_error) {
+    window.open(window.location.href, "_top");
+  }
+
+  return true;
 };

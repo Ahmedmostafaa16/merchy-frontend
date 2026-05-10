@@ -179,16 +179,20 @@ const RawTable = ({
                 Create PO
               </Button>
             </div>
-            <Button
-              className={`!h-9 !w-auto rounded-lg px-3 !border-[#7DD3FC] !bg-[#7DD3FC] !font-medium !text-white hover:!bg-[#38BDF8] ${
-                selectedRawItemCount === 0 || advancedForecasting ? "opacity-60 cursor-not-allowed" : ""
-              }`}
-              disabled={selectedRawItemCount === 0 || advancedForecasting}
-              onClick={handleAdvancedForecast}
-            >
-              {advancedForecasting ? <Loader2 size={15} className="mr-2 animate-spin" /> : <Sparkles size={15} className="mr-2" />}
-              {advancedForecasting ? "Forecasting..." : "Advanced Forecasting"}
-            </Button>
+            {/* Advanced Forecasting button intentionally hidden from the UI for now.
+                The request logic and results modal remain in code for future re-enable. */}
+            {/*
+              <Button
+                className={`!h-9 !w-auto rounded-lg px-3 !border-[#7DD3FC] !bg-[#7DD3FC] !font-medium !text-white hover:!bg-[#38BDF8] ${
+                  selectedRawItemCount === 0 || advancedForecasting ? "opacity-60 cursor-not-allowed" : ""
+                }`}
+                disabled={selectedRawItemCount === 0 || advancedForecasting}
+                onClick={handleAdvancedForecast}
+              >
+                {advancedForecasting ? <Loader2 size={15} className="mr-2 animate-spin" /> : <Sparkles size={15} className="mr-2" />}
+                {advancedForecasting ? "Forecasting..." : "Advanced Forecasting"}
+              </Button>
+            */}
             <span className="text-xs font-medium text-zinc-400">
               {filteredRawTableRows.length} {filteredRawTableRows.length === 1 ? "result" : "results"}
             </span>
