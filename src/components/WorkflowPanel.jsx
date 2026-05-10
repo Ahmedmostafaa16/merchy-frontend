@@ -177,7 +177,7 @@ const WorkflowPanel = ({
 
             <div className="mt-4 justify-self-start lg:mt-0 lg:border-t-0 lg:pt-0">
               <Button
-                className="!m-0 !flex !h-11 !w-[180px] !items-center !justify-center px-5 !rounded-lg !border-0 !bg-[#2F6FED] !text-white !shadow-none hover:!bg-[#1F5AE0]"
+                className="forecast-primary-action !m-0 !flex !h-11 !w-[180px] !items-center !justify-center px-6 !rounded-xl !border-0 !bg-[#2563EB] !text-white hover:!bg-[#1D4ED8]"
                 disabled={false}
                 onClick={handleGenerateForecast}
               >

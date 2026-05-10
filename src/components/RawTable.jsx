@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 // eslint-disable-next-line no-unused-vars
 import { Loader2, Sparkles, TrendingUp, X } from "lucide-react";
 import Button from "./ui/Button";
 import Skeleton from "./ui/Skeleton";
 import { apiClient } from "../lib/apiClient";
+
+const ROWS_PER_PAGE = 20;
 
 const RawTable = ({
   forecastGenerating,
@@ -30,6 +32,11 @@ const RawTable = ({
   const [advancedForecasting, setAdvancedForecasting] = useState(false);
   const [advancedForecastError, setAdvancedForecastError] = useState("");
   const [advancedForecastResult, setAdvancedForecastResult] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [rawTableSearch, rawTableStatusFilter, sortConfig.key, sortConfig.direction, filteredRawTableRows.length]);
 
   const handleSort = (columnKey) => {
     setSortConfig((currentSort) => ({
@@ -122,6 +129,23 @@ const RawTable = ({
       ? safeFirstValue - safeSecondValue
       : safeSecondValue - safeFirstValue;
   });
+  const totalPages = Math.max(1, Math.ceil(sortedData.length / ROWS_PER_PAGE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const pageStartIndex = (safeCurrentPage - 1) * ROWS_PER_PAGE;
+  const pageEndIndex = pageStartIndex + ROWS_PER_PAGE;
+  const paginatedData = sortedData.slice(pageStartIndex, pageEndIndex);
+  const showingStart = sortedData.length === 0 ? 0 : pageStartIndex + 1;
+  const showingEnd = Math.min(pageEndIndex, sortedData.length);
+  const paginationItems = Array.from({ length: totalPages }, (_, index) => index + 1).filter((pageNumber) => (
+    pageNumber === 1 ||
+    pageNumber === totalPages ||
+    Math.abs(pageNumber - safeCurrentPage) <= 1
+  ));
+
+  const handlePageChange = (pageNumber) => {
+    const nextPage = Math.min(Math.max(pageNumber, 1), totalPages);
+    setCurrentPage(nextPage);
+  };
 
   return (
     <div className="mt-0">
@@ -199,7 +223,7 @@ const RawTable = ({
               {filteredRawTableRows.length} {filteredRawTableRows.length === 1 ? "result" : "results"}
             </span>
           </div>
-          <div className="max-h-[calc(100vh-220px)] overflow-auto rounded-xl border border-[#E5E7EB] bg-white">
+          <div className="replenish-table-shell rounded-xl border border-[#E5E7EB] bg-white">
             <table className="min-w-[1120px] w-full table-fixed text-left text-sm text-[#374151]">
               <colgroup>
                 <col className="w-[5%]" />
@@ -306,8 +330,8 @@ const RawTable = ({
                     </td>
                   </tr>
                 ) : (
-                  sortedData.map((row, index) => (
-                    <tr key={`raw-${row?.variant_id || index}`} className="border-t border-[#E5E7EB] text-[#374151] hover:bg-[#F9FAFB]">
+                  paginatedData.map((row, index) => (
+                    <tr key={`raw-${row?.variant_id || pageStartIndex + index}`} className="border-t border-[#E5E7EB] text-[#374151] hover:bg-[#F9FAFB]">
                       <td className="px-2 py-3 text-zinc-400">
                         <input
                           type="checkbox"
@@ -334,6 +358,48 @@ const RawTable = ({
               </tbody>
             </table>
           </div>
+          {sortedData.length > 0 ? (
+            <div className="mt-4 flex flex-col gap-3 border-t border-[#E5E7EB] pt-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm font-medium text-[#6B7280]">
+                Showing <span className="text-[#111827]">{showingStart}-{showingEnd}</span> of <span className="text-[#111827]">{sortedData.length}</span>
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  className="replenish-pagination-button"
+                  disabled={safeCurrentPage === 1}
+                  onClick={() => handlePageChange(safeCurrentPage - 1)}
+                >
+                  Previous
+                </button>
+                {paginationItems.map((pageNumber, index) => {
+                  const previousPageNumber = paginationItems[index - 1];
+                  const showGap = previousPageNumber && pageNumber - previousPageNumber > 1;
+
+                  return (
+                    <span key={pageNumber} className="inline-flex items-center gap-2">
+                      {showGap ? <span className="px-1 text-sm font-semibold text-[#94A3B8]">...</span> : null}
+                      <button
+                        type="button"
+                        className={`replenish-pagination-button replenish-pagination-number ${pageNumber === safeCurrentPage ? "is-active" : ""}`}
+                        onClick={() => handlePageChange(pageNumber)}
+                      >
+                        {pageNumber}
+                      </button>
+                    </span>
+                  );
+                })}
+                <button
+                  type="button"
+                  className="replenish-pagination-button"
+                  disabled={safeCurrentPage === totalPages}
+                  onClick={() => handlePageChange(safeCurrentPage + 1)}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          ) : null}
           {advancedForecastResult ? (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#111827]/40 px-4 backdrop-blur-sm transition-opacity">
               <div className="w-full max-w-2xl rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_24px_80px_rgba(15,23,42,0.18)]">
