@@ -107,21 +107,21 @@ const ForecastInventoryBarChart = ({ bars = [], maxValue = 0 }) => {
   const chartMax = maxValue > 0 ? maxValue : 1;
 
   return (
-    <Card className="dashboard-panel inventory-status-chart-card overflow-hidden border-[#1F2937] bg-[#111827] p-6 text-white">
+    <Card className="dashboard-panel inventory-status-chart-card overflow-hidden p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-white">Inventory Quantity by Status</p>
-          <p className="mt-1 text-sm text-[#9CA3AF]">
+          <p className="text-sm font-semibold text-[#111827]">Inventory Quantity by Status</p>
+          <p className="mt-1 text-sm text-[#6B7280]">
             Total inventory quantity grouped from the current replenish table data.
           </p>
         </div>
-        <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-[#D1D5DB]">
+        <div className="rounded-full border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-1 text-xs font-semibold text-[#6B7280]">
           Total Inventory Quantity
         </div>
       </div>
 
       <div className="mt-7 grid min-h-[260px] grid-cols-[44px_minmax(0,1fr)] gap-4">
-        <div className="flex flex-col justify-between border-r border-white/10 pr-3 text-right text-[11px] font-semibold text-[#9CA3AF]">
+        <div className="flex flex-col justify-between border-r border-[#E5E7EB] pr-3 text-right text-[11px] font-semibold text-[#94A3B8]">
           <span>{maxValue.toLocaleString("en-US")}</span>
           <span>{Math.round(maxValue / 2).toLocaleString("en-US")}</span>
           <span>0</span>
@@ -129,9 +129,9 @@ const ForecastInventoryBarChart = ({ bars = [], maxValue = 0 }) => {
 
         <div className="relative">
           <div className="absolute inset-0 flex flex-col justify-between">
-            <span className="border-t border-white/10" />
-            <span className="border-t border-white/10" />
-            <span className="border-t border-white/10" />
+            <span className="border-t border-[#E5E7EB]" />
+            <span className="border-t border-[#E5E7EB]" />
+            <span className="border-t border-[#E5E7EB]" />
           </div>
           <div className="relative grid h-full grid-cols-5 items-end gap-3 sm:gap-5">
             {bars.map((bar) => {
@@ -141,17 +141,17 @@ const ForecastInventoryBarChart = ({ bars = [], maxValue = 0 }) => {
                 <div key={bar.key} className="group flex h-full min-w-0 flex-col items-center justify-end gap-3">
                   <div className="relative flex h-[190px] w-full items-end justify-center">
                     <div
-                      className="inventory-status-bar w-full max-w-[54px] rounded-t-2xl shadow-[0_16px_34px_rgba(0,0,0,0.22)]"
+                      className="inventory-status-bar w-full max-w-[54px] rounded-t-2xl shadow-[0_14px_28px_rgba(15,23,42,0.12)]"
                       style={{
                         height: `${heightPercent}%`,
                         backgroundColor: bar.color,
                       }}
                     />
-                    <div className="pointer-events-none absolute bottom-[calc(100%+10px)] left-1/2 z-10 min-w-max -translate-x-1/2 rounded-xl border border-white/10 bg-white px-3 py-2 text-xs font-semibold text-[#111827] opacity-0 shadow-[0_18px_45px_rgba(0,0,0,0.22)] transition group-hover:opacity-100">
+                    <div className="pointer-events-none absolute bottom-[calc(100%+10px)] left-1/2 z-10 min-w-max -translate-x-1/2 rounded-xl border border-[#E5E7EB] bg-white px-3 py-2 text-xs font-semibold text-[#111827] opacity-0 shadow-[0_18px_45px_rgba(15,23,42,0.14)] transition group-hover:opacity-100">
                       {bar.label}: {bar.value.toLocaleString("en-US")}
                     </div>
                   </div>
-                  <div className="min-h-[34px] text-center text-[11px] font-semibold leading-4 text-[#D1D5DB] sm:text-xs">
+                  <div className="min-h-[34px] text-center text-[11px] font-semibold leading-4 text-[#6B7280] sm:text-xs">
                     {bar.label}
                   </div>
                 </div>

@@ -527,26 +527,9 @@ aside.dashboard-panel {
 }
 
 .dashboard-page .inventory-status-chart-card {
-  border-color: #1f2937 !important;
-  background:
-    radial-gradient(circle at 18% 12%, rgba(37, 99, 235, 0.16), transparent 32%),
-    #111827 !important;
-  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.22) !important;
-}
-
-.dashboard-page .inventory-status-chart-card,
-.dashboard-page .inventory-status-chart-card h1,
-.dashboard-page .inventory-status-chart-card h2,
-.dashboard-page .inventory-status-chart-card h3 {
-  color: #ffffff !important;
-}
-
-.dashboard-page .inventory-status-chart-card p {
-  color: #9ca3af !important;
-}
-
-.dashboard-page .inventory-status-chart-card > div > div:first-child > p:first-child {
-  color: #ffffff !important;
+  border-color: var(--merchy-border) !important;
+  background: var(--merchy-surface) !important;
+  box-shadow: var(--merchy-shadow) !important;
 }
 
 .dashboard-page .inventory-status-chart-card .inventory-status-bar {
