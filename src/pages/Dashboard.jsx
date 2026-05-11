@@ -103,6 +103,67 @@ const ForecastStatusDonut = ({ segments = [], total = 0 }) => {
   );
 };
 
+const ForecastInventoryBarChart = ({ bars = [], maxValue = 0 }) => {
+  const chartMax = maxValue > 0 ? maxValue : 1;
+
+  return (
+    <Card className="dashboard-panel inventory-status-chart-card overflow-hidden border-[#1F2937] bg-[#111827] p-6 text-white">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold text-white">Inventory Quantity by Status</p>
+          <p className="mt-1 text-sm text-[#9CA3AF]">
+            Total inventory quantity grouped from the current replenish table data.
+          </p>
+        </div>
+        <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-[#D1D5DB]">
+          Total Inventory Quantity
+        </div>
+      </div>
+
+      <div className="mt-7 grid min-h-[260px] grid-cols-[44px_minmax(0,1fr)] gap-4">
+        <div className="flex flex-col justify-between border-r border-white/10 pr-3 text-right text-[11px] font-semibold text-[#9CA3AF]">
+          <span>{maxValue.toLocaleString("en-US")}</span>
+          <span>{Math.round(maxValue / 2).toLocaleString("en-US")}</span>
+          <span>0</span>
+        </div>
+
+        <div className="relative">
+          <div className="absolute inset-0 flex flex-col justify-between">
+            <span className="border-t border-white/10" />
+            <span className="border-t border-white/10" />
+            <span className="border-t border-white/10" />
+          </div>
+          <div className="relative grid h-full grid-cols-5 items-end gap-3 sm:gap-5">
+            {bars.map((bar) => {
+              const heightPercent = maxValue > 0 ? Math.max((bar.value / chartMax) * 100, bar.value > 0 ? 6 : 2) : 2;
+
+              return (
+                <div key={bar.key} className="group flex h-full min-w-0 flex-col items-center justify-end gap-3">
+                  <div className="relative flex h-[190px] w-full items-end justify-center">
+                    <div
+                      className="inventory-status-bar w-full max-w-[54px] rounded-t-2xl shadow-[0_16px_34px_rgba(0,0,0,0.22)]"
+                      style={{
+                        height: `${heightPercent}%`,
+                        backgroundColor: bar.color,
+                      }}
+                    />
+                    <div className="pointer-events-none absolute bottom-[calc(100%+10px)] left-1/2 z-10 min-w-max -translate-x-1/2 rounded-xl border border-white/10 bg-white px-3 py-2 text-xs font-semibold text-[#111827] opacity-0 shadow-[0_18px_45px_rgba(0,0,0,0.22)] transition group-hover:opacity-100">
+                      {bar.label}: {bar.value.toLocaleString("en-US")}
+                    </div>
+                  </div>
+                  <div className="min-h-[34px] text-center text-[11px] font-semibold leading-4 text-[#D1D5DB] sm:text-xs">
+                    {bar.label}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+};
+
 const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading = false, settingsEmail = "" }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -617,6 +678,37 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
     return { total, segments };
   }, [forecastData, normalizeStatusValue]);
 
+  const forecastInventoryByStatus = useMemo(() => {
+    const totals = Object.keys(FORECAST_STATUS_CONFIG).reduce((accumulator, statusKey) => ({
+      ...accumulator,
+      [statusKey]: 0,
+    }), {});
+
+    const rows = Array.isArray(forecastData) ? forecastData : [];
+
+    rows.forEach((row) => {
+      const statusKey = normalizeStatusValue(row?.status);
+      if (!Object.prototype.hasOwnProperty.call(totals, statusKey)) {
+        return;
+      }
+
+      const inventoryValue = Number(row?.inventory);
+      totals[statusKey] += Number.isFinite(inventoryValue) && inventoryValue > 0 ? inventoryValue : 0;
+    });
+
+    const bars = Object.entries(FORECAST_STATUS_CONFIG).map(([key, config]) => ({
+      key,
+      label: config.label,
+      color: config.color,
+      value: totals[key] || 0,
+    }));
+
+    return {
+      bars,
+      maxValue: Math.max(0, ...bars.map((bar) => bar.value)),
+    };
+  }, [forecastData, normalizeStatusValue]);
+
   const filteredRawTableRows = useMemo(() => {
     const searchTerms = rawTableSearch
       .toLowerCase()
@@ -830,6 +922,10 @@ const Dashboard = ({ page = "overview", initialForecastData = [], rawDataLoading
                 <ForecastStatusDonut
                   segments={forecastStatusDistribution.segments}
                   total={forecastStatusDistribution.total}
+                />
+                <ForecastInventoryBarChart
+                  bars={forecastInventoryByStatus.bars}
+                  maxValue={forecastInventoryByStatus.maxValue}
                 />
               </>
             ) : (
