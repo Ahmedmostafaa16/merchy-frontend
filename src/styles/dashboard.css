@@ -526,6 +526,50 @@ aside.dashboard-panel {
   stroke-width: 14;
 }
 
+.dashboard-page .advanced-forecast-modal {
+  animation: advancedForecastFade 0.18s ease-out both;
+}
+
+.dashboard-page .advanced-forecast-dialog {
+  animation: advancedForecastSlide 0.2s ease-out both;
+}
+
+.dashboard-page .advanced-forecast-chart {
+  border: 1px solid var(--merchy-border);
+  border-radius: 18px;
+  background: #ffffff;
+  padding: 18px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.05);
+}
+
+.dashboard-page .advanced-forecast-chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+@keyframes advancedForecastFade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes advancedForecastSlide {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .dashboard-page .inventory-status-chart-card {
   border-color: var(--merchy-border) !important;
   background: var(--merchy-surface) !important;
